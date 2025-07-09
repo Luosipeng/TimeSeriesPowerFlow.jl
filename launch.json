@@ -1,0 +1,23 @@
+
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "type": "julia",
+                "request": "launch",
+                "name": "Julia Debug",
+                "program": "${file}",
+                "stopOnEntry": false,
+                "cwd": "${workspaceFolder}",
+                "juliaEnv": "${command:activeJuliaEnvironment}",
+                "julia": "C:/Users/13733/AppData/Local/Programs/Julia-1.11.3/bin/julia.exe",  // 添加这一行
+                // 添加以下配置来优化调试体验
+                "debugOptions": [
+                    "DebugStdLib"  // 如果不需要调试标准库，可以移除此项
+                ]
+            }
+        ]
+      }

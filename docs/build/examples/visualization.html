@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>可视化示例 · 电力系统建模与分析工具集</title><meta name="title" content="可视化示例 · 电力系统建模与分析工具集"/><meta property="og:title" content="可视化示例 · 电力系统建模与分析工具集"/><meta property="twitter:title" content="可视化示例 · 电力系统建模与分析工具集"/><meta name="description" content="Documentation for 电力系统建模与分析工具集."/><meta property="og:description" content="Documentation for 电力系统建模与分析工具集."/><meta property="twitter:description" content="Documentation for 电力系统建模与分析工具集."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../index.html">首页</a></li><li><a class="tocitem" href="../getting_started.html">入门指南</a></li><li><span class="tocitem">API参考</span><ul><li><a class="tocitem" href="../api/overview.html">概述</a></li><li><a class="tocitem" href="../api/component_model.html">ComponentModel模块</a></li><li><a class="tocitem" href="../api/power_flow.html">PowerFlow模块</a></li><li><a class="tocitem" href="../api/utils.html">Utils模块</a></li><li><a class="tocitem" href="../api/time_series_power_flow.html">TimeSeriesPowerFlow模块</a></li></ul></li><li><span class="tocitem">函数说明</span><ul><li><a class="tocitem" href="../functions/component_functions.html">组件函数</a></li><li><a class="tocitem" href="../functions/power_flow_functions.html">潮流计算函数</a></li><li><a class="tocitem" href="../functions/utils_functions.html">工具函数</a></li><li><a class="tocitem" href="../functions/time_series_functions.html">时序潮流函数</a></li></ul></li><li><a class="tocitem" href="../main.html">主程序说明</a></li><li><span class="tocitem">示例</span><ul><li><a class="tocitem" href="basic.html">基础示例</a></li><li><a class="tocitem" href="power_flow.html">潮流计算示例</a></li><li><a class="tocitem" href="time_series.html">时序潮流示例</a></li><li class="is-active"><a class="tocitem" href="visualization.html">可视化示例</a><ul class="internal"><li><a class="tocitem" href="#基础可视化"><span>基础可视化</span></a></li><li><a class="tocitem" href="#电压分析可视化"><span>电压分析可视化</span></a></li><li><a class="tocitem" href="#功率流可视化"><span>功率流可视化</span></a></li><li><a class="tocitem" href="#时间序列可视化"><span>时间序列可视化</span></a></li><li><a class="tocitem" href="#高级可视化"><span>高级可视化</span></a></li><li><a class="tocitem" href="#动态可视化"><span>动态可视化</span></a></li><li><a class="tocitem" href="#违例分析可视化"><span>违例分析可视化</span></a></li><li class="toplevel"><a class="tocitem" href="#设置负载率阈值"><span>设置负载率阈值</span></a></li><li class="toplevel"><a class="tocitem" href="#提取支路负载率数据"><span>提取支路负载率数据</span></a></li><li class="toplevel"><a class="tocitem" href="#创建支路过载热力图"><span>创建支路过载热力图</span></a></li><li class="toplevel"><a class="tocitem" href="#使用掩码创建热力图"><span>使用掩码创建热力图</span></a></li><li class="toplevel"><a class="tocitem" href="#保存图像"><span>保存图像</span></a></li><li class="toplevel"><a class="tocitem" href="#创建违例计数条形图"><span>创建违例计数条形图</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../development.html">开发指南</a></li><li><a class="tocitem" href="../faq.html">常见问题</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">示例</a></li><li class="is-active"><a href="visualization.html">可视化示例</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="visualization.html">可视化示例</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Matrixeigs/DistributionPowerFlow" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/Matrixeigs/DistributionPowerFlow/blob/master/docs/src/examples/visualization.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="PowerFlow-可视化示例"><a class="docs-heading-anchor" href="#PowerFlow-可视化示例">PowerFlow 可视化示例</a><a id="PowerFlow-可视化示例-1"></a><a class="docs-heading-anchor-permalink" href="#PowerFlow-可视化示例" title="Permalink"></a></h1><p>本文档提供了 PowerFlow 库中可视化功能的详细使用示例，展示了如何创建各种类型的图表和可视化效果，以便更好地理解和分析电力系统的计算结果。</p><h2 id="基础可视化"><a class="docs-heading-anchor" href="#基础可视化">基础可视化</a><a id="基础可视化-1"></a><a class="docs-heading-anchor-permalink" href="#基础可视化" title="Permalink"></a></h2><h3 id="系统拓扑图"><a class="docs-heading-anchor" href="#系统拓扑图">系统拓扑图</a><a id="系统拓扑图-1"></a><a class="docs-heading-anchor-permalink" href="#系统拓扑图" title="Permalink"></a></h3><p>创建电力系统的拓扑图：</p><pre><code class="language-julia hljs">using PowerFlow
+using TimeSeriesPowerFlow
+using Utils
+using Plots
+using GraphPlot
+using LightGraphs
+
+# 加载标准测试系统
+case = load_case(&quot;case14.m&quot;)
+
+# 创建系统拓扑图
+plot_system_topology(case)
+
+# 保存图像
+savefig(&quot;system_topology.png&quot;)</code></pre><h3 id="自定义拓扑图"><a class="docs-heading-anchor" href="#自定义拓扑图">自定义拓扑图</a><a id="自定义拓扑图-1"></a><a class="docs-heading-anchor-permalink" href="#自定义拓扑图" title="Permalink"></a></h3><p>创建带有自定义布局和样式的拓扑图：</p><pre><code class="language-julia hljs"># 创建自定义拓扑图
+plot_system_topology(case, 
+    node_size = [degree(case, i) * 3 for i in 1:size(case.bus, 1)],  # 基于节点度的大小
+    node_color = [:red for i in 1:size(case.bus, 1)],                # 自定义节点颜色
+    edge_width = [case.branch[i, BR_R] * 10 + 1 for i in 1:size(case.branch, 1)],  # 基于电阻的边宽度
+    layout = spring_layout,                                          # 使用弹簧布局算法
+    labels = [&quot;B$(Int(case.bus[i, BUS_I]))&quot; for i in 1:size(case.bus, 1)]  # 添加标签
+)
+
+# 保存图像
+savefig(&quot;custom_topology.png&quot;)</code></pre><h3 id="带有电气参数的拓扑图"><a class="docs-heading-anchor" href="#带有电气参数的拓扑图">带有电气参数的拓扑图</a><a id="带有电气参数的拓扑图-1"></a><a class="docs-heading-anchor-permalink" href="#带有电气参数的拓扑图" title="Permalink"></a></h3><p>创建显示电气参数的拓扑图：</p><pre><code class="language-julia hljs"># 执行潮流计算
+results = runpf(case)
+
+# 创建带有电气参数的拓扑图
+plot_system_topology_with_results(case, results,
+    show_voltage = true,     # 显示电压值
+    show_power_flow = true,  # 显示功率流
+    show_losses = true,      # 显示损耗
+    edge_color_by_loading = true  # 根据负载率着色
+)
+
+# 保存图像
+savefig(&quot;topology_with_results.png&quot;)</code></pre><h2 id="电压分析可视化"><a class="docs-heading-anchor" href="#电压分析可视化">电压分析可视化</a><a id="电压分析可视化-1"></a><a class="docs-heading-anchor-permalink" href="#电压分析可视化" title="Permalink"></a></h2><h3 id="电压分布图"><a class="docs-heading-anchor" href="#电压分布图">电压分布图</a><a id="电压分布图-1"></a><a class="docs-heading-anchor-permalink" href="#电压分布图" title="Permalink"></a></h3><p>创建系统电压分布图：</p><pre><code class="language-julia hljs"># 执行潮流计算
+results = runpf(case)
+
+# 提取电压值
+vm = results.bus[:, VM]
+bus_ids = results.bus[:, BUS_I]
+
+# 创建电压分布条形图
+bar(bus_ids, vm,
+    title = &quot;母线电压分布&quot;,
+    xlabel = &quot;母线编号&quot;,
+    ylabel = &quot;电压幅值(pu)&quot;,
+    legend = false,
+    ylims = (0.9, 1.1),
+    color = :blue,
+    linewidth = 2,
+    grid = true
+)
+
+# 添加参考线
+hline!([1.0], color = :red, linestyle = :dash, label = &quot;标称电压&quot;)
+hline!([0.95, 1.05], color = :orange, linestyle = :dot, label = &quot;限制&quot;)
+
+# 保存图像
+savefig(&quot;voltage_distribution.png&quot;)</code></pre><h3 id="电压等高线图"><a class="docs-heading-anchor" href="#电压等高线图">电压等高线图</a><a id="电压等高线图-1"></a><a class="docs-heading-anchor-permalink" href="#电压等高线图" title="Permalink"></a></h3><p>创建系统电压等高线图：</p><pre><code class="language-julia hljs"># 执行潮流计算
+results = runpf(case)
+
+# 获取母线位置信息
+# 注意：实际应用中需要有母线的地理坐标
+# 这里我们使用一个示例坐标
+bus_x = [0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3]
+bus_y = [0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4]
+
+# 提取电压值
+vm = results.bus[:, VM]
+
+# 创建网格
+n = 100
+x_grid = range(minimum(bus_x) - 0.5, maximum(bus_x) + 0.5, length = n)
+y_grid = range(minimum(bus_y) - 0.5, maximum(bus_y) + 0.5, length = n)
+z_grid = zeros(n, n)
+
+# 使用反距离加权插值
+for i in 1:n
+    for j in 1:n
+        weights = 1.0 ./ sqrt.((x_grid[i] .- bus_x).^2 + (y_grid[j] .- bus_y).^2)
+        z_grid[j, i] = sum(weights .* vm) / sum(weights)
+    end
+end
+
+# 创建等高线图
+contour(x_grid, y_grid, z_grid,
+    title = &quot;电压等高线图&quot;,
+    xlabel = &quot;X坐标&quot;,
+    ylabel = &quot;Y坐标&quot;,
+    fill = true,
+    levels = 15,
+    c = :viridis
+)
+
+# 添加母线位置
+scatter!(bus_x, bus_y,
+    marker = :circle,
+    markersize = 5,
+    color = :black,
+    label = &quot;母线位置&quot;
+)
+
+# 添加母线标签
+for i in 1:length(bus_x)
+    annotate!(bus_x[i], bus_y[i], text(&quot;B$(Int(case.bus[i, BUS_I]))&quot;, :black, 8))
+end
+
+# 保存图像
+savefig(&quot;voltage_contour.png&quot;)</code></pre><h3 id="3D电压曲面图"><a class="docs-heading-anchor" href="#3D电压曲面图">3D电压曲面图</a><a id="3D电压曲面图-1"></a><a class="docs-heading-anchor-permalink" href="#3D电压曲面图" title="Permalink"></a></h3><p>创建3D电压曲面图：</p><pre><code class="language-julia hljs"># 创建3D电压曲面图
+surface(x_grid, y_grid, z_grid,
+    title = &quot;3D电压曲面图&quot;,
+    xlabel = &quot;X坐标&quot;,
+    ylabel = &quot;Y坐标&quot;,
+    zlabel = &quot;电压幅值(pu)&quot;,
+    color = :viridis,
+    camera = (30, 45)
+)
+
+# 添加母线位置
+scatter!(bus_x, bus_y, vm,
+    marker = :circle,
+    markersize = 3,
+    color = :red,
+    label = &quot;母线&quot;
+)
+
+# 保存图像
+savefig(&quot;voltage_surface_3d.png&quot;)</code></pre><h2 id="功率流可视化"><a class="docs-heading-anchor" href="#功率流可视化">功率流可视化</a><a id="功率流可视化-1"></a><a class="docs-heading-anchor-permalink" href="#功率流可视化" title="Permalink"></a></h2><h3 id="功率流分布图"><a class="docs-heading-anchor" href="#功率流分布图">功率流分布图</a><a id="功率流分布图-1"></a><a class="docs-heading-anchor-permalink" href="#功率流分布图" title="Permalink"></a></h3><p>创建功率流分布图：</p><pre><code class="language-julia hljs"># 提取支路功率流
+branch_flow = abs.(results.branch[:, PF])
+branch_from = results.branch[:, F_BUS]
+branch_to = results.branch[:, T_BUS]
+
+# 创建功率流分布条形图
+bar(1:length(branch_flow), branch_flow,
+    title = &quot;支路功率流分布&quot;,
+    xlabel = &quot;支路编号&quot;,
+    ylabel = &quot;功率流大小(MW)&quot;,
+    legend = false,
+    color = :green,
+    linewidth = 2,
+    grid = true
+)
+
+# 添加支路标签
+xticks!(1:length(branch_flow), [&quot;$(Int(branch_from[i]))-$(Int(branch_to[i]))&quot; for i in 1:length(branch_flow)])
+xtickfont(8, rotation = 45)
+
+# 保存图像
+savefig(&quot;power_flow_distribution.png&quot;)</code></pre><h3 id="支路负载率图"><a class="docs-heading-anchor" href="#支路负载率图">支路负载率图</a><a id="支路负载率图-1"></a><a class="docs-heading-anchor-permalink" href="#支路负载率图" title="Permalink"></a></h3><p>创建支路负载率图：</p><pre><code class="language-julia hljs"># 计算支路负载率
+branch_rate = results.branch[:, RATE_A]
+loading_rate = zeros(length(branch_flow))
+
+for i in 1:length(branch_flow)
+    if branch_rate[i] &gt; 0
+        loading_rate[i] = branch_flow[i] / branch_rate[i] * 100
+    else
+        loading_rate[i] = 0  # 对于没有额定值的支路
+    end
+end
+
+# 创建负载率条形图
+bar(1:length(loading_rate), loading_rate,
+    title = &quot;支路负载率&quot;,
+    xlabel = &quot;支路编号&quot;,
+    ylabel = &quot;负载率(%)&quot;,
+    legend = false,
+    color = [loading_rate[i] &gt; 80 ? :red : (loading_rate[i] &gt; 50 ? :orange : :green) for i in 1:length(loading_rate)],
+    linewidth = 2,
+    grid = true
+)
+
+# 添加支路标签
+xticks!(1:length(loading_rate), [&quot;$(Int(branch_from[i]))-$(Int(branch_to[i]))&quot; for i in 1:length(loading_rate)])
+xtickfont(8, rotation = 45)
+
+# 添加警告线
+hline!([80], color = :red, linestyle = :dash, label = &quot;警告阈值(80%)&quot;)
+hline!([100], color = :black, linestyle = :dash, label = &quot;额定容量(100%)&quot;)
+
+# 保存图像
+savefig(&quot;branch_loading_rate.png&quot;)</code></pre><h3 id="功率流箭头图"><a class="docs-heading-anchor" href="#功率流箭头图">功率流箭头图</a><a id="功率流箭头图-1"></a><a class="docs-heading-anchor-permalink" href="#功率流箭头图" title="Permalink"></a></h3><p>创建带有功率流方向的箭头图：</p><pre><code class="language-julia hljs"># 创建带有功率流方向的箭头图
+plot_power_flow_arrows(case, results,
+    arrow_scale = 0.2,           # 箭头大小比例
+    flow_color_by_value = true,  # 根据功率流大小着色
+    show_values = true           # 显示功率流数值
+)
+
+# 保存图像
+savefig(&quot;power_flow_arrows.png&quot;)</code></pre><h2 id="时间序列可视化"><a class="docs-heading-anchor" href="#时间序列可视化">时间序列可视化</a><a id="时间序列可视化-1"></a><a class="docs-heading-anchor-permalink" href="#时间序列可视化" title="Permalink"></a></h2><h3 id="基本时间序列图"><a class="docs-heading-anchor" href="#基本时间序列图">基本时间序列图</a><a id="基本时间序列图-1"></a><a class="docs-heading-anchor-permalink" href="#基本时间序列图" title="Permalink"></a></h3><p>创建基本的时间序列图：</p><pre><code class="language-julia hljs"># 执行时间序列潮流计算
+load_file = &quot;load_data.xlsx&quot;
+ts_results = runtdpf(case, load_file)
+
+# 提取时间序列数据
+time_points = ts_results.time_points
+total_load = zeros(length(time_points))
+total_gen = zeros(length(time_points))
+total_loss = zeros(length(time_points))
+min_voltage = zeros(length(time_points))
+
+for t in 1:length(time_points)
+    if ts_results.success[t]
+        result = ts_results.bus_results[t]
+        total_load[t] = sum(result.bus[:, PD])
+        total_gen[t] = sum(result.gen[:, PG])
+        total_loss[t] = sum(result.branch[:, PL])
+        min_voltage[t] = minimum(result.bus[:, VM])
+    end
+end
+
+# 创建时间序列图
+plot(time_points, [total_load total_gen total_loss],
+    title = &quot;系统时间序列&quot;,
+    xlabel = &quot;时间(小时)&quot;,
+    ylabel = &quot;功率(MW)&quot;,
+    label = [&quot;总负荷&quot; &quot;总发电&quot; &quot;总损耗&quot;],
+    marker = [:circle :square :diamond],
+    linewidth = 2,
+    grid = true,
+    legend = :topleft
+)
+
+# 保存图像
+savefig(&quot;time_series_basic.png&quot;)</code></pre><h3 id="多轴时间序列图"><a class="docs-heading-anchor" href="#多轴时间序列图">多轴时间序列图</a><a id="多轴时间序列图-1"></a><a class="docs-heading-anchor-permalink" href="#多轴时间序列图" title="Permalink"></a></h3><p>创建带有多个Y轴的时间序列图：</p><pre><code class="language-julia hljs"># 创建带有多个Y轴的时间序列图
+p1 = plot(time_points, total_load,
+    title = &quot;系统负荷和电压时间序列&quot;,
+    xlabel = &quot;时间(小时)&quot;,
+    ylabel = &quot;负荷(MW)&quot;,
+    color = :blue,
+    marker = :circle,
+    linewidth = 2,
+    label = &quot;总负荷&quot;,
+    legend = :topleft
+)
+
+# 添加第二个Y轴
+plot!(twinx(), time_points, min_voltage,
+    ylabel = &quot;电压(pu)&quot;,
+    color = :red,
+    marker = :square,
+    linewidth = 2,
+    label = &quot;最低电压&quot;,
+    legend = :topright
+)
+
+# 保存图像
+savefig(&quot;time_series_dual_axis.png&quot;)</code></pre><h3 id="热力图"><a class="docs-heading-anchor" href="#热力图">热力图</a><a id="热力图-1"></a><a class="docs-heading-anchor-permalink" href="#热力图" title="Permalink"></a></h3><p>创建时间序列热力图：</p><pre><code class="language-julia hljs"># 提取所有母线的电压时间序列
+voltage_ts = zeros(length(time_points), size(case.bus, 1))
+
+for t in 1:length(time_points)
+    if ts_results.success[t]
+        voltage_ts[t, :] = ts_results.bus_results[t].bus[:, VM]
+    end
+end
+
+# 创建电压热力图
+heatmap(1:size(case.bus, 1), time_points, voltage_ts,
+    title = &quot;母线电压热力图&quot;,
+    xlabel = &quot;母线编号&quot;,
+    ylabel = &quot;时间(小时)&quot;,
+    color = :viridis,
+    colorbar_title = &quot;电压(pu)&quot;
+)
+
+# 保存图像
+savefig(&quot;voltage_heatmap.png&quot;)
+
+# 提取所有支路的负载率时间序列
+loading_ts = zeros(length(time_points), size(case.branch, 1))
+
+for t in 1:length(time_points)
+    if ts_results.success[t]
+        for i in 1:size(case.branch, 1)
+            flow = abs(ts_results.bus_results[t].branch[i, PF])
+            rate = case.branch[i, RATE_A]
+            if rate &gt; 0
+                loading_ts[t, i] = flow / rate * 100
+            end
+        end
+    end
+end
+
+# 创建支路负载率热力图
+heatmap(1:size(case.branch, 1), time_points, loading_ts,
+    title = &quot;支路负载率热力图&quot;,
+    xlabel = &quot;支路编号&quot;,
+    ylabel = &quot;时间(小时)&quot;,
+    color = :thermal,
+    colorbar_title = &quot;负载率(%)&quot;
+)
+
+# 保存图像
+savefig(&quot;loading_heatmap.png&quot;)</code></pre><h2 id="高级可视化"><a class="docs-heading-anchor" href="#高级可视化">高级可视化</a><a id="高级可视化-1"></a><a class="docs-heading-anchor-permalink" href="#高级可视化" title="Permalink"></a></h2><h3 id="桑基图"><a class="docs-heading-anchor" href="#桑基图">桑基图</a><a id="桑基图-1"></a><a class="docs-heading-anchor-permalink" href="#桑基图" title="Permalink"></a></h3><p>创建电力流向的桑基图：</p><pre><code class="language-julia hljs">using SankeyPlots
+
+# 执行潮流计算
+results = runpf(case)
+
+# 准备桑基图数据
+# 提取发电机、负荷和支路数据
+gen_buses = results.gen[:, GEN_BUS]
+gen_output = results.gen[:, PG]
+
+# 创建节点列表
+nodes = []
+# 添加发电节点
+for i in 1:length(gen_buses)
+    push!(nodes, &quot;G$(i)_$(Int(gen_buses[i]))&quot;)
+end
+# 添加母线节点
+for i in 1:size(results.bus, 1)
+    push!(nodes, &quot;B$(Int(results.bus[i, BUS_I]))&quot;)
+end
+# 添加负荷节点
+load_buses = findall(results.bus[:, PD] .&gt; 0)
+for i in load_buses
+    push!(nodes, &quot;L$(Int(results.bus[i, BUS_I]))&quot;)
+end
+
+# 创建链接列表
+links = []
+link_values = []
+
+# 发电机到母线的链接
+for i in 1:length(gen_buses)
+    gen_idx = &quot;G$(i)_$(Int(gen_buses[i]))&quot;
+    bus_idx = &quot;B$(Int(gen_buses[i]))&quot;
+    push!(links, (gen_idx, bus_idx))
+    push!(link_values, gen_output[i])
+end
+
+# 母线之间的链接(支路功率流)
+for i in 1:size(results.branch, 1)
+    from_bus = Int(results.branch[i, F_BUS])
+    to_bus = Int(results.branch[i, T_BUS])
+    power_flow = results.branch[i, PF]
+    
+    if power_flow &gt; 0
+        push!(links, (&quot;B$(from_bus)&quot;, &quot;B$(to_bus)&quot;))
+        push!(link_values, abs(power_flow))
+    else
+        push!(links, (&quot;B$(to_bus)&quot;, &quot;B$(from_bus)&quot;))
+        push!(link_values, abs(power_flow))
+    end
+end
+
+# 母线到负荷的链接
+for i in load_buses
+    bus_id = Int(results.bus[i, BUS_I])
+    load = results.bus[i, PD]
+    push!(links, (&quot;B$(bus_id)&quot;, &quot;L$(bus_id)&quot;))
+    push!(link_values, load)
+end
+
+# 创建桑基图
+sankey(links, link_values,
+    title = &quot;电力流向桑基图&quot;,
+    node_labels = nodes,
+    node_colors = [i &lt;= length(gen_buses) ? :green : 
+                  (i &lt;= length(gen_buses) + size(results.bus, 1) ? :blue : :red) 
+                  for i in 1:length(nodes)],
+    link_color = :gray
+)
+
+# 保存图像
+savefig(&quot;power_flow_sankey.png&quot;)</code></pre><h3 id="雷达图"><a class="docs-heading-anchor" href="#雷达图">雷达图</a><a id="雷达图-1"></a><a class="docs-heading-anchor-permalink" href="#雷达图" title="Permalink"></a></h3><p>创建系统性能雷达图：</p><pre><code class="language-julia hljs"># 执行潮流计算
+results = runpf(case)
+
+# 计算系统性能指标
+voltage_deviation = std(results.bus[:, VM])
+voltage_range = maximum(results.bus[:, VM]) - minimum(results.bus[:, VM])
+total_loss = sum(results.branch[:, PL])
+loss_percent = total_loss / sum(results.gen[:, PG]) * 100
+max_loading = maximum(abs.(results.branch[:, PF]) ./ results.branch[:, RATE_A] .* 100)
+gen_reserve = sum(results.gen[:, PMAX] - results.gen[:, PG]) / sum(results.gen[:, PMAX]) * 100
+
+# 归一化指标(越低越好)
+max_values = [0.05, 0.2, 50, 10, 100, 100]  # 各指标的最大参考值
+indicators = [voltage_deviation, voltage_range, total_loss, loss_percent, max_loading, 100 - gen_reserve]
+normalized = min.(indicators ./ max_values, 1)
+
+# 创建雷达图
+labels = [&quot;电压偏差&quot;, &quot;电压范围&quot;, &quot;总损耗(MW)&quot;, &quot;损耗率(%)&quot;, &quot;最大负载率(%)&quot;, &quot;发电预留(%)&quot;]
+radar_plot(normalized, labels,
+    title = &quot;系统性能雷达图&quot;,
+    fill = true,
+    color = :blue,
+    linewidth = 2,
+    grid = true
+)
+
+# 保存图像
+savefig(&quot;system_performance_radar.png&quot;)</code></pre><h3 id="地理信息系统(GIS)可视化"><a class="docs-heading-anchor" href="#地理信息系统(GIS)可视化">地理信息系统(GIS)可视化</a><a id="地理信息系统(GIS)可视化-1"></a><a class="docs-heading-anchor-permalink" href="#地理信息系统(GIS)可视化" title="Permalink"></a></h3><p>使用地理信息创建系统可视化：</p><pre><code class="language-julia hljs">using GeoPlots
+
+# 假设我们有母线的地理坐标
+# 实际应用中应从GIS数据库获取
+bus_lat = [40.0, 40.1, 40.2, 40.1, 39.9, 39.8, 39.7, 39.8, 39.9, 40.0, 40.1, 40.2, 40.3, 40.4]
+bus_lon = [-74.0, -74.1, -74.2, -74.3, -74.2, -74.1, -74.0, -73.9, -73.8, -73.7, -73.8, -73.9, -74.0, -74.1]
+
+# 创建地理地图
+geoplot(bus_lat, bus_lon,
+    title = &quot;电力系统地理分布&quot;,
+    marker = :circle,
+    markersize = 8,
+    color = :blue,
+    label = &quot;母线位置&quot;
+)
+
+# 添加支路连接
+for i in 1:size(case.branch, 1)
+    from_idx = findfirst(x -&gt; x == case.branch[i, F_BUS], case.bus[:, BUS_I])
+    to_idx = findfirst(x -&gt; x == case.branch[i, T_BUS], case.bus[:, BUS_I])
+    
+    if from_idx !== nothing &amp;&amp; to_idx !== nothing
+        plot!([bus_lat[from_idx], bus_lat[to_idx]], [bus_lon[from_idx], bus_lon[to_idx]],
+            color = :gray,
+            linewidth = 2,
+            label = nothing
+        )
+    end
+end
+
+# 添加母线标签
+for i in 1:length(bus_lat)
+    annotate!(bus_lat[i], bus_lon[i], text(&quot;B$(Int(case.bus[i, BUS_I]))&quot;, :black, 8))
+end
+
+# 保存图像
+savefig(&quot;geographic_system_map.png&quot;)</code></pre><h2 id="动态可视化"><a class="docs-heading-anchor" href="#动态可视化">动态可视化</a><a id="动态可视化-1"></a><a class="docs-heading-anchor-permalink" href="#动态可视化" title="Permalink"></a></h2><h3 id="时间序列动画"><a class="docs-heading-anchor" href="#时间序列动画">时间序列动画</a><a id="时间序列动画-1"></a><a class="docs-heading-anchor-permalink" href="#时间序列动画" title="Permalink"></a></h3><p>创建电压变化的动画：</p><pre><code class="language-julia hljs">using Plots
+
+# 执行时间序列潮流计算
+ts_results = runtdpf(case, load_file)
+
+# 创建电压分布动画
+anim = @animate for t in 1:length(ts_results.time_points)
+    if ts_results.success[t]
+        result = ts_results.bus_results[t]
+        bar(result.bus[:, BUS_I], result.bus[:, VM],
+            title = &quot;电压分布 - 时间点 $(ts_results.time_points[t])&quot;,
+            xlabel = &quot;母线编号&quot;,
+            ylabel = &quot;电压幅值(pu)&quot;,
+            ylims = (0.9, 1.1),
+            legend = false,
+            color = :blue
+        )
+        # 添加参考线
+        hline!([1.0], color = :red, linestyle = :dash, label = &quot;标称电压&quot;)
+        hline!([0.95, 1.05], color = :orange, linestyle = :dot, label = &quot;限制&quot;)
+    end
+end
+
+# 保存动画
+gif(anim, &quot;voltage_animation.gif&quot;, fps = 2)</code></pre><h3 id="功率流动画"><a class="docs-heading-anchor" href="#功率流动画">功率流动画</a><a id="功率流动画-1"></a><a class="docs-heading-anchor-permalink" href="#功率流动画" title="Permalink"></a></h3><p>创建功率流变化的动画：</p><pre><code class="language-julia hljs"># 创建功率流动画
+anim = @animate for t in 1:length(ts_results.time_points)
+    if ts_results.success[t]
+        result = ts_results.bus_results[t]
+        branch_flow = abs.(result.branch[:, PF])
+        
+        bar(1:length(branch_flow), branch_flow,
+            title = &quot;支路功率流 - 时间点 $(ts_results.time_points[t])&quot;,
+            xlabel = &quot;支路编号&quot;,
+            ylabel = &quot;功率流大小(MW)&quot;,
+            legend = false,
+            color = :green
+        )
+    end
+end
+
+# 保存动画
+gif(anim, &quot;power_flow_animation.gif&quot;, fps = 2)</code></pre><h3 id="交互式拓扑图"><a class="docs-heading-anchor" href="#交互式拓扑图">交互式拓扑图</a><a id="交互式拓扑图-1"></a><a class="docs-heading-anchor-permalink" href="#交互式拓扑图" title="Permalink"></a></h3><p>创建交互式系统拓扑图：</p><pre><code class="language-julia hljs">using PlotlyJS
+
+# 准备节点数据
+node_x = bus_x
+node_y = bus_y
+node_text = [&quot;母线 $(Int(case.bus[i, BUS_I]))&lt;br&gt;电压: $(round(results.bus[i, VM], digits=3)) pu&lt;br&gt;负荷: $(round(case.bus[i, PD], digits=1)) MW&quot; for i in 1:length(bus_x)]
+node_size = [case.bus[i, PD] &gt; 0 ? 10 + case.bus[i, PD] / 2 : 10 for i in 1:length(bus_x)]
+node_color = [case.bus[i, BUS_TYPE] == 3 ? &quot;red&quot; : (case.bus[i, BUS_TYPE] == 2 ? &quot;blue&quot; : &quot;gray&quot;) for i in 1:length(bus_x)]
+
+# 准备边数据
+edge_x = []
+edge_y = []
+edge_text = []
+
+for i in 1:size(case.branch, 1)
+    from_idx = findfirst(x -&gt; x == case.branch[i, F_BUS], case.bus[:, BUS_I])
+    to_idx = findfirst(x -&gt; x == case.branch[i, T_BUS], case.bus[:, BUS_I])
+    
+    if from_idx !== nothing &amp;&amp; to_idx !== nothing
+        push!(edge_x, bus_x[from_idx], bus_x[to_idx], nothing)
+        push!(edge_y, bus_y[from_idx], bus_y[to_idx], nothing)
+        
+        flow = abs(results.branch[i, PF])
+        loss = results.branch[i, PL]
+        text = &quot;支路 $(Int(case.branch[i, F_BUS]))-$(Int(case.branch[i, T_BUS]))&lt;br&gt;功率流: $(round(flow, digits=2)) MW&lt;br&gt;损耗: $(round(loss, digits=2)) MW&quot;
+        push!(edge_text, text, text, nothing)
+    end
+end
+
+# 创建边迹线
+edge_trace = scatter(
+    x = edge_x, y = edge_y,
+    line = attr(width = 1.5, color = &quot;#888&quot;),
+    hoverinfo = &quot;text&quot;,
+    text = edge_text,
+    mode = &quot;lines&quot;
+)
+
+# 创建节点迹线
+node_trace = scatter(
+    x = node_x, y = node_y,
+    mode = &quot;markers&quot;,
+    hoverinfo = &quot;text&quot;,
+    text = node_text,
+    marker = attr(
+        showscale = true,
+        colorscale = &quot;YlGnBu&quot;,
+        color = node_color,
+        size = node_size,
+        line = attr(width = 2, color = &quot;black&quot;)
+    )
+)
+
+# 创建布局
+layout = Layout(
+    title = &quot;交互式电力系统拓扑图&quot;,
+    showlegend = false,
+    hovermode = &quot;closest&quot;,
+    margin = attr(b = 20, l = 5, r = 5, t = 40),
+    xaxis = attr(showgrid = false, zeroline = false, showticklabels = false),
+    yaxis = attr(showgrid = false, zeroline = false, showticklabels = false)
+)
+
+# 创建图表
+p = plot([edge_trace, node_trace], layout)
+
+# 保存为HTML文件
+savefig(p, &quot;interactive_topology.html&quot;)</code></pre><h2 id="违例分析可视化"><a class="docs-heading-anchor" href="#违例分析可视化">违例分析可视化</a><a id="违例分析可视化-1"></a><a class="docs-heading-anchor-permalink" href="#违例分析可视化" title="Permalink"></a></h2><h3 id="电压违例可视化"><a class="docs-heading-anchor" href="#电压违例可视化">电压违例可视化</a><a id="电压违例可视化-1"></a><a class="docs-heading-anchor-permalink" href="#电压违例可视化" title="Permalink"></a></h3><p>可视化电压违例：</p><pre><code class="language-julia hljs"># 执行时间序列潮流计算
+ts_results = runtdpf(case, load_file)
+
+# 设置电压限制
+v_min = 0.95
+v_max = 1.05
+
+# 提取电压数据
+voltage_data = zeros(length(ts_results.time_points), size(case.bus, 1))
+for t in 1:length(ts_results.time_points)
+    if ts_results.success[t]
+        voltage_data[t, :] = ts_results.bus_results[t].bus[:, VM]
+    end
+end
+
+# 创建电压违例热力图
+voltage_violations = (voltage_data .&lt; v_min) .| (voltage_data .&gt; v_max)
+violation_mask = zeros(size(voltage_data))
+violation_mask[voltage_violations] .= 1
+
+# 使用掩码创建热力图
+heatmap(1:size(case.bus, 1), ts_results.time_points, violation_mask,
+    title = &quot;电压违例热力图&quot;,
+    xlabel = &quot;母线编号&quot;,
+    ylabel = &quot;时间(小时)&quot;,
+    color = cgrad([:white, :red]),
+    colorbar_title = &quot;违例状态&quot;
+)
+
+# 保存图像
+savefig(&quot;voltage_violations_heatmap.png&quot;)
+
+# 创建违例计数条形图
+violation_count = sum(voltage_violations, dims=1)[:]
+bar(1:size(case.bus, 1), violation_count,
+    title = &quot;电压违例计数&quot;,
+    xlabel = &quot;母线编号&quot;,
+    ylabel = &quot;违例时间点数量&quot;,
+    color = :red,
+    legend = false
+)
+
+# 保存图像
+savefig(&quot;voltage_violations_count.png&quot;)</code></pre><h3 id="支路过载可视化"><a class="docs-heading-anchor" href="#支路过载可视化">支路过载可视化</a><a id="支路过载可视化-1"></a><a class="docs-heading-anchor-permalink" href="#支路过载可视化" title="Permalink"></a></h3><p>可视化支路过载情况：</p><p>```julia</p><h1 id="设置负载率阈值"><a class="docs-heading-anchor" href="#设置负载率阈值">设置负载率阈值</a><a id="设置负载率阈值-1"></a><a class="docs-heading-anchor-permalink" href="#设置负载率阈值" title="Permalink"></a></h1><p>loading_threshold = 80  # 80%</p><h1 id="提取支路负载率数据"><a class="docs-heading-anchor" href="#提取支路负载率数据">提取支路负载率数据</a><a id="提取支路负载率数据-1"></a><a class="docs-heading-anchor-permalink" href="#提取支路负载率数据" title="Permalink"></a></h1><p>loading<em>data = zeros(length(ts</em>results.time<em>points), size(case.branch, 1)) for t in 1:length(ts</em>results.time<em>points)     if ts</em>results.success[t]         for i in 1:size(case.branch, 1)             flow = abs(ts<em>results.bus</em>results[t].branch[i, PF])             rate = case.branch[i, RATE<em>A]             if rate &gt; 0                 loading</em>data[t, i] = flow / rate * 100             end         end     end end</p><h1 id="创建支路过载热力图"><a class="docs-heading-anchor" href="#创建支路过载热力图">创建支路过载热力图</a><a id="创建支路过载热力图-1"></a><a class="docs-heading-anchor-permalink" href="#创建支路过载热力图" title="Permalink"></a></h1><p>loading<em>violations = loading</em>data .&gt; loading<em>threshold violation</em>mask = zeros(size(loading<em>data)) violation</em>mask[loading_violations] .= 1</p><h1 id="使用掩码创建热力图"><a class="docs-heading-anchor" href="#使用掩码创建热力图">使用掩码创建热力图</a><a id="使用掩码创建热力图-1"></a><a class="docs-heading-anchor-permalink" href="#使用掩码创建热力图" title="Permalink"></a></h1><p>heatmap(1:size(case.branch, 1), ts<em>results.time</em>points, violation<em>mask,     title = &quot;支路过载热力图(&gt;$(Expr(:incomplete, Base.Meta.ParseError(&quot;ParseError:\n# Error @ none:1:9\n(loading\n#       └ ── Expected `)`&quot;, Base.JuliaSyntax.ParseError(Base.JuliaSyntax.SourceFile(&quot;(loading&quot;, 0, &quot;none&quot;, 1, [1, 9]), Base.JuliaSyntax.Diagnostic[Base.JuliaSyntax.Diagnostic(9, 8, :error, &quot;Expected `)`&quot;)], :other))))</em>threshold)%)&quot;,     xlabel = &quot;支路编号&quot;,     ylabel = &quot;时间(小时)&quot;,     color = cgrad([:white, :orange]),     colorbar_title = &quot;违例状态&quot; )</p><h1 id="保存图像"><a class="docs-heading-anchor" href="#保存图像">保存图像</a><a id="保存图像-1"></a><a class="docs-heading-anchor-permalink" href="#保存图像" title="Permalink"></a></h1><p>savefig(&quot;loading<em>violations</em>heatmap.png&quot;)</p><h1 id="创建违例计数条形图"><a class="docs-heading-anchor" href="#创建违例计数条形图">创建违例计数条形图</a><a id="创建违例计数条形图-1"></a><a class="docs-heading-anchor-permalink" href="#创建违例计数条形图" title="Permalink"></a></h1><p>violation<em>count = sum(loading</em>violations, dims=1)[:] bar(1:size(case.branch, 1), violation_count,     title = &quot;支路过载计数&quot;,     xlabel = &quot;支路编号&quot;,     ylabel = &quot;违例时间点数量&quot;,     color = :orange,     legend = false )</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="time_series.html">« 时序潮流示例</a><a class="docs-footer-nextpage" href="../development.html">开发指南 »</a><div class="flexbox-break"></div><p class="footer-message">电力系统建模与分析工具集</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Thursday 3 July 2025 23:11">Thursday 3 July 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

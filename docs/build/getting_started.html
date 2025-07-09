@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>入门指南 · 电力系统建模与分析工具集</title><meta name="title" content="入门指南 · 电力系统建模与分析工具集"/><meta property="og:title" content="入门指南 · 电力系统建模与分析工具集"/><meta property="twitter:title" content="入门指南 · 电力系统建模与分析工具集"/><meta name="description" content="Documentation for 电力系统建模与分析工具集."/><meta property="og:description" content="Documentation for 电力系统建模与分析工具集."/><meta property="twitter:description" content="Documentation for 电力系统建模与分析工具集."/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script><link href="assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">首页</a></li><li class="is-active"><a class="tocitem" href="getting_started.html">入门指南</a><ul class="internal"><li><a class="tocitem" href="#什么是-PowerFlow？"><span>什么是 PowerFlow？</span></a></li><li><a class="tocitem" href="#安装"><span>安装</span></a></li><li><a class="tocitem" href="#基本概念"><span>基本概念</span></a></li><li><a class="tocitem" href="#快速入门示例"><span>快速入门示例</span></a></li><li><a class="tocitem" href="#创建自定义系统"><span>创建自定义系统</span></a></li><li><a class="tocitem" href="#时间序列分析"><span>时间序列分析</span></a></li><li><a class="tocitem" href="#数据导入与导出"><span>数据导入与导出</span></a></li><li><a class="tocitem" href="#高级选项"><span>高级选项</span></a></li><li><a class="tocitem" href="#常见问题解答"><span>常见问题解答</span></a></li><li><a class="tocitem" href="#下一步"><span>下一步</span></a></li><li><a class="tocitem" href="#参考资源"><span>参考资源</span></a></li><li><a class="tocitem" href="#获取帮助"><span>获取帮助</span></a></li></ul></li><li><span class="tocitem">API参考</span><ul><li><a class="tocitem" href="api/overview.html">概述</a></li><li><a class="tocitem" href="api/component_model.html">ComponentModel模块</a></li><li><a class="tocitem" href="api/power_flow.html">PowerFlow模块</a></li><li><a class="tocitem" href="api/utils.html">Utils模块</a></li><li><a class="tocitem" href="api/time_series_power_flow.html">TimeSeriesPowerFlow模块</a></li></ul></li><li><span class="tocitem">函数说明</span><ul><li><a class="tocitem" href="functions/component_functions.html">组件函数</a></li><li><a class="tocitem" href="functions/power_flow_functions.html">潮流计算函数</a></li><li><a class="tocitem" href="functions/utils_functions.html">工具函数</a></li><li><a class="tocitem" href="functions/time_series_functions.html">时序潮流函数</a></li></ul></li><li><a class="tocitem" href="main.html">主程序说明</a></li><li><span class="tocitem">示例</span><ul><li><a class="tocitem" href="examples/basic.html">基础示例</a></li><li><a class="tocitem" href="examples/power_flow.html">潮流计算示例</a></li><li><a class="tocitem" href="examples/time_series.html">时序潮流示例</a></li><li><a class="tocitem" href="examples/visualization.html">可视化示例</a></li></ul></li><li><a class="tocitem" href="development.html">开发指南</a></li><li><a class="tocitem" href="faq.html">常见问题</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="getting_started.html">入门指南</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="getting_started.html">入门指南</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Matrixeigs/DistributionPowerFlow" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/Matrixeigs/DistributionPowerFlow/blob/master/docs/src/getting_started.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="PowerFlow-入门指南"><a class="docs-heading-anchor" href="#PowerFlow-入门指南">PowerFlow 入门指南</a><a id="PowerFlow-入门指南-1"></a><a class="docs-heading-anchor-permalink" href="#PowerFlow-入门指南" title="Permalink"></a></h1><p>本指南将帮助您快速上手 PowerFlow 库，介绍基本概念、安装步骤以及如何执行简单的潮流计算。通过本指南，您将了解 PowerFlow 库的核心功能并能够开始自己的电力系统分析。</p><h2 id="什么是-PowerFlow？"><a class="docs-heading-anchor" href="#什么是-PowerFlow？">什么是 PowerFlow？</a><a id="什么是-PowerFlow？-1"></a><a class="docs-heading-anchor-permalink" href="#什么是-PowerFlow？" title="Permalink"></a></h2><p>PowerFlow 是一个用 Julia 语言编写的高性能电力系统分析库，专注于潮流计算和相关分析。它提供了从基础潮流计算到高级时间序列分析的全套工具，适用于研究、教学和工程应用。</p><h3 id="主要特点"><a class="docs-heading-anchor" href="#主要特点">主要特点</a><a id="主要特点-1"></a><a class="docs-heading-anchor-permalink" href="#主要特点" title="Permalink"></a></h3><ul><li><strong>高性能</strong>：利用 Julia 语言的高性能特性和并行计算能力</li><li><strong>易用性</strong>：简洁直观的 API 设计，降低学习曲线</li><li><strong>灵活性</strong>：支持多种潮流算法和系统模型</li><li><strong>可扩展性</strong>：模块化设计，便于扩展和定制</li><li><strong>可视化</strong>：丰富的可视化工具，便于结果分析和展示</li></ul><h2 id="安装"><a class="docs-heading-anchor" href="#安装">安装</a><a id="安装-1"></a><a class="docs-heading-anchor-permalink" href="#安装" title="Permalink"></a></h2><h3 id="前提条件"><a class="docs-heading-anchor" href="#前提条件">前提条件</a><a id="前提条件-1"></a><a class="docs-heading-anchor-permalink" href="#前提条件" title="Permalink"></a></h3><p>在安装 PowerFlow 之前，请确保您的系统满足以下要求：</p><ul><li>Julia 1.6 或更高版本</li><li>支持的操作系统：Windows、macOS、Linux</li></ul><h3 id="安装-Julia"><a class="docs-heading-anchor" href="#安装-Julia">安装 Julia</a><a id="安装-Julia-1"></a><a class="docs-heading-anchor-permalink" href="#安装-Julia" title="Permalink"></a></h3><p>如果您尚未安装 Julia，请从 <a href="https://julialang.org/downloads/">Julia 官方网站</a> 下载并安装适合您操作系统的版本。</p><h3 id="安装-PowerFlow"><a class="docs-heading-anchor" href="#安装-PowerFlow">安装 PowerFlow</a><a id="安装-PowerFlow-1"></a><a class="docs-heading-anchor-permalink" href="#安装-PowerFlow" title="Permalink"></a></h3><p>打开 Julia REPL（交互式命令行），按 <code>]</code> 键进入包管理模式，然后执行以下命令：</p><pre><code class="language-julia hljs">add PowerFlow</code></pre><p>如果您需要完整功能（包括时间序列分析和可视化），请安装相关包：</p><pre><code class="language-julia hljs">add PowerFlow TimeSeriesPowerFlow PowerFlowVisualization</code></pre><p>验证安装是否成功：</p><pre><code class="language-julia hljs">using PowerFlow
+println(&quot;PowerFlow 版本: &quot;, PowerFlow.VERSION)</code></pre><h2 id="基本概念"><a class="docs-heading-anchor" href="#基本概念">基本概念</a><a id="基本概念-1"></a><a class="docs-heading-anchor-permalink" href="#基本概念" title="Permalink"></a></h2><p>在开始使用 PowerFlow 之前，了解一些基本概念是很有帮助的：</p><h3 id="电力系统模型"><a class="docs-heading-anchor" href="#电力系统模型">电力系统模型</a><a id="电力系统模型-1"></a><a class="docs-heading-anchor-permalink" href="#电力系统模型" title="Permalink"></a></h3><p>在 PowerFlow 中，电力系统由以下主要组件组成：</p><ul><li><strong>母线 (Bus)</strong>：系统中的节点，可以连接发电机、负荷和支路</li><li><strong>发电机 (Generator)</strong>：产生电能的设备，连接到母线</li><li><strong>负荷 (Load)</strong>：消耗电能的设备，连接到母线</li><li><strong>支路 (Branch)</strong>：连接两个母线的元件，如输电线路和变压器</li></ul><h3 id="潮流计算"><a class="docs-heading-anchor" href="#潮流计算">潮流计算</a><a id="潮流计算-1"></a><a class="docs-heading-anchor-permalink" href="#潮流计算" title="Permalink"></a></h3><p>潮流计算是确定电力系统稳态运行条件的数学过程，主要解决以下问题：</p><ul><li>确定系统中所有母线的电压幅值和相角</li><li>计算所有支路的功率流</li><li>确定发电机的出力和系统损耗</li></ul><p>PowerFlow 支持多种潮流计算算法，包括：</p><ul><li>牛顿-拉夫森法 (Newton-Raphson)</li><li>快速解耦法 (Fast Decoupled)</li><li>高斯-赛德尔法 (Gauss-Seidel)</li><li>直流潮流法 (DC Power Flow)</li><li>线性分布潮流法 (Linear Distribution Flow)</li></ul><h2 id="快速入门示例"><a class="docs-heading-anchor" href="#快速入门示例">快速入门示例</a><a id="快速入门示例-1"></a><a class="docs-heading-anchor-permalink" href="#快速入门示例" title="Permalink"></a></h2><h3 id="示例-1：基本潮流计算"><a class="docs-heading-anchor" href="#示例-1：基本潮流计算">示例 1：基本潮流计算</a><a id="示例-1：基本潮流计算-1"></a><a class="docs-heading-anchor-permalink" href="#示例-1：基本潮流计算" title="Permalink"></a></h3><p>以下是一个简单的例子，展示如何加载测试系统并执行潮流计算：</p><pre><code class="language-julia hljs">using PowerFlow
+
+# 加载 IEEE 14 节点测试系统
+case = load_case(&quot;case14.m&quot;)
+
+# 查看系统基本信息
+println(&quot;系统信息:&quot;)
+println(&quot;  母线数量: &quot;, size(case.bus, 1))
+println(&quot;  发电机数量: &quot;, size(case.gen, 1))
+println(&quot;  支路数量: &quot;, size(case.branch, 1))
+println(&quot;  基准容量: &quot;, case.baseMVA, &quot; MVA&quot;)
+
+# 执行交流潮流计算
+results = runpf(case)
+
+# 检查结果
+if results.success
+    println(&quot;\n潮流计算成功收敛！&quot;)
+    println(&quot;  迭代次数: &quot;, results.iterations)
+    println(&quot;  最大误差: &quot;, results.max_mismatch)
+    println(&quot;  系统总发电: &quot;, sum(results.gen[:, PG]), &quot; MW&quot;)
+    println(&quot;  系统总负荷: &quot;, sum(results.bus[:, PD]), &quot; MW&quot;)
+    println(&quot;  系统总损耗: &quot;, sum(results.branch[:, PL]), &quot; MW&quot;)
+    
+    # 显示部分母线电压结果
+    println(&quot;\n母线电压结果 (前5个):&quot;)
+    for i in 1:min(5, size(results.bus, 1))
+        bus_id = Int(results.bus[i, BUS_I])
+        vm = results.bus[i, VM]
+        va = results.bus[i, VA]
+        println(&quot;  母线 $bus_id: $vm pu ∠ $va°&quot;)
+    end
+else
+    println(&quot;潮流计算未收敛，请检查系统参数&quot;)
+end</code></pre><h3 id="示例-2：使用不同的潮流算法"><a class="docs-heading-anchor" href="#示例-2：使用不同的潮流算法">示例 2：使用不同的潮流算法</a><a id="示例-2：使用不同的潮流算法-1"></a><a class="docs-heading-anchor-permalink" href="#示例-2：使用不同的潮流算法" title="Permalink"></a></h3><p>PowerFlow 支持多种潮流计算算法，您可以根据需要选择合适的算法：</p><pre><code class="language-julia hljs">using PowerFlow
+
+# 加载测试系统
+case = load_case(&quot;case14.m&quot;)
+
+# 使用牛顿-拉夫森法
+nr_opt = Dict(&quot;pf_alg&quot; =&gt; &quot;NR&quot;, &quot;verbose&quot; =&gt; 1)
+nr_results = runpf(case, nr_opt)
+println(&quot;牛顿-拉夫森法迭代次数: &quot;, nr_results.iterations)
+
+# 使用快速解耦法
+fd_opt = Dict(&quot;pf_alg&quot; =&gt; &quot;FDXB&quot;, &quot;verbose&quot; =&gt; 1)
+fd_results = runpf(case, fd_opt)
+println(&quot;快速解耦法迭代次数: &quot;, fd_results.iterations)
+
+# 使用直流潮流法
+dc_results = rundcpf(case)
+println(&quot;直流潮流计算完成&quot;)
+
+# 比较不同算法的结果
+println(&quot;\n比较不同算法的结果:&quot;)
+println(&quot;  牛顿-拉夫森法总损耗: &quot;, sum(nr_results.branch[:, PL]), &quot; MW&quot;)
+println(&quot;  快速解耦法总损耗: &quot;, sum(fd_results.branch[:, PL]), &quot; MW&quot;)
+println(&quot;  直流潮流法总损耗: 0 MW (直流潮流忽略损耗)&quot;)</code></pre><h3 id="示例-3：结果可视化"><a class="docs-heading-anchor" href="#示例-3：结果可视化">示例 3：结果可视化</a><a id="示例-3：结果可视化-1"></a><a class="docs-heading-anchor-permalink" href="#示例-3：结果可视化" title="Permalink"></a></h3><p>使用 PowerFlowVisualization 模块可以轻松地可视化计算结果：</p><pre><code class="language-julia hljs">using PowerFlow
+using PowerFlowVisualization
+using Plots
+
+# 加载测试系统并计算潮流
+case = load_case(&quot;case14.m&quot;)
+results = runpf(case)
+
+# 绘制电压分布图
+plot_voltage_profile(results)
+savefig(&quot;voltage_profile.png&quot;)
+
+# 绘制功率流分布图
+plot_power_flow(results)
+savefig(&quot;power_flow.png&quot;)
+
+# 绘制系统拓扑图
+plot_system_topology(case, results)
+savefig(&quot;system_topology.png&quot;)
+
+println(&quot;图表已保存到当前目录&quot;)</code></pre><h2 id="创建自定义系统"><a class="docs-heading-anchor" href="#创建自定义系统">创建自定义系统</a><a id="创建自定义系统-1"></a><a class="docs-heading-anchor-permalink" href="#创建自定义系统" title="Permalink"></a></h2><p>除了使用内置的测试系统，您还可以创建自己的电力系统模型：</p><pre><code class="language-julia hljs">using PowerFlow
+
+# 创建一个新的案例
+case = PowerCase()
+case.baseMVA = 100.0
+
+# 添加母线
+# 格式: [bus_i, bus_type, Pd, Qd, Gs, Bs, area, Vm, Va, baseKV, zone, Vmax, Vmin]
+case.bus = [
+    1  3  0.0  0.0  0.0  0.0  1  1.06  0.0  230.0  1  1.1  0.9;
+    2  1  100.0  50.0  0.0  0.0  1  1.0  0.0  230.0  1  1.1  0.9;
+    3  1  90.0  30.0  0.0  0.0  1  1.0  0.0  230.0  1  1.1  0.9;
+]
+
+# 添加发电机
+# 格式: [bus, Pg, Qg, Qmax, Qmin, Vg, mBase, status, Pmax, Pmin]
+case.gen = [
+    1  200.0  0.0  100.0  -100.0  1.06  100.0  1  250.0  10.0;
+]
+
+# 添加支路
+# 格式: [fbus, tbus, r, x, b, rateA, rateB, rateC, ratio, angle, status]
+case.branch = [
+    1  2  0.01  0.1  0.02  250.0  250.0  250.0  0.0  0.0  1;
+    1  3  0.02  0.2  0.04  150.0  150.0  150.0  0.0  0.0  1;
+    2  3  0.03  0.3  0.06  100.0  100.0  100.0  0.0  0.0  1;
+]
+
+# 执行潮流计算
+results = runpf(case)
+
+# 显示结果
+if results.success
+    println(&quot;自定义系统潮流计算成功收敛！&quot;)
+    println(&quot;  系统总发电: &quot;, sum(results.gen[:, PG]), &quot; MW&quot;)
+    println(&quot;  系统总负荷: &quot;, sum(results.bus[:, PD]), &quot; MW&quot;)
+    println(&quot;  系统总损耗: &quot;, sum(results.branch[:, PL]), &quot; MW&quot;)
+else
+    println(&quot;潮流计算未收敛，请检查系统参数&quot;)
+end</code></pre><h2 id="时间序列分析"><a class="docs-heading-anchor" href="#时间序列分析">时间序列分析</a><a id="时间序列分析-1"></a><a class="docs-heading-anchor-permalink" href="#时间序列分析" title="Permalink"></a></h2><p>PowerFlow 库的 TimeSeriesPowerFlow 模块提供了时间序列分析功能：</p><pre><code class="language-julia hljs">using PowerFlow
+using TimeSeriesPowerFlow
+using Plots
+
+# 加载测试系统
+case = load_case(&quot;case14.m&quot;)
+
+# 创建24小时负荷曲线（示例数据）
+hours = 1:24
+load_profile = 0.7 .+ 0.3 * sin.((hours .- 10) * π / 12)
+
+# 创建负荷时间序列数据
+time_series_data = Dict()
+for t in 1:24
+    # 复制基础案例
+    time_series_data[t] = deepcopy(case)
+    
+    # 调整负荷
+    load_factor = load_profile[t]
+    time_series_data[t].bus[:, PD] = case.bus[:, PD] * load_factor
+    time_series_data[t].bus[:, QD] = case.bus[:, QD] * load_factor
+end
+
+# 执行时间序列潮流计算
+ts_results = run_time_series_pf(time_series_data)
+
+# 提取结果
+total_load = zeros(24)
+total_gen = zeros(24)
+total_loss = zeros(24)
+
+for t in 1:24
+    if ts_results[t].success
+        total_load[t] = sum(ts_results[t].bus[:, PD])
+        total_gen[t] = sum(ts_results[t].gen[:, PG])
+        total_loss[t] = sum(ts_results[t].branch[:, PL])
+    end
+end
+
+# 绘制时间序列结果
+plot(hours, [total_load total_gen total_loss],
+    title = &quot;24小时系统分析&quot;,
+    xlabel = &quot;时间(小时)&quot;,
+    ylabel = &quot;功率(MW)&quot;,
+    label = [&quot;总负荷&quot; &quot;总发电&quot; &quot;总损耗&quot;],
+    marker = [:circle :square :diamond],
+    linewidth = 2,
+    legend = :topleft)
+
+savefig(&quot;time_series_analysis.png&quot;)
+println(&quot;时间序列分析图表已保存&quot;)</code></pre><h2 id="数据导入与导出"><a class="docs-heading-anchor" href="#数据导入与导出">数据导入与导出</a><a id="数据导入与导出-1"></a><a class="docs-heading-anchor-permalink" href="#数据导入与导出" title="Permalink"></a></h2><p>PowerFlow 支持多种数据格式的导入和导出：</p><pre><code class="language-julia hljs">using PowerFlow
+
+# 从MATPOWER格式导入
+case = load_case(&quot;case14.m&quot;)
+
+# 从IEEE通用格式导入
+case_ieee = load_case(&quot;ieee14.raw&quot;, &quot;ieee&quot;)
+
+# 从Excel文件导入
+case_excel = load_case(&quot;system_data.xlsx&quot;, &quot;excel&quot;)
+
+# 导出到MATPOWER格式
+save_case(case, &quot;my_case.m&quot;)
+
+# 导出到JSON格式
+save_case(case, &quot;my_case.json&quot;, &quot;json&quot;)
+
+# 导出结果到CSV
+results = runpf(case)
+export_results_csv(results, &quot;results.csv&quot;)</code></pre><h2 id="高级选项"><a class="docs-heading-anchor" href="#高级选项">高级选项</a><a id="高级选项-1"></a><a class="docs-heading-anchor-permalink" href="#高级选项" title="Permalink"></a></h2><p>PowerFlow 提供了许多高级选项来控制潮流计算的行为：</p><pre><code class="language-julia hljs">using PowerFlow
+
+# 加载测试系统
+case = load_case(&quot;case14.m&quot;)
+
+# 设置高级选项
+opt = Dict(
+    &quot;pf_alg&quot; =&gt; &quot;NR&quot;,       # 使用牛顿-拉夫森法
+    &quot;pf_tol&quot; =&gt; 1e-8,       # 设置收敛容差
+    &quot;max_it&quot; =&gt; 30,         # 最大迭代次数
+    &quot;verbose&quot; =&gt; 2,         # 详细输出级别
+    &quot;enforce_q_lims&quot; =&gt; 1,  # 考虑发电机无功限制
+    &quot;flat_start&quot; =&gt; 0,      # 使用案例中的起始值
+    &quot;adjust_limits&quot; =&gt; 1    # 调整超出限制的值
+)
+
+# 执行潮流计算
+results = runpf(case, opt)
+
+# 检查结果
+if results.success
+    println(&quot;使用高级选项的潮流计算成功收敛！&quot;)
+    println(&quot;  迭代次数: &quot;, results.iterations)
+    println(&quot;  最大误差: &quot;, results.max_mismatch)
+else
+    println(&quot;潮流计算未收敛&quot;)
+end</code></pre><h2 id="常见问题解答"><a class="docs-heading-anchor" href="#常见问题解答">常见问题解答</a><a id="常见问题解答-1"></a><a class="docs-heading-anchor-permalink" href="#常见问题解答" title="Permalink"></a></h2><h3 id="Q1:-如何处理潮流计算不收敛的情况？"><a class="docs-heading-anchor" href="#Q1:-如何处理潮流计算不收敛的情况？">Q1: 如何处理潮流计算不收敛的情况？</a><a id="Q1:-如何处理潮流计算不收敛的情况？-1"></a><a class="docs-heading-anchor-permalink" href="#Q1:-如何处理潮流计算不收敛的情况？" title="Permalink"></a></h3><p><strong>A1</strong>: 潮流计算不收敛可能有多种原因，可以尝试以下方法：</p><ol><li>检查系统数据是否正确</li><li>使用平坦起始点（设置 <code>&quot;flat_start&quot; =&gt; 1</code>）</li><li>增加最大迭代次数（设置 <code>&quot;max_it&quot; =&gt; 50</code>）</li><li>放宽收敛容差（设置 <code>&quot;pf_tol&quot; =&gt; 1e-4</code>）</li><li>尝试不同的算法（如 <code>&quot;pf_alg&quot; =&gt; &quot;FDXB&quot;</code>）</li><li>暂时不考虑发电机无功限制（设置 <code>&quot;enforce_q_lims&quot; =&gt; 0</code>）</li></ol><h3 id="Q2:-如何处理大规模系统的性能问题？"><a class="docs-heading-anchor" href="#Q2:-如何处理大规模系统的性能问题？">Q2: 如何处理大规模系统的性能问题？</a><a id="Q2:-如何处理大规模系统的性能问题？-1"></a><a class="docs-heading-anchor-permalink" href="#Q2:-如何处理大规模系统的性能问题？" title="Permalink"></a></h3><p><strong>A2</strong>: 对于大规模系统，可以考虑以下优化方法：</p><ol><li>使用并行计算（设置 <code>&quot;parallel&quot; =&gt; 1</code>）</li><li>使用直流潮流作为初步分析（<code>rundcpf</code>）</li><li>对于特别大的系统，考虑使用 GPU 加速（需要 CUDA 支持）</li><li>优化系统的稀疏性处理（设置 <code>&quot;sparse_solver&quot; =&gt; &quot;KLU&quot;</code>）</li></ol><h3 id="Q3:-如何将-PowerFlow-与其他工具集成？"><a class="docs-heading-anchor" href="#Q3:-如何将-PowerFlow-与其他工具集成？">Q3: 如何将 PowerFlow 与其他工具集成？</a><a id="Q3:-如何将-PowerFlow-与其他工具集成？-1"></a><a class="docs-heading-anchor-permalink" href="#Q3:-如何将-PowerFlow-与其他工具集成？" title="Permalink"></a></h3><p><strong>A3</strong>: PowerFlow 可以通过多种方式与其他工具集成：</p><ol><li>导出结果到标准格式（CSV、JSON）供其他工具使用</li><li>使用 Julia 的互操作性与 Python、MATLAB 等语言交互</li><li>通过 HTTP API 提供网络服务（使用 Julia 的 HTTP 包）</li></ol><h2 id="下一步"><a class="docs-heading-anchor" href="#下一步">下一步</a><a id="下一步-1"></a><a class="docs-heading-anchor-permalink" href="#下一步" title="Permalink"></a></h2><p>恭喜您完成了 PowerFlow 的入门指南！以下是一些建议的后续步骤：</p><ol><li>探索 <a href="powerflow.md">PowerFlow 模块文档</a> 了解更多核心功能</li><li>学习 <a href="timeseriesflow.md">TimeSeriesPowerFlow 模块</a> 进行动态系统分析</li><li>尝试 <a href="visualization.md">可视化工具</a> 创建漂亮的结果展示</li><li>查看 <a href="examples/">示例库</a> 获取更多实际应用案例</li><li>参与 <a href="https://github.com/powerflow/PowerFlow.jl/discussions">社区讨论</a> 分享您的经验和问题</li></ol><h2 id="参考资源"><a class="docs-heading-anchor" href="#参考资源">参考资源</a><a id="参考资源-1"></a><a class="docs-heading-anchor-permalink" href="#参考资源" title="Permalink"></a></h2><ul><li><a href="https://github.com/powerflow/PowerFlow.jl">PowerFlow GitHub 仓库</a></li><li><a href="https://powerflow.github.io/docs/api">完整 API 文档</a></li><li><a href="https://docs.julialang.org">Julia 语言文档</a></li><li><a href="https://powerflow.github.io/docs/theory/basics">电力系统分析基础</a></li></ul><h2 id="获取帮助"><a class="docs-heading-anchor" href="#获取帮助">获取帮助</a><a id="获取帮助-1"></a><a class="docs-heading-anchor-permalink" href="#获取帮助" title="Permalink"></a></h2><p>如果您在使用 PowerFlow 时遇到问题，可以通过以下渠道获取帮助：</p><ul><li><a href="https://github.com/powerflow/PowerFlow.jl/issues">GitHub Issues</a>：报告 bug 或提出功能请求</li><li><a href="https://github.com/powerflow/PowerFlow.jl/discussions">讨论区</a>：提问或分享想法</li><li><a href="mailto:powerflow-users@googlegroups.com">邮件列表</a>：与其他用户和开发者交流</li></ul><p>我们希望 PowerFlow 能够帮助您更高效地进行电力系统分析！</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="index.html">« 首页</a><a class="docs-footer-nextpage" href="api/overview.html">概述 »</a><div class="flexbox-break"></div><p class="footer-message">电力系统建模与分析工具集</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Thursday 3 July 2025 23:11">Thursday 3 July 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
