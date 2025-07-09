@@ -42,7 +42,3 @@ deploydocs(
     repo = "github.com/Luosipeng/TSPF.jl.git",
     devbranch = "master",
 )
-
-# using .TSPF
-# @doc ComponentModel
-# @doc TSPF.ComponentModel.AbstractComponent
