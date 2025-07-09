@@ -54,6 +54,7 @@ results = (value=results_array, time=elapsed)
 voltage_results = get_bus_voltage_results_acdc(results, new_case)
 
 # # Compare results with reference file
+
 # result_file = joinpath(pwd(), "data", "ShiQiao F12 CaoHe F27 AC-DC result.xlsx")
 # result_file = "C:/Users/13733/Desktop/etap-main/result.xlsx"
 # analyze_voltage_results(results, case, result_file, output_dir="./analysis_results")
