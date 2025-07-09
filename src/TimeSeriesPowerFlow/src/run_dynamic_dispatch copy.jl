@@ -1,6 +1,6 @@
-include("../../solvers/types.jl")
-include("../../solvers/interior_point_method.jl")
-include("../../solvers/mips.jl")
+include("../../Solvers/types.jl")
+include("../../Solvers/interior_point_method.jl")
+include("../../Solvers/mips.jl")
 using  LinearAlgebra
 
 """

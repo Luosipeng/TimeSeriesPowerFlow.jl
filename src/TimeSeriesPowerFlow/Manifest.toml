@@ -2,7 +2,7 @@
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "d437683874181b1c475224b4baad2946d011c5cf"
+project_hash = "71df73ebb10287092e2aee173eef19f5214f25d2"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -367,18 +367,6 @@ version = "1.13.0"
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
-
-[[deps.Gurobi]]
-deps = ["Gurobi_jll", "Libdl", "MathOptInterface", "PrecompileTools"]
-git-tree-sha1 = "5f5beefaf8b43dbd76cb4e61f854ed54c40dcd7e"
-uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "1.7.4"
-
-[[deps.Gurobi_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "0306382a5f266e08e48ccfd4ea2e05d61155a055"
-uuid = "c018c7e6-a5b0-4aea-8f80-9c1ef9991411"
-version = "12.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "PrecompileTools", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]

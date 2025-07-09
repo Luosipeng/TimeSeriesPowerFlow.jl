@@ -22,6 +22,8 @@ module TimeSeriesPowerFlow
     using Dates
     using Base.Threads
     using Plots
+    using JuMP
+    using Ipopt
     
     using PowerFlow
     # ...other files in Utils directory...

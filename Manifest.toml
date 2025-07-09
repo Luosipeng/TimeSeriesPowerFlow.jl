@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "60a30ba992393c42950b0ed45518f1de8543203f"
+project_hash = "512e3813e7bb9eb2a113dd746a890f08700633c9"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -151,7 +151,7 @@ version = "1.1.1+0"
 
 [[deps.ComponentModel]]
 deps = ["DataFrames", "Dates", "SparseArrays"]
-path = "ComponentModel"
+path = "src/ComponentModel"
 uuid = "4b24ec6f-2e34-4333-9ec3-c9a09eea52b5"
 version = "0.1.0"
 
@@ -398,9 +398,9 @@ version = "1.0.2"
 
 [[deps.Gurobi]]
 deps = ["Gurobi_jll", "Libdl", "MathOptInterface", "PrecompileTools"]
-git-tree-sha1 = "5f5beefaf8b43dbd76cb4e61f854ed54c40dcd7e"
+git-tree-sha1 = "a39349533a3fe9f60cf05e1a56644f804473c46a"
 uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "1.7.4"
+version = "1.7.5"
 
 [[deps.Gurobi_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -839,7 +839,7 @@ version = "0.3.27+1"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.1+4"
 
 [[deps.OpenSSH_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "OpenSSL_jll", "Zlib_jll"]
@@ -954,7 +954,7 @@ version = "1.4.3"
 
 [[deps.PowerFlow]]
 deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "IncompleteLU", "IterativeSolvers", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "Test", "Utils", "XLSX"]
-path = "PowerFlow"
+path = "src/PowerFlow"
 uuid = "c5956ac0-0e7c-433f-a167-1e414f239e52"
 version = "0.1.0"
 
@@ -1241,7 +1241,7 @@ version = "1.11.0"
 
 [[deps.TimeSeriesPowerFlow]]
 deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "Gurobi", "Ipopt", "JuMP", "LinearAlgebra", "LinearOperators", "Plots", "PowerFlow", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
-path = "TimeSeriesPowerFlow"
+path = "src/TimeSeriesPowerFlow"
 uuid = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
 version = "0.1.0"
 
@@ -1312,8 +1312,8 @@ uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
 
 [[deps.Utils]]
-deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Graphs", "IterativeSolvers", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "Test", "XLSX"]
-path = "Utils"
+deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Graphs", "IterativeSolvers", "LinearAlgebra", "LinearOperators", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
+path = "src/Utils"
 uuid = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"
 version = "0.1.0"
 

@@ -1,6 +1,3 @@
-using  JuMP
-using  Ipopt
-using  Gurobi
 
 """
     run_dynamic_dispatch(new_jpc, Cld_ac, Cld_dc, loadAC_PD, loadAC_QD, loadDC_PD, genAC_PG,
