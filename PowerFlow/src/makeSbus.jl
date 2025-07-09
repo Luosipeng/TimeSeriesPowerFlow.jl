@@ -113,7 +113,7 @@ function calculate_pv_power(pvarray, bus, Vm, baseMVA)
     
     # 创建母线号到索引的映射
     bus_num_to_idx = Dict{Int, Int}()
-    for i in 1:size(bus, 1)
+    for i in eachindex(bus[:,1])
         bus_num_to_idx[Int(bus[i, BUS_I])] = i
     end
     
@@ -122,7 +122,7 @@ function calculate_pv_power(pvarray, bus, Vm, baseMVA)
     valid_pv = falses(size(active_pv, 1))
     bus_indices = zeros(Int, size(active_pv, 1))
     
-    for i in 1:length(bus_nums)
+    for i in eachindex(bus_nums)
         if haskey(bus_num_to_idx, bus_nums[i])
             valid_pv[i] = true
             bus_indices[i] = bus_num_to_idx[bus_nums[i]]
@@ -191,7 +191,7 @@ function calculate_pv_power(pvarray, bus, Vm, baseMVA)
     end
     
     # 计算导数（对于有效电压范围内的值）
-    for i in 1:length(V_arrays)
+    for i in eachindex(V_arrays)
         if valid_v_mask[i] && V_arrays[i] > 0
             # 基础幂函数部分的导数
             d_base_term_dv = -a * b * (1 - v_ratios[i]^a)^(b-1) * v_ratios[i]^(a-1) / Vocs[i]
@@ -226,7 +226,7 @@ function calculate_pv_power(pvarray, bus, Vm, baseMVA)
     dP_dV_pus = (dP_dVs .* base_kvs .* 1000 .* voltage_ratios) ./ (baseMVA * 1e6)
     
     # 更新功率注入和导数矩阵
-    for i in 1:length(bus_indices)
+    for i in eachindex(bus_indices)
         Spv[bus_indices[i]] += P_pus[i] + 0im  # 只有有功功率
         dSpv_dVm[bus_indices[i], bus_indices[i]] += dP_dV_pus[i]
     end

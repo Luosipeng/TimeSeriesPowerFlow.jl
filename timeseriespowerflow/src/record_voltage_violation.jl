@@ -47,12 +47,12 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
         voltage_min_limit_DC[Int.(results[i, 1, 1].busDC[:, BUS_I]),2] .= results[i, 1, 1].busDC[:, VMIN]
     end
 
-    # 改进的时间轴标签处理
+    # Improved time axis label handling
     time_labels = String[]
     
-    # 根据总天数选择合适的标签格式
-    if time_day <= 3  # 3天或更短
-        # 每4小时一个标签
+    # Choose appropriate label format based on total days
+    if time_day <= 3  # 3 days or less
+        # One label every 4 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 4 == 0 || h == 1
@@ -62,8 +62,8 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
                 end
             end
         end
-    elseif time_day <= 7  # 一周或更短
-        # 每6小时一个标签
+    elseif time_day <= 7  # One week or less
+        # One label every 6 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 6 == 0 || h == 1
@@ -73,8 +73,8 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
                 end
             end
         end
-    elseif time_day <= 31  # 一个月或更短
-        # 每天只显示一个标签（第一个小时）
+    elseif time_day <= 31  # One month or less
+        # Show only one label per day (first hour)
         for d in 1:time_day
             for h in 1:24
                 if h == 1
@@ -84,9 +84,9 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
                 end
             end
         end
-    else  # 超过一个月
-        # 每隔几天显示一个标签
-        label_interval = max(1, round(Int, time_day / 20))  # 动态计算标签间隔，确保总标签数不超过20个左右
+    else  # More than one month
+        # Show labels every few days
+        label_interval = max(1, round(Int, time_day / 20))  # Dynamically calculate label interval to ensure no more than about 20 labels
         for d in 1:time_day
             for h in 1:24
                 if h == 1 && (d % label_interval == 0 || d == 1 || d == time_day)
@@ -98,7 +98,7 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
         end
     end
     
-    # 创建时间点索引数组，用于指定哪些点显示标签
+    # Create time point index array to specify which points show labels
     time_points = 1:time_day*24
     xtick_indices = findall(x -> x != "", time_labels)
     xtick_labels = time_labels[xtick_indices]
@@ -251,7 +251,7 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
              ylabel="Voltage Magnitude (p.u.)",
              grid=true,
              legend=:topright,
-             size=(900, 600))  # 增加图表宽度，给标签更多空间
+             size=(900, 600))  # Increase chart width to provide more space for labels
     
     # Add upper and lower limit lines
     hline!([voltage_min_limit], label="Lower Limit ($(round(voltage_min_limit, digits=3)))", color=:red, linestyle=:dash, linewidth=1.5)
@@ -312,13 +312,13 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
               label="Longest Above Upper Limit Interval ($(length_period) hours)")
     end
     
-    # 设置优化后的x轴刻度标签
+    # Set optimized x-axis tick labels
     p = plot!(p, xticks=(xtick_indices, xtick_labels), xrotation=45)
     
-    # 添加辅助网格线，使时间点更容易对应
+    # Add auxiliary grid lines to make time points easier to match
     p = plot!(p, minorgrid=true, minorgridalpha=0.1)
     
-    # 添加日期范围标注
+    # Add date range annotation
     if time_day > 7
         day_range_text = "Time span: $(time_day) days"
         annotate!(0.5*length(time_points), voltage_min_limit - 0.02, 
@@ -356,7 +356,7 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
         
         # Add details for violations below the lower limit
         for i in under_limit_indices
-            # 获取实际的时间标签，即使在time_labels中是空字符串
+            # Get actual time label, even if it's an empty string in time_labels
             actual_time_label = "D$(ceil(Int, i/24))-H$((i-1)%24+1)"
             
             push!(violation_details, (
@@ -370,7 +370,7 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
         
         # Add details for violations above the upper limit
         for i in over_limit_indices
-            # 获取实际的时间标签，即使在time_labels中是空字符串
+            # Get actual time label, even if it's an empty string in time_labels
             actual_time_label = "D$(ceil(Int, i/24))-H$((i-1)%24+1)"
             
             push!(violation_details, (
@@ -409,7 +409,7 @@ function record_voltage_violation(results, bus_name, case, time_day, bus_type = 
         for (i, period) in enumerate(any_continuous_periods)
             start_idx, end_idx, length_period = period
             
-            # 获取实际的开始和结束时间标签
+            # Get actual start and end time labels
             start_time_label = "D$(ceil(Int, start_idx/24))-H$((start_idx-1)%24+1)"
             end_time_label = "D$(ceil(Int, end_idx/24))-H$((end_idx-1)%24+1)"
             

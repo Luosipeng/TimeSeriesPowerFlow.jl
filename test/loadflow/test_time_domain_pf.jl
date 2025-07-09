@@ -12,14 +12,14 @@ price_path = joinpath(pwd(), "data", "price.xlsx")  # Load
 irradiance_path = joinpath(pwd(), "data", "irradiance.xlsx")  # Load solar irradiance time series data
 
 # Load power system data and time series data
-case = TimeSeriesPowerFlow.load_julia_power_data(file_path)  # Load power system case data
-time_column, time_str_column, load_names, data = TimeSeriesPowerFlow.read_load_data(load_path)  # Read load time series data
-time_column, time_str_column, price_profiles = TimeSeriesPowerFlow.read_price_data(price_path)  # Read price time series data
-time_column, time_str_column, irradiance_profiles = TimeSeriesPowerFlow.read_irradiance_data(irradiance_path)  # Read solar irradiance time series data
+case = load_julia_power_data(file_path)  # Load power system case data
+time_column, time_str_column, load_names, data = read_load_data(load_path)  # Read load time series data
+time_column, time_str_column, price_profiles = read_price_data(price_path)  # Read price time series data
+time_column, time_str_column, irradiance_profiles = read_irradiance_data(irradiance_path)  # Read solar irradiance time series data
 
 # Topology processing
 # Analyze network topology and save results to Excel file
-results, new_case = TimeSeriesPowerFlow.topology_analysis(case, output_file="topology_results.xlsx")
+results, new_case = topology_analysis(case, output_file="topology_results.xlsx")
 
 # Clear existing storage data and add a new battery storage system
 empty!(new_case.storageetap)
@@ -32,16 +32,16 @@ new_case.converters[2].control_mode = "Droop_Udc_Us"
 new_case.converters[1].control_mode = "Droop_Udc_Us"
 
 # Configure power flow calculation options
-opt = TimeSeriesPowerFlow.options()  # Initialize with default settings
+opt = options()  # Initialize with default settings
 opt["PF"]["NR_ALG"] = "bicgstab";    # Set Newton-Raphson algorithm to BiCGSTAB (Biconjugate Gradient Stabilized method)
 opt["PF"]["ENFORCE_Q_LIMS"] = 0;     # Disable enforcement of reactive power limits
 opt["PF"]["DC_PREPROCESS"] = 0;      # Enable DC power flow preprocessing
 
 # Run time-series power flow calculation and measure execution time
-@time results = TimeSeriesPowerFlow.runtdpf(new_case, data, load_names, price_profiles, irradiance_profiles, opt)
+@time results = runtdpf(new_case, data, load_names, price_profiles, irradiance_profiles, opt)
 
 # 获取电压结果并绘图
-plot_voltage_time_series(results, "Bus_21", new_case, 366, "AC", save_path="voltage_plot")
+plot_result = plot_voltage_time_series(results, "Bus_21", new_case, 366, "AC"; save_path="voltage_plot")
 #  TimeSeriesPowerFlow.plot_PD_time_series(results, "Bus_大刀沙村2号直流", case, 30, "DC")
 plot_result, violation_stats = record_voltage_violation(results, "Bus_21", new_case, 366, "AC", save_path="voltage_violation_analysis")
 

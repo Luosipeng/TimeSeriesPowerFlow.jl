@@ -9,8 +9,6 @@ module Utils
     using PrettyTables
     using AMD
     using SuiteSparse
-    using KrylovKit
-    using Krylov
     using LinearOperators
     # using AlgebraicMultigrid
     using XLSX
@@ -19,8 +17,6 @@ module Utils
     using Graphs
     using DataStructures  
     using Dates
-    using Base.Threads
-    using Test
 
     # include(joinpath(dirname(@__DIR__), "Component_Model","Component_Model.jl"))
     using ComponentModel

@@ -110,12 +110,12 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
         end
     end
     
-    # 改进的时间轴标签处理
+    # Improved time axis label handling
     time_labels = String[]
     
-    # 根据总天数选择合适的标签格式
-    if time_day <= 3  # 3天或更短
-        # 每4小时一个标签
+    # Choose appropriate label format based on total days
+    if time_day <= 3  # 3 days or less
+        # One label every 4 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 4 == 0 || h == 1
@@ -125,8 +125,8 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
                 end
             end
         end
-    elseif time_day <= 7  # 一周或更短
-        # 每6小时一个标签
+    elseif time_day <= 7  # One week or less
+        # One label every 6 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 6 == 0 || h == 1
@@ -136,8 +136,8 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
                 end
             end
         end
-    elseif time_day <= 31  # 一个月或更短
-        # 每天只显示一个标签（第一个小时）
+    elseif time_day <= 31  # One month or less
+        # Show only one label per day (first hour)
         for d in 1:time_day
             for h in 1:24
                 if h == 1
@@ -147,9 +147,9 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
                 end
             end
         end
-    else  # 超过一个月
-        # 每隔几天显示一个标签
-        label_interval = max(1, round(Int, time_day / 20))  # 动态计算标签间隔，确保总标签数不超过20个左右
+    else  # More than one month
+        # Show labels every few days
+        label_interval = max(1, round(Int, time_day / 20))  # Dynamically calculate label interval to ensure no more than about 20 labels
         for d in 1:time_day
             for h in 1:24
                 if h == 1 && (d % label_interval == 0 || d == 1 || d == time_day)
@@ -161,12 +161,12 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
         end
     end
     
-    # 创建时间点索引数组，用于指定哪些点显示标签
+    # Create time point index array to specify which points show labels
     time_points = 1:time_day*24
     xtick_indices = findall(x -> x != "", time_labels)
     xtick_labels = time_labels[xtick_indices]
     
-    # 设置图表大小，根据时间跨度调整
+    # Set chart size based on time span
     plot_size = time_day > 14 ? (900, 600) : (800, 500)
     
     # Create charts based on loss type and plot type
@@ -208,7 +208,7 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
             max_active_loss_time_idx = argmax(total_active_losses)
             min_active_loss_time_idx = argmin(total_active_losses)
             
-            # 获取最大/最小损耗时间的实际时间标签
+            # Get actual time labels for maximum/minimum loss times
             max_day = ceil(Int, max_active_loss_time_idx/24)
             max_hour = (max_active_loss_time_idx-1)%24+1
             max_time_label = "D$(max_day)-H$(max_hour)"
@@ -243,7 +243,7 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
             max_reactive_loss_time_idx = argmax(total_ac_reactive_losses)
             min_reactive_loss_time_idx = argmin(total_ac_reactive_losses)
             
-            # 获取最大/最小损耗时间的实际时间标签
+            # Get actual time labels for maximum/minimum loss times
             max_day = ceil(Int, max_reactive_loss_time_idx/24)
             max_hour = (max_reactive_loss_time_idx-1)%24+1
             max_time_label = "D$(max_day)-H$(max_hour)"
@@ -417,13 +417,13 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
         end
     end
     
-    # 设置优化后的x轴刻度标签
+    # Set optimized x-axis tick labels
     plot_result = plot!(plot_result, xticks=(xtick_indices, xtick_labels), xrotation=45)
     
-    # 添加辅助网格线，使时间点更容易对应
+    # Add auxiliary grid lines to make time points easier to match
     plot_result = plot!(plot_result, minorgrid=true, minorgridalpha=0.1)
     
-    # 添加日期范围标注
+    # Add date range annotation
     if time_day > 7
         day_range_text = "Time span: $(time_day) days"
         if plot_type == "total"
@@ -440,7 +440,7 @@ function plot_losses_time_series(results, case, time_day, plot_type = "total", l
                          text(day_range_text, :center, 8))
             end
         else # branch
-            # 为分支损耗图添加时间跨度标注
+            # Add time span annotation for branch loss chart
             annotate!(0.5*length(time_points), 0, text(day_range_text, :center, 8))
         end
     end

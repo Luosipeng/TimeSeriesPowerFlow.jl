@@ -1,6 +1,6 @@
 function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_type = "summary", flow_direction = "max"; save_path = nothing, save_format = "pdf")
-    # 确保flow_limit是数值类型
-    flow_limit = float(flow_limit)  # 添加此行确保flow_limit为浮点数
+    # Ensure flow_limit is a numerical type
+    flow_limit = float(flow_limit)  # Add this line to ensure flow_limit is a float
     
     default(fontfamily="Microsoft YaHei")
     # Get number of islands
@@ -307,12 +307,12 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
         end
     end
     
-    # 改进的时间轴标签处理
+    # Improved time axis label handling
     time_labels = String[]
     
-    # 根据总天数选择合适的标签格式
-    if time_day <= 3  # 3天或更短
-        # 每4小时一个标签
+    # Choose appropriate label format based on total days
+    if time_day <= 3  # 3 days or less
+        # One label every 4 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 4 == 0 || h == 1
@@ -322,8 +322,8 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 end
             end
         end
-    elseif time_day <= 7  # 一周或更短
-        # 每6小时一个标签
+    elseif time_day <= 7  # One week or less
+        # One label every 6 hours
         for d in 1:time_day
             for h in 1:24
                 if h % 6 == 0 || h == 1
@@ -333,8 +333,8 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 end
             end
         end
-    elseif time_day <= 31  # 一个月或更短
-        # 每天只显示一个标签（第一个小时）
+    elseif time_day <= 31  # One month or less
+        # Show only one label per day (first hour)
         for d in 1:time_day
             for h in 1:24
                 if h == 1
@@ -344,9 +344,9 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 end
             end
         end
-    else  # 超过一个月
-        # 每隔几天显示一个标签
-        label_interval = max(1, round(Int, time_day / 20))  # 动态计算标签间隔，确保总标签数不超过20个左右
+    else  # More than one month
+        # Show labels every few days
+        label_interval = max(1, round(Int, time_day / 20))  # Dynamically calculate label interval to ensure no more than about 20 labels
         for d in 1:time_day
             for h in 1:24
                 if h == 1 && (d % label_interval == 0 || d == 1 || d == time_day)
@@ -358,12 +358,12 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
         end
     end
     
-    # 创建时间点索引数组，用于指定哪些点显示标签
+    # Create time point index array to specify which points show labels
     time_points = 1:time_day*24
     xtick_indices = findall(x -> x != "", time_labels)
     xtick_labels = time_labels[xtick_indices]
     
-    # 设置图表大小，根据时间跨度调整
+    # Set chart size based on time span
     plot_size = time_day > 14 ? (900, 600) : (800, 500)
     
     # Create charts based on plot type
@@ -404,12 +404,12 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
         max_violation_pct = maximum(max_violation_percent)
         max_violation_pct_time_idx = argmax(max_violation_percent)
         
-        # 获取最大违例时间的实际时间标签
+        # Get actual time label for maximum violation time
         max_viol_day = ceil(Int, max_violations_time_idx/24)
         max_viol_hour = (max_violations_time_idx-1)%24+1
         max_viol_time_label = "D$(max_viol_day)-H$(max_viol_hour)"
         
-        # 获取最大违例百分比时间的实际时间标签
+        # Get actual time label for maximum violation percentage time
         max_pct_day = ceil(Int, max_violation_pct_time_idx/24)
         max_pct_hour = (max_violation_pct_time_idx-1)%24+1
         max_pct_time_label = "D$(max_pct_day)-H$(max_pct_hour)"
@@ -422,11 +422,11 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
         annotate!(subplot=1, 0.7 * length(time_points), 0.8 * max_violations, 
                  text(stats_text, :left, 8))
         
-        # 设置优化后的x轴刻度标签
-        plot!(subplot=1, xticks=([], []))  # 上图不显示x轴标签
+        # Set optimized x-axis tick labels
+        plot!(subplot=1, xticks=([], []))  # No x-axis labels for top plot
         plot!(subplot=2, xticks=(xtick_indices, xtick_labels), xrotation=45)
         
-        # 添加辅助网格线，使时间点更容易对应
+        # Add auxiliary grid lines to make time points easier to match
         plot!(subplot=1, minorgrid=true, minorgridalpha=0.1)
         plot!(subplot=2, minorgrid=true, minorgridalpha=0.1)
         
@@ -491,12 +491,12 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
             violation_times = count(flows .> flow_limit)
             avg_violation_pct = mean((flows[flows .> flow_limit] .- flow_limit) ./ flow_limit .* 100)
             
-            # 获取最大流量时间的实际时间标签
+            # Get actual time label for maximum flow time
             max_flow_day = ceil(Int, max_flow_time_idx/24)
             max_flow_hour = (max_flow_time_idx-1)%24+1
             max_flow_time_label = "D$(max_flow_day)-H$(max_flow_hour)"
             
-            # 简化标签以避免图例过长
+            # Simplify label to avoid legend being too long
             short_branch_name = length(branch_name) > 20 ? branch_name[1:18] * "..." : branch_name
             label_text = "$short_branch_name (Max: $(round(max_flow, digits=2)) MW)"
             
@@ -506,13 +506,13 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                  color=colors[i])
         end
         
-        # 设置优化后的x轴刻度标签
+        # Set optimized x-axis tick labels
         plot!(xticks=(xtick_indices, xtick_labels), xrotation=45)
         
-        # 添加辅助网格线，使时间点更容易对应
+        # Add auxiliary grid lines to make time points easier to match
         plot!(minorgrid=true, minorgridalpha=0.1)
         
-        # 添加违例统计信息
+        # Add violation statistics information
         total_violations = sum(violation_count)
         violation_info = "Total violations: $total_violations times across $(length(branch_violation_severity)) branches"
         title!(plot_result, "Power Flows for Worst Violation Branches\n$violation_info")
@@ -569,7 +569,7 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 # Calculate statistics
                 violation_times = count(flows .> flow_limit)
                 
-                # 简化标签以避免图例过长
+                # Simplify label to avoid legend being too long
                 short_branch_name = length(branch_name) > 20 ? branch_name[1:18] * "..." : branch_name
                 
                 color_idx = ((i-1) % length(colors)) + 1
@@ -579,10 +579,10 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                      color=colors[color_idx])
             end
             
-            # 设置优化后的x轴刻度标签
+            # Set optimized x-axis tick labels
             plot!(xticks=(xtick_indices, xtick_labels), xrotation=45)
             
-            # 添加辅助网格线，使时间点更容易对应
+            # Add auxiliary grid lines to make time points easier to match
             plot!(minorgrid=true, minorgridalpha=0.1)
             
         else
@@ -594,13 +594,13 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
             plot_result = plot(layout=plot_layout, size=(900, 700),
                               title="Branch Violation Power Flows")
             
-            # 为每个子图选择合适的x轴标签间隔
+            # Choose appropriate x-axis label interval for each subplot
             if time_day <= 7
-                # 对于短时间序列，每个子图使用相同的标签间隔
+                # For short time series, use the same label interval for each subplot
                 subplot_xtick_indices = xtick_indices
                 subplot_xtick_labels = xtick_labels
             else
-                # 对于长时间序列，使用更少的标签
+                # For long time series, use fewer labels
                 day_interval = max(1, round(Int, time_day / 5))
                 subplot_xtick_indices = []
                 subplot_xtick_labels = []
@@ -621,7 +621,7 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 max_flow = maximum(flows)
                 violation_times = count(flows .> flow_limit)
                 
-                # 简化标签以适应子图
+                # Simplify label to fit subplot
                 short_branch_name = length(branch_name) > 25 ? branch_name[1:22] * "..." : branch_name
                 
                 # Plot power flow curve in subplot
@@ -644,19 +644,19 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
                 annotate!(subplot=i, 0.7 * length(time_points), 0.8 * max_flow, 
                          text("Max: $(round(max_flow, digits=2)) MW\nViol: $violation_times", :left, 6))
                 
-                # 设置子图的x轴标签
-                if i > (plot_layout[1]-1)*plot_layout[2]  # 只在底部子图显示x轴标签
+                # Set x-axis labels for subplot
+                if i > (plot_layout[1]-1)*plot_layout[2]  # Only show x-axis labels on bottom subplots
                     plot!(subplot=i, xticks=(subplot_xtick_indices, subplot_xtick_labels), xrotation=45)
                 else
                     plot!(subplot=i, xticks=(subplot_xtick_indices, []))
                 end
                 
-                # 添加辅助网格线，使时间点更容易对应
+                # Add auxiliary grid lines to make time points easier to match
                 plot!(subplot=i, minorgrid=true, minorgridalpha=0.1)
             end
             
             if length(violated_branches) > num_plots
-                                # 添加消息，指示更多违例分支未显示
+                # Add message indicating more violation branches not shown
                 remaining = length(violated_branches) - num_plots
                 title!(plot_result, "Branch Violation Power Flows (Showing $num_plots of $(length(violated_branches)) branches)")
             end
@@ -675,4 +675,3 @@ function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_ty
     
     return plot_result, violation_count, max_violation_percent, total_violation_severity, violation_details, branch_violation_stats
 end
-

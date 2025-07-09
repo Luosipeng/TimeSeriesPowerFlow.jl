@@ -6,7 +6,7 @@ function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = 
     voltage_angle_time_series_AC = zeros(num_bus_AC, time_day*24 + 1)  # First column for node number, subsequent columns for voltage angle at each time point
     voltage_magnitude_time_series_AC[:, 1] = 1:num_bus_AC  # First column for node number
     voltage_angle_time_series_AC[:, 1] = 1:num_bus_AC  # First column for node number
-    for i in 1:size(results,1)
+    for i in eachindex(results[:,1,1])
         for d in 1:time_day
             for hour in 1:24
                 # Get voltage magnitude at current time point
@@ -20,7 +20,7 @@ function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = 
     num_bus_DC = length(case.busesDC)
     voltage_magnitude_time_series_DC = zeros(num_bus_DC, time_day*24 + 1)  # First column for node number, subsequent columns for voltage magnitude at each time point
     voltage_magnitude_time_series_DC[:, 1] = 1:num_bus_DC  # First column for node number
-    for i in 1:size(results,1)
+    for i in eachindex(results[:,1,1])
         for d in 1:time_day
             for hour in 1:24
                 # Get voltage magnitude at current time point

@@ -24,14 +24,12 @@ module TimeSeriesPowerFlow
     using PowerFlow.Utils: load_julia_power_data, JuliaPowerCase,JPC,topology_analysis, extract_islands_acdc,JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
     using PowerFlow.ComponentModel: Storage
     using PowerFlow.Utils: idx_brch, idx_bus, idx_gen, idx_dcbus, idx_ld, idx_hvcb, idx_microgrid, idx_pv,idx_conv, idx_ess, idx_jpc_3ph,idx_ev, idx_pv_acsystem
+    using PowerFlow: options
 
     include(joinpath(@__DIR__,"renumber_hybrid_system.jl"))
     include(joinpath(@__DIR__,"run_dynamic_dispatch.jl"))
     include(joinpath(@__DIR__,"runtdpf.jl"))
     include(joinpath(@__DIR__,"run_single_day.jl"))
-    include(joinpath(@__DIR__,"runlindistflow.jl"))
-    include(joinpath(@__DIR__,"runmppt.jl"))
-    include(joinpath(@__DIR__,"runautopf.jl"))
     include(joinpath(@__DIR__,"plot_voltage_time_series.jl"))
     include(joinpath(@__DIR__,"plot_PD_time_series.jl"))
     include(joinpath(@__DIR__,"record_voltage_violation.jl"))
@@ -103,6 +101,9 @@ module TimeSeriesPowerFlow
     export EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA
 
     export  read_load_data,read_price_data,read_irradiance_data
-    export runtdpf, run_dynamic_dispatch, run_single_day, runlindistflow, runmppt, runautopf,plot_voltage_time_series,plot_PD_time_series
+    export runtdpf, run_dynamic_dispatch, run_single_day,plot_voltage_time_series,plot_PD_time_series
     export record_voltage_violation, plot_losses_time_series, plot_flow_violations
+
+    export topology_analysis, options
+    export load_julia_power_data
 end
