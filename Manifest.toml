@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "512e3813e7bb9eb2a113dd746a890f08700633c9"
+project_hash = "584c35ca130b5917675453a31c265adfaef73958"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -395,18 +395,6 @@ version = "1.13.0"
 git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
 uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.2"
-
-[[deps.Gurobi]]
-deps = ["Gurobi_jll", "Libdl", "MathOptInterface", "PrecompileTools"]
-git-tree-sha1 = "a39349533a3fe9f60cf05e1a56644f804473c46a"
-uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "1.7.5"
-
-[[deps.Gurobi_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "0306382a5f266e08e48ccfd4ea2e05d61155a055"
-uuid = "c018c7e6-a5b0-4aea-8f80-9c1ef9991411"
-version = "12.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "PrecompileTools", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
@@ -1240,7 +1228,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.TimeSeriesPowerFlow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "Gurobi", "Ipopt", "JuMP", "LinearAlgebra", "LinearOperators", "Plots", "PowerFlow", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
+deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "Ipopt", "JuMP", "LinearAlgebra", "LinearOperators", "Plots", "PowerFlow", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
 path = "src/TimeSeriesPowerFlow"
 uuid = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
 version = "0.1.0"

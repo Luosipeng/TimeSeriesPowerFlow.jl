@@ -1,58 +1,48 @@
 using Documenter
-
-# 清理 LOAD_PATH
-filter!(x -> x ∉ ["../src/", ".."], LOAD_PATH)
-
-# 重新添加源代码路径
-push!(LOAD_PATH, "../src/")
-push!(LOAD_PATH, "..")
-
-# 导入所有需要文档化的模块
-using ComponentModel
-using Utils
-using PowerFlow
-using TimeSeriesPowerFlow
+using TSPF
+# using TSPF.PowerFlow
+# using TSPF.Utils
+# using TSPF.TimeSeriesPowerFlow
+# 设置 DocMeta
+DocMeta.setdocmeta!(TSPF, :DocTestSetup, :(using TSPF); recursive=true)
 
 # 生成文档
 makedocs(
-    clean = true,
-    sitename = "电力系统建模与分析工具集",
+    sitename = "TSPF.jl",
     format = Documenter.HTML(
-        prettyurls = false,
-        # 移除重复的highlights配置，使用默认值
-        assets = ["assets/custom.css"],  # 如果favicon.ico不存在，先移除它
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        repolink = "https://github.com/Luosipeng/TSPF.jl.git",
+        canonical = "https://Luosipeng.github.io/TSPF.jl",
+        assets = ["assets/favicon.ico"],
         sidebar_sitename = false,
-        footer = "电力系统建模与分析工具集"
     ),
-    authors = "开发团队",
-    modules = [ComponentModel, Utils, PowerFlow, TimeSeriesPowerFlow],
+    modules = [TSPF],
+    authors = "Luosipeng",
+    repo = "github.com/Luosipeng/TSPF.jl/blob/{commit}{path}#L{line}",
     pages = [
-        "首页" => "index.md",
-        "入门指南" => "getting_started.md",
-        "API参考" => [
-            "概述" => "api/overview.md",
-            "ComponentModel模块" => "api/component_model.md",
-            "PowerFlow模块" => "api/power_flow.md",
-            "Utils模块" => "api/utils.md",
-            "TimeSeriesPowerFlow模块" => "api/time_series_power_flow.md"
+        "Home" => "index.md",
+        "Module" => [
+            "ComponentModel" => "modules/componentmodel.md",
+            "Utils" => "modules/utils.md",
+            "PowerFlow" => "modules/powerflow.md",
+            "TimeSeriesPowerFlow" => "modules/timeseriespowerflow.md",
         ],
-        "函数说明" => [
-            "组件函数" => "functions/component_functions.md",
-            "潮流计算函数" => "functions/power_flow_functions.md",
-            "工具函数" => "functions/utils_functions.md",
-            "时序潮流函数" => "functions/time_series_functions.md"
+        "API" => [
+            "ComponentModel API" => "api/componentmodel.md",
+            "Utils API" => "api/utils.md",
+            "PowerFlow API" => "api/powerflow.md",
+            "TimeSeriesPowerFlow API" => "api/timeseriespowerflow.md",
+            "TSPF API" => "api/tspf.md",
         ],
-        "主程序说明" => "main.md",
-        "示例" => [
-            "基础示例" => "examples/basic.md",
-            "潮流计算示例" => "examples/power_flow.md",
-            "时序潮流示例" => "examples/time_series.md",
-            "可视化示例" => "examples/visualization.md"
-        ],
-        "开发指南" => "development.md",
-        "常见问题" => "faq.md"
     ],
-    source = "src",
-    build = "build",
-    warnonly = true
 )
+
+# 部署文档
+deploydocs(
+    repo = "github.com/Luosipeng/TSPF.jl.git",
+    devbranch = "master",
+)
+
+# using .TSPF
+# @doc ComponentModel
+# @doc TSPF.ComponentModel.AbstractComponent

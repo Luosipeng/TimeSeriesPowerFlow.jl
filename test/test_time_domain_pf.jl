@@ -2,8 +2,8 @@ using  Dates
 using  XLSX
 using  DataFrames
 using  Base.Threads
-
-using  TimeSeriesPowerFlow
+include("../src/TSPF.jl")
+using   .TSPF
 
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 
@@ -23,7 +23,7 @@ results, new_case = topology_analysis(case, output_file="topology_results.xlsx")
 
 # Clear existing storage data and add a new battery storage system
 empty!(new_case.storageetap)
-push!(new_case.storages, TimeSeriesPowerFlow.Storage(1, "Battery_ESS_1", 3, 0.75, 1.5, 0.3, 0.05, 0.95, 0.9, true, "lithium_ion", true))
+push!(new_case.storages, Storage(1, "Battery_ESS_1", 3, 0.75, 1.5, 0.3, 0.05, 0.95, 0.9, true, "lithium_ion", true))
 # Parameters: id, name, bus, power_rating, energy_capacity, initial_SOC, self_discharge_rate, max_SOC, min_SOC, is_available, type, can_discharge
 
 # Set control mode for converters to Droop_Udc_Us (voltage droop control)

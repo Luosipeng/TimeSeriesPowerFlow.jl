@@ -2,5 +2,6 @@
 ComponentModel = "4b24ec6f-2e34-4333-9ec3-c9a09eea52b5"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 PowerFlow = "c5956ac0-0e7c-433f-a167-1e414f239e52"
+TSPF = "808fc52c-b686-440b-ab45-a6088d0d285e"
 TimeSeriesPowerFlow = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
 Utils = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"

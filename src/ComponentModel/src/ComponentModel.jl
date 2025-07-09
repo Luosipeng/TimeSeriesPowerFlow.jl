@@ -1,5 +1,5 @@
 """
-Microgrid System Data Structure Definitions
+ComponentModel
 
 This module defines the component model structure for microgrid systems,
 including AC/DC components, hybrid elements, and carbon emission models.

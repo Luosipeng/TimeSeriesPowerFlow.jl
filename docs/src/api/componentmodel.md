@@ -1,9 +1,7 @@
 # API Reference
 
-## 核心类型
-```@docs
-ComponentModel
-AbstractComponent
+```@meta
+CurrentModule = TSPF
 ```
 
 ## AC Components
