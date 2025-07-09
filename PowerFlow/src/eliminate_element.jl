@@ -1,15 +1,16 @@
+"""
+Eliminate a specific element from the power system data structure.
+
+Parameters:
+- jpc: The power system data structure.
+- element_type: The type of element to eliminate (e.g., "bus", "gen", "branch").
+- element_id: The identifier of the element to eliminate.
+
+Returns:
+- jpc: The updated power system data structure with the specified element removed.
+"""
 function eliminate_element(jpc)
-    """
-    Eliminate a specific element from the power system data structure.
 
-    Parameters:
-    - jpc: The power system data structure.
-    - element_type: The type of element to eliminate (e.g., "bus", "gen", "branch").
-    - element_id: The identifier of the element to eliminate.
-
-    Returns:
-    - jpc: The updated power system data structure with the specified element removed.
-    """
     # check if the jpc has the element to eliminate
     pv_acsystem = jpc["pv_acsystem"]  
     if !isempty(pv_acsystem)

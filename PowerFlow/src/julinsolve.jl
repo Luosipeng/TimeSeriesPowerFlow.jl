@@ -1,6 +1,46 @@
-# todo list:
-# 1. test the gpu based algorithms
-# 2. test the cgs solvers
+"""
+    julinsolve(A, b, solver = "", opt = nothing)
+
+Solve a linear system Ax = b using various solver methods.
+
+# Arguments
+- `A`: Coefficient matrix
+- `b`: Right-hand side vector
+- `solver`: String specifying the solution method (default: `""` uses Julia's backslash operator)
+- `opt`: Optional parameters for solvers (not currently used)
+
+# Returns
+- `x`: Solution vector
+- `info`: Additional information about the solution process (currently always `nothing`)
+
+# Available Solvers
+- `""` or `"\\"`: Julia's default backslash operator
+- `"LU3"`: AMD ordering with sparse or dense LU factorization
+- `"LU3a"`: AMD ordering with LU factorization (L, U, p)
+- `"LU4"`: LU factorization with row and column permutations (L, U, p, q)
+- `"LU5"`: LU factorization with row and column permutations and row scaling (L, U, p, q, R)
+- `"cholesky"`: Cholesky factorization for symmetric positive definite matrices
+- `"gmres"`: Generalized Minimal Residual method with ILU preconditioning
+- `"bicgstab"`: Biconjugate Gradient Stabilized method with ILU preconditioning
+- `"cgs"`: Conjugate Gradient Squared method
+- `"gpuLU"`: LU factorization using CUDA for GPU acceleration
+
+# Description
+This function provides a unified interface to various linear system solvers in Julia.
+It supports direct methods (like LU and Cholesky factorizations) and iterative methods
+(like GMRES, BiCGSTAB, and CGS). For sparse systems, appropriate ordering and 
+preconditioning techniques are applied to improve performance.
+
+The GPU-based solver requires CUDA support and appropriate hardware.
+
+# Examples
+```julia
+A = rand(100, 100)
+b = rand(100)
+x, _ = julinsolve(A, b)                  # Default solver
+x, _ = julinsolve(A, b, "cholesky")      # Cholesky factorization
+x, _ = julinsolve(A, b, "gmres")         # GMRES iterative method
+"""
 
 function julinsolve(A, b, solver = "", opt = nothing)
     info = nothing

@@ -1,26 +1,40 @@
-function calculate_bus(net, jpc ,sequence, slack_bus, opt)
+"""
+    calculate_bus(net, jpc, sequence, slack_bus, opt)
 
-    # 初始化
+Calculate bus parameters for the specified sequence network.
+
+# Arguments
+- `net`: Network data structure containing bus information
+- `jpc`: MATPOWER-style power flow case structure
+- `sequence`: Sequence type (1 for positive, 2 for negative, 0 for zero sequence)
+- `slack_bus`: Index of the slack bus
+- `opt`: Options dictionary containing power flow parameters
+
+# Returns
+- `jpc`: Updated jpc structure with bus parameters
+"""
+function calculate_bus(net, jpc, sequence, slack_bus, opt)
+
+    # Initialize
     nb = size(net["bus"], 1)
     bus = zeros(nb, 13)
 
-
     if sequence == 1
-        # 正序网络
-        # 处理母线数据
+        # Positive sequence network
+        # Process bus data
         bus1 = deepcopy(net["bus"])  
         bus[:, BUS_I] = bus1.index
         bus[:, BUS_TYPE] .= 1
         bus[slack_bus, BUS_TYPE] .= 3
         if all(x -> x == bus1.zone[1], bus1.zone)
-            # 如果所有元素都相同，统一赋值为1
+            # If all elements are the same, assign 1 uniformly
             bus[:,ZONE] .= 1
         else
-            # 如果元素不都相同，将相同的值分组并依次赋值为1、2、3...
+            # If elements are not all the same, group identical values and assign 1, 2, 3... sequentially
             unique_zones = unique(bus1.zone)
             zone_mapping = Dict(zone => i for (i, zone) in enumerate(unique_zones))
             
-            # 将每个zone映射到对应的数字（1、2、3...）
+            # Map each zone to the corresponding number (1, 2, 3...)
             bus[:,ZONE] = [zone_mapping[zone] for zone in bus1.zone]
         end
         bus[:,BASE_KV] = bus1.vn_kv 
@@ -30,21 +44,21 @@ function calculate_bus(net, jpc ,sequence, slack_bus, opt)
         bus[:,VMIN] = bus1.min_vm_pu
         
     elseif sequence == 2
-        # 负序网络
-        # 处理母线数据
+        # Negative sequence network
+        # Process bus data
         bus1 = deepcopy(net["bus"])  
         bus[:, BUS_I] = bus1.index
         bus[:, BUS_TYPE] .= 1
         bus[slack_bus, BUS_TYPE] .= 3
         if all(x -> x == bus1.zone[1], bus1.zone)
-            # 如果所有元素都相同，统一赋值为1
+            # If all elements are the same, assign 1 uniformly
             bus[:,ZONE] .= 1
         else
-            # 如果元素不都相同，将相同的值分组并依次赋值为1、2、3...
+            # If elements are not all the same, group identical values and assign 1, 2, 3... sequentially
             unique_zones = unique(bus1.zone)
             zone_mapping = Dict(zone => i for (i, zone) in enumerate(unique_zones))
             
-            # 将每个zone映射到对应的数字（1、2、3...）
+            # Map each zone to the corresponding number (1, 2, 3...)
             bus[:,ZONE] = [zone_mapping[zone] for zone in bus1.zone]
         end
         bus[:,BASE_KV] = bus1.vn_kv 
@@ -54,21 +68,21 @@ function calculate_bus(net, jpc ,sequence, slack_bus, opt)
         bus[:,VMIN] = bus1.min_vm_pu
         
     else 
-        # 零序网络
-        # 处理母线数据
+        # Zero sequence network
+        # Process bus data
         bus1 = deepcopy(net["bus"])  
         bus[:, BUS_I] = bus1.index
         bus[:, BUS_TYPE] .= 1
         bus[slack_bus, BUS_TYPE] .= 3
         if all(x -> x == bus1.zone[1], bus1.zone)
-            # 如果所有元素都相同，统一赋值为1
+            # If all elements are the same, assign 1 uniformly
             bus[:,ZONE] .= 1
         else
-            # 如果元素不都相同，将相同的值分组并依次赋值为1、2、3...
+            # If elements are not all the same, group identical values and assign 1, 2, 3... sequentially
             unique_zones = unique(bus1.zone)
             zone_mapping = Dict(zone => i for (i, zone) in enumerate(unique_zones))
             
-            # 将每个zone映射到对应的数字（1、2、3...）
+            # Map each zone to the corresponding number (1, 2, 3...)
             bus[:,ZONE] = [zone_mapping[zone] for zone in bus1.zone]
         end
         bus[:,BASE_KV] = bus1.vn_kv 
@@ -83,27 +97,41 @@ function calculate_bus(net, jpc ,sequence, slack_bus, opt)
     return jpc
 end
 
-function calculate_bus(net, jpc , slack_bus, opt)
+"""
+    calculate_bus(net, jpc, slack_bus, opt)
 
-    # 初始化
+Calculate bus parameters for the default network model (positive sequence).
+
+# Arguments
+- `net`: Network data structure containing bus information
+- `jpc`: MATPOWER-style power flow case structure
+- `slack_bus`: Index of the slack bus
+- `opt`: Options dictionary containing power flow parameters
+
+# Returns
+- `jpc`: Updated jpc structure with bus parameters
+"""
+function calculate_bus(net, jpc, slack_bus, opt)
+
+    # Initialize
     nb = size(net["bus"], 1)
     bus = zeros(nb, 13)
 
-    # 正序网络
-    # 处理母线数据
+    # Positive sequence network
+    # Process bus data
     bus1 = deepcopy(net["bus"])  
     bus[:, BUS_I] = bus1.index
     bus[:, BUS_TYPE] .= 1
     bus[slack_bus, BUS_TYPE] .= 3
     if all(x -> x == bus1.zone[1], bus1.zone)
-        # 如果所有元素都相同，统一赋值为1
+        # If all elements are the same, assign 1 uniformly
         bus[:,ZONE] .= 1
     else
-        # 如果元素不都相同，将相同的值分组并依次赋值为1、2、3...
+        # If elements are not all the same, group identical values and assign 1, 2, 3... sequentially
         unique_zones = unique(bus1.zone)
         zone_mapping = Dict(zone => i for (i, zone) in enumerate(unique_zones))
         
-        # 将每个zone映射到对应的数字（1、2、3...）
+        # Map each zone to the corresponding number (1, 2, 3...)
         bus[:,ZONE] = [zone_mapping[zone] for zone in bus1.zone]
     end
     bus[:,BASE_KV] = bus1.vn_kv 
@@ -117,10 +145,22 @@ function calculate_bus(net, jpc , slack_bus, opt)
     return jpc
 end
 
-function add_grid_external_sc_impedance(jpc_new,external_grid)
+"""
+    add_grid_external_sc_impedance(jpc_new, external_grid)
+
+Add external grid short-circuit impedance to the network model.
+
+# Arguments
+- `jpc_new`: MATPOWER-style power flow case structure
+- `external_grid`: External grid data containing short circuit parameters
+
+# Returns
+- Tuple of (gs, bs): Conductance and susceptance values added to the external grid bus
+"""
+function add_grid_external_sc_impedance(jpc_new, external_grid)
     
     external_bus = external_grid.bus
-    c=1.1
+    c = 1.1
     s_sc = external_grid.s_sc_max_mva/jpc_new["baseMVA"]
     rx = external_grid.rx_max
     z_grid = c / (s_sc/3)
@@ -128,10 +168,9 @@ function add_grid_external_sc_impedance(jpc_new,external_grid)
     r_grid = x_grid * rx
 
     Y_grid = 1 ./ (r_grid .+ 1im*x_grid)
-    buses,gs,bs = sum_by_group(external_bus,real(Y_grid),imag(Y_grid))
-    jpc_new["bus"][external_bus,GS] .= gs * jpc_new["baseMVA"]
-    jpc_new["bus"][external_bus,BS] .= bs * jpc_new["baseMVA"]
+    buses, gs, bs = sum_by_group(external_bus, real(Y_grid), imag(Y_grid))
+    jpc_new["bus"][external_bus, GS] .= gs * jpc_new["baseMVA"]
+    jpc_new["bus"][external_bus, BS] .= bs * jpc_new["baseMVA"]
 
     return gs * jpc_new["baseMVA"], bs * jpc_new["baseMVA"]
 end
-

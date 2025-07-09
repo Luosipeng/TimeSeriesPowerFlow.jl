@@ -1,35 +1,58 @@
+"""
+    parse_matlab_case_file(filepath)
+
+Parse a MATPOWER case file in MATLAB format and convert it to a Julia dictionary.
+The function extracts baseMVA, version, and all matrix data from the file.
+
+# Arguments
+- `filepath::String`: Path to the MATLAB case file
+
+# Returns
+- `Dict{String, Any}`: Dictionary containing all parsed data from the case file
+"""
 function parse_matlab_case_file(filepath)
-    # 读取文件内容
+    # Read file content
     content = read(filepath, String)
     
-    # 创建空字典存储结果
+    # Create empty dictionary to store results
     mpc = Dict{String, Any}()
     
-    # 解析 baseMVA
+    # Parse baseMVA
     if occursin(r"mpc\.baseMVA\s*=\s*(\d+)", content)
         basemva_match = match(r"mpc\.baseMVA\s*=\s*(\d+)", content)
         mpc["baseMVA"] = parse(Float64, basemva_match[1])
     end
     
-    # 解析 version
+    # Parse version
     if occursin(r"mpc\.version\s*=\s*'(\d+)'", content)
         version_match = match(r"mpc\.version\s*=\s*'(\d+)'", content)
         mpc["version"] = version_match[1]
     end
     
-    # 解析矩阵或字符串数据的函数
+    """
+        extract_data(content, key)
+    
+    Internal helper function to extract matrix or string data from MATLAB content.
+    
+    # Arguments
+    - `content::String`: Full content of the MATLAB file
+    - `key::String`: Name of the matrix to extract
+    
+    # Returns
+    - Matrix data or nothing if extraction fails
+    """
     function extract_data(content, key)
-        # 分割内容为行
+        # Split content into lines
         lines = split(content, '\n')
         
-        # 找到矩阵开始的行
+        # Find the line where matrix starts
         start_pattern = "mpc.$key = ["
         end_pattern = "];"
         
         start_idx = 0
         end_idx = 0
         
-        # 查找矩阵的开始和结束位置
+        # Find start and end positions of the matrix
         for (i, line) in enumerate(lines)
             if occursin(start_pattern, line)
                 start_idx = i
@@ -39,24 +62,24 @@ function parse_matlab_case_file(filepath)
             end
         end
         
-        # 如果找到了矩阵
+        # If matrix is found
         if start_idx > 0 && end_idx > 0
-            # 提取矩阵内容
+            # Extract matrix content
             matrix_lines = lines[start_idx+1:end_idx-1]
             
-            # 过滤掉空行和注释行
+            # Filter out empty lines and comment lines
             matrix_lines = filter(line -> !isempty(strip(line)) && !startswith(strip(line), '%'), matrix_lines)
             
-            # 检查是否包含字符串数据
+            # Check if contains string data
             contains_strings = any(line -> occursin("'", line) || occursin("\"", line), matrix_lines)
             
             if contains_strings
-                # 处理字符串数据
+                # Process string data
                 matrix = []
                 for line in matrix_lines
-                    # 移除行尾的分号和注释
+                    # Remove semicolons and comments at end of line
                     line = replace(line, r";.*$" => "")
-                    # 提取引号中的内容和数字
+                    # Extract content in quotes and numbers
                     parts = String[]
                     current_str = ""
                     in_quotes = false
@@ -90,7 +113,7 @@ function parse_matlab_case_file(filepath)
                         push!(parts, current_str)
                     end
                     
-                    # 过滤掉空字符串
+                    # Filter out empty strings
                     parts = filter(!isempty, parts)
                     
                     if !isempty(parts)
@@ -99,19 +122,19 @@ function parse_matlab_case_file(filepath)
                 end
                 return length(matrix) > 0 ? reduce(vcat, transpose.(matrix)) : nothing
             else
-                # 处理数值数据
+                # Process numeric data
                 matrix = []
                 for line in matrix_lines
-                    # 移除行尾的分号和注释
+                    # Remove semicolons and comments at end of line
                     line = replace(line, r";.*$" => "")
-                    # 分割并转换为数值
+                    # Split and convert to numeric values
                     try
                         row = parse.(Float64, split(strip(line)))
                         if !isempty(row)
                             push!(matrix, row)
                         end
                     catch
-                        @warn "无法解析行: $line"
+                        @warn "Unable to parse line: $line"
                         continue
                     end
                 end
@@ -121,7 +144,7 @@ function parse_matlab_case_file(filepath)
         return nothing
     end
     
-    # 查找所有可能的矩阵名称
+    # Find all possible matrix names
     matrix_names = String[]
     for line in split(content, '\n')
         m = match(r"mpc\.(\w+)\s*=\s*\[", line)
@@ -130,9 +153,9 @@ function parse_matlab_case_file(filepath)
         end
     end
     
-    # 解析每个找到的矩阵
+    # Parse each found matrix
     for name in matrix_names
-        if name ∉ ["version", "baseMVA"]  # 跳过已处理的特殊字段
+        if name ∉ ["version", "baseMVA"]  # Skip already processed special fields
             matrix = extract_data(content, name)
             if matrix !== nothing
                 mpc[name] = matrix
@@ -143,6 +166,18 @@ function parse_matlab_case_file(filepath)
     return mpc
 end
 
+"""
+    save_to_julia_file(mpc, output_filepath)
+
+Save a parsed MATPOWER case as a Julia file with a function that returns the data.
+
+# Arguments
+- `mpc::Dict{String, Any}`: Dictionary containing the parsed MATPOWER case data
+- `output_filepath::String`: Path where the Julia file should be saved
+
+# Returns
+- Nothing, but creates a Julia file at the specified location
+"""
 function save_to_julia_file(mpc, output_filepath)
     open(output_filepath, "w") do f
         write(f, """function case_data()
@@ -150,44 +185,44 @@ function save_to_julia_file(mpc, output_filepath)
 
 """)
         
-        # 写入version
+        # Write version
         if haskey(mpc, "version")
             write(f, "    mpc[\"version\"] = \"$(mpc["version"])\"\n\n")
         end
         
-        # 写入baseMVA
+        # Write baseMVA
         if haskey(mpc, "baseMVA")
             write(f, "    mpc[\"baseMVA\"] = $(mpc["baseMVA"])\n\n")
         end
         
-        # 写入所有矩阵数据
+        # Write all matrix data
         for key in keys(mpc)
             if key ∉ ["version", "baseMVA"]
                 matrix = mpc[key]
                 write(f, "    mpc[\"$key\"] = [\n")
                 
-                # 检查矩阵维度
+                # Check matrix dimensions
                 if ndims(matrix) == 1
-                    # 处理一维数组
+                    # Handle one-dimensional arrays
                     write(f, "        ")
                     for value in matrix
                         if typeof(value) <: AbstractString
-                            write(f, "\"$value\" ")  # 字符串值用引号包围
+                            write(f, "\"$value\" ")  # String values are surrounded by quotes
                         else
-                            write(f, "$(value) ")    # 数值直接写入
+                            write(f, "$(value) ")    # Numeric values are written directly
                         end
                     end
                     write(f, "\n")
                 else
-                    # 处理二维数组
-                    for i in 1:size(matrix, 1)
+                    # Handle two-dimensional arrays
+                    for i in eachindex(matrix[:,1])
                         write(f, "        ")
-                        for j in 1:size(matrix, 2)
+                        for j in eachindex(matrix[1,:])
                             value = matrix[i,j]
                             if typeof(value) <: AbstractString
-                                write(f, "\"$value\" ")  # 字符串值用引号包围
+                                write(f, "\"$value\" ")  # String values are surrounded by quotes
                             else
-                                write(f, "$(value) ")    # 数值直接写入
+                                write(f, "$(value) ")    # Numeric values are written directly
                             end
                         end
                         write(f, ";\n")
@@ -202,24 +237,37 @@ function save_to_julia_file(mpc, output_filepath)
     end
 end
 
+"""
+    convert_matpower_case(input_filepath, output_filepath)
 
+Convert a MATPOWER case file from MATLAB format to Julia format.
+This function handles the entire conversion process, including parsing the MATLAB file,
+converting the data structures, and saving the result as a Julia file.
+
+# Arguments
+- `input_filepath::String`: Path to the input MATLAB case file
+- `output_filepath::String`: Path where the output Julia file should be saved
+
+# Returns
+- `Dict{String, Any}` or `nothing`: The parsed case data if successful, nothing if an error occurs
+"""
 function convert_matpower_case(input_filepath, output_filepath)
     try
-        println("正在解析MATLAB文件...")
+        println("Parsing MATLAB file...")
         mpc = parse_matlab_case_file(input_filepath)
         
-        println("正在保存为Julia文件...")
+        println("Saving as Julia file...")
         save_to_julia_file(mpc, output_filepath)
         
-        println("转换完成！")
-        println("输入文件：$input_filepath")
-        println("输出文件：$output_filepath")
+        println("Conversion completed!")
+        println("Input file: $input_filepath")
+        println("Output file: $output_filepath")
         
-        # 打印数据统计
-        println("\n数据统计：")
+        # Print data statistics
+        println("\nData statistics:")
         for (key, value) in mpc
             if value isa Array
-                println("$key 矩阵大小: $(size(value))")
+                println("$key matrix size: $(size(value))")
             else
                 println("$key: $(value)")
             end
@@ -227,7 +275,7 @@ function convert_matpower_case(input_filepath, output_filepath)
         
         return mpc
     catch e
-        println("转换过程中出现错误：")
+        println("Error occurred during conversion:")
         println(e)
         return nothing
     end

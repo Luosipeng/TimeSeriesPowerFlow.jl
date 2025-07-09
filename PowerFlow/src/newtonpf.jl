@@ -1,3 +1,38 @@
+"""
+    newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64}, 
+        load::Matrix{Float64}, pvarray, Ybus::SparseArrays.SparseMatrixCSC{ComplexF64}, V0::Vector{ComplexF64}, 
+        ref::Vector{Int}, pv::Vector{Int}, pq::Vector{Int}, 
+        tol0::Float64, max_it0::Int, alg::String="bicgstab")
+
+Solve AC power flow using Newton-Raphson method with load and PV array models.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix
+- `gen`: Generator data matrix
+- `load`: Load data matrix
+- `pvarray`: PV array data
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference bus indices
+- `pv`: PV bus indices
+- `pq`: PQ bus indices
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Algorithm specification for linear solver (default: "bicgstab")
+
+# Returns
+- `V`: Final voltage vector solution
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+- `norm_history`: Array of norm values for each iteration
+
+# Description
+This function implements the Newton-Raphson method to solve AC power flow equations
+with load and PV array models. It iteratively updates voltage magnitudes and angles until
+the power mismatch falls below the specified tolerance or the maximum number of
+iterations is reached.
+"""
 function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64}, 
     load::Matrix{Float64}, pvarray, Ybus::SparseArrays.SparseMatrixCSC{ComplexF64}, V0::Vector{ComplexF64}, 
     ref::Vector{Int}, pv::Vector{Int}, pq::Vector{Int}, 
@@ -14,7 +49,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
     Va = angle.(V)
     Vm = abs.(V)
     
-    # 创建数组记录每次迭代的范数
+    # Create array to record norm at each iteration
     norm_history = Float64[]
     
     # Set up indexing for updating V
@@ -30,7 +65,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
     
     # Check tolerance
     normF = norm(F, Inf)
-    push!(norm_history, normF)  # 记录初始范数
+    push!(norm_history, normF)  # Record initial norm
     
     if normF < tol
         converged = true
@@ -74,7 +109,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
 
         # Check for convergence
         normF = norm(F, Inf)
-        push!(norm_history, normF)  # 记录当前迭代的范数
+        push!(norm_history, normF)  # Record current iteration norm
         
         if normF < tol
             converged = true
@@ -84,6 +119,38 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
     return V, converged, i, norm_history
 end
 
+"""
+    newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64}, 
+             Ybus::SparseArrays.SparseMatrixCSC{ComplexF64}, V0::Vector{ComplexF64}, 
+             ref::Vector{Int}, pv::Vector{Int}, pq::Vector{Int}, 
+             tol0::Float64, max_it0::Int, alg::String="bicgstab")
+
+Solve AC power flow using Newton-Raphson method.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix
+- `gen`: Generator data matrix
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference bus indices
+- `pv`: PV bus indices
+- `pq`: PQ bus indices
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Algorithm specification for linear solver (default: "bicgstab")
+
+# Returns
+- `V`: Final voltage vector solution
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+- `norm_history`: Array of norm values for each iteration
+
+# Description
+This function implements the Newton-Raphson method to solve AC power flow equations.
+It iteratively updates voltage magnitudes and angles until the power mismatch falls
+below the specified tolerance or the maximum number of iterations is reached.
+"""
 function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64}, 
                   Ybus::SparseArrays.SparseMatrixCSC{ComplexF64}, V0::Vector{ComplexF64}, 
                   ref::Vector{Int}, pv::Vector{Int}, pq::Vector{Int}, 
@@ -99,7 +166,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
     Va = angle.(V)
     Vm = abs.(V)
     
-    # 创建数组记录每次迭代的范数
+    # Create array to record norm at each iteration
     norm_history = Float64[]
     
     # Set up indexing for updating V
@@ -115,7 +182,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
     
     # Check tolerance
     normF = norm(F, Inf)
-    push!(norm_history, normF)  # 记录初始范数
+    push!(norm_history, normF)  # Record initial norm
     
     if normF < tol
         converged = true
@@ -159,7 +226,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
 
         # Check for convergence
         normF = norm(F, Inf)
-        push!(norm_history, normF)  # 记录当前迭代的范数
+        push!(norm_history, normF)  # Record current iteration norm
         
         if normF < tol
             converged = true

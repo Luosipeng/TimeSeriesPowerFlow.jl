@@ -1,5 +1,9 @@
-
-# 换流器结构
+"""
+    Converter Structure
+    
+    Represents a power converter that connects AC and DC systems, with control capabilities
+    and operational parameters.
+"""
 mutable struct Converter <: AbstractComponent
     index::Int
     name::String
@@ -20,7 +24,7 @@ mutable struct Converter <: AbstractComponent
     in_service::Bool
     controllable::Bool
     
-    # 构造函数
+    # Constructor
     function Converter(index, name, bus_ac, bus_dc, p_mw, q_mvar, 
                       vm_ac_pu, vm_dc_pu, loss_percent, loss_mw,
                       max_p_mw, min_p_mw, max_q_mvar, min_q_mvar,

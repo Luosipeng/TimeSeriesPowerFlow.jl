@@ -1,4 +1,16 @@
-# 虚拟电厂结构
+"""
+    Virtual Power Plant and Flexible Load Structures
+    
+    This module provides structures for modeling virtual power plants and flexible loads
+    in power system simulations.
+"""
+
+"""
+    VirtualPowerPlant Structure
+    
+    Represents a virtual power plant that aggregates distributed energy resources
+    to provide grid services and operate as a single controllable entity.
+"""
 mutable struct VirtualPowerPlant <: AbstractComponent
     index::Int
     name::String
@@ -12,7 +24,7 @@ mutable struct VirtualPowerPlant <: AbstractComponent
     operator::String
     in_service::Bool
     
-    # 资源信息
+    # Resource information
     resource_type::String
     resource_id::Int
     capacity_share_percent::Float64
@@ -20,7 +32,7 @@ mutable struct VirtualPowerPlant <: AbstractComponent
     resource_response_time_s::Float64
     max_duration_h::Float64
     
-    # 负荷信息
+    # Load information
     timestamp::DateTime
     p_mw::Float64
     q_mvar::Float64
@@ -28,7 +40,7 @@ mutable struct VirtualPowerPlant <: AbstractComponent
     flexibility_down_mw::Float64
     flexibility_duration_h::Float64
     
-    # 构造函数
+    # Constructor
     function VirtualPowerPlant(index, name, description, control_area, capacity_mw, energy_mwh,
                               response_time_s, ramp_rate_mw_per_min, availability_percent,
                               operator, in_service; kwargs...)
@@ -36,7 +48,7 @@ mutable struct VirtualPowerPlant <: AbstractComponent
                   response_time_s, ramp_rate_mw_per_min, availability_percent,
                   operator, in_service)
         
-        # 设置其他参数
+        # Set other parameters
         for (key, value) in kwargs
             if hasfield(typeof(self), key)
                 setfield!(self, key, value)
@@ -48,7 +60,12 @@ mutable struct VirtualPowerPlant <: AbstractComponent
 end
 
 
-# 虚拟电厂结构
+"""
+    FlexLoad Structure
+    
+    Represents a flexible load that can adjust its consumption pattern
+    in response to grid signals or price incentives.
+"""
 mutable struct FlexLoad <: AbstractComponent
     index::Int
     name::String
@@ -62,7 +79,7 @@ mutable struct FlexLoad <: AbstractComponent
     operator::String
     in_service::Bool
     
-    # 资源信息
+    # Resource information
     resource_type::String
     resource_id::Int
     capacity_share_percent::Float64
@@ -70,7 +87,7 @@ mutable struct FlexLoad <: AbstractComponent
     resource_response_time_s::Float64
     max_duration_h::Float64
     
-    # 负荷信息
+    # Load information
     timestamp::DateTime
     p_mw::Float64
     q_mvar::Float64
@@ -78,15 +95,15 @@ mutable struct FlexLoad <: AbstractComponent
     flexibility_down_mw::Float64
     flexibility_duration_h::Float64
     
-    # 构造函数
-    function VirtualPowerPlant(index, name, description, control_area, capacity_mw, energy_mwh,
-                              response_time_s, ramp_rate_mw_per_min, availability_percent,
-                              operator, in_service; kwargs...)
+    # Constructor
+    function FlexLoad(index, name, description, control_area, capacity_mw, energy_mwh,
+                     response_time_s, ramp_rate_mw_per_min, availability_percent,
+                     operator, in_service; kwargs...)
         self = new(index, name, description, control_area, capacity_mw, energy_mwh,
                   response_time_s, ramp_rate_mw_per_min, availability_percent,
                   operator, in_service)
         
-        # 设置其他参数
+        # Set other parameters
         for (key, value) in kwargs
             if hasfield(typeof(self), key)
                 setfield!(self, key, value)

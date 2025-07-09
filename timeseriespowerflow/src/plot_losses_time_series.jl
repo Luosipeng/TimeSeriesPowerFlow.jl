@@ -1,3 +1,40 @@
+"""
+    plot_losses_time_series(results, case, time_day, plot_type = "total", loss_type = "active"; save_path = nothing, save_format = "pdf")
+
+Plot power system losses time series for AC and DC branches.
+
+# Arguments
+- `results`: Simulation results containing branch flow data
+- `case`: Power system case data
+- `time_day`: Number of days in the simulation
+- `plot_type`: Type of plot to generate:
+  - "total": Overall system losses
+  - "branch": Individual branch losses for major branches
+- `loss_type`: Type of losses to display:
+  - "active": Only active power losses (MW)
+  - "reactive": Only reactive power losses (MVAr)
+  - "both": Both active and reactive power losses
+- `save_path`: Optional path to save the plot
+- `save_format`: Format to save the plot (default: "pdf")
+
+# Returns
+- `plot_result`: The generated plot
+- `total_ac_active_losses`: Time series of total AC active power losses
+- `total_ac_reactive_losses`: Time series of total AC reactive power losses
+- `total_dc_active_losses`: Time series of total DC active power losses
+
+# Description
+This function calculates and visualizes power losses in a power system over time. It considers both AC and DC branches
+and calculates losses based on power flow directions. For AC branches, both active and reactive power losses are calculated,
+while for DC branches, only active power losses are considered.
+
+The function provides two visualization modes:
+1. "total" - Shows the aggregate system losses over time
+2. "branch" - Displays losses for the top 5 branches with highest average losses
+
+Statistics such as average, maximum, and minimum losses are also calculated and displayed on the plots.
+"""
+
 function plot_losses_time_series(results, case, time_day, plot_type = "total", loss_type = "active"; save_path = nothing, save_format = "pdf")
     default(fontfamily="Microsoft YaHei")
     # Get number of islands

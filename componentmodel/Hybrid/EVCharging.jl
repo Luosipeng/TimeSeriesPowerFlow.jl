@@ -1,5 +1,9 @@
-
-# 充电站结构
+"""
+    ChargingStation Structure
+    
+    Represents an electric vehicle charging station with multiple chargers and connection
+    to the power system at a specific bus.
+"""
 mutable struct ChargingStation <: AbstractComponent
     index::Int
     name::String
@@ -10,13 +14,18 @@ mutable struct ChargingStation <: AbstractComponent
     max_power_kw::Float64
     in_service::Bool
     
-    # 构造函数
+    # Constructor
     function ChargingStation(index, name, bus, location, operator, num_chargers, max_power_kw, in_service)
         return new(index, name, bus, location, operator, num_chargers, max_power_kw, in_service)
     end
 end
 
-# 充电桩结构
+"""
+    Charger Structure
+    
+    Represents an individual charging unit within a charging station, with specific power
+    capabilities and connector types.
+"""
 mutable struct Charger <: AbstractComponent
     index::Int
     name::String
@@ -29,7 +38,7 @@ mutable struct Charger <: AbstractComponent
     in_service::Bool
     availability::Float64
     
-    # 构造函数
+    # Constructor
     function Charger(index, name, station_id, type, max_power_kw, min_power_kw,
                     connector_type, v2g_capable, in_service, availability)
         return new(index, name, station_id, type, max_power_kw, min_power_kw,
@@ -37,7 +46,12 @@ mutable struct Charger <: AbstractComponent
     end
 end
 
-# 电动汽车聚合商结构
+"""
+    EVAggregator Structure
+    
+    Represents an entity that aggregates multiple electric vehicles to provide
+    grid services and manage charging/discharging operations collectively.
+"""
 mutable struct EVAggregator <: AbstractComponent
     index::Int
     name::String
@@ -48,7 +62,7 @@ mutable struct EVAggregator <: AbstractComponent
     service_area::String
     operator::String
     
-    # 构造函数
+    # Constructor
     function EVAggregator(index, name, num_evs, total_capacity_mwh, max_power_mw,
                          control_strategy, service_area, operator)
         return new(index, name, num_evs, total_capacity_mwh, max_power_mw,
@@ -56,7 +70,12 @@ mutable struct EVAggregator <: AbstractComponent
     end
 end
 
-# 车网互动服务结构
+"""
+    V2GService Structure
+    
+    Represents a vehicle-to-grid service provided by an aggregator, including
+    service type, time period, capacity, and pricing information.
+"""
 mutable struct V2GService <: AbstractComponent
     index::Int
     aggregator_id::Int
@@ -69,7 +88,7 @@ mutable struct V2GService <: AbstractComponent
     grid_area::String
     reliability_percent::Float64
     
-    # 构造函数
+    # Constructor
     function V2GService(index, aggregator_id, service_type, start_time, end_time,
                        capacity_mw, energy_mwh, price_per_mwh, grid_area, reliability_percent)
         return new(index, aggregator_id, service_type, start_time, end_time,

@@ -1,11 +1,13 @@
-"""jpc
-This function is used to run a local unbalanced power flow analysis on unsymmetrical load nodes
 """
-#Step1: find the unbalanced nodes in the system
-#Step2: find the interface branchs of the unbalanced nodes and balanced nodes
+    runupf(case, jpc_3ph, gs_eg, bs_eg, opt)
 
-function runupf(case, jpc_3ph ,gs_eg,bs_eg ,opt)
-    jpc0,jpc1,jpc2 = extratct_jpc_3ph(jpc_3ph)
+This function is used to run a local unbalanced power flow analysis on unsymmetrical load nodes
+
+#Step1: find the unbalanced nodes in the system
+#Step2: find the interface branches of the unbalanced nodes and balanced nodes
+"""
+function runupf(case, jpc_3ph, gs_eg, bs_eg, opt)
+    jpc0, jpc1, jpc2 = extratct_jpc_3ph(jpc_3ph)
     jpc0, i2e0 = PowerFlow.ext2int(jpc0)
     jpc1, i2e1 = PowerFlow.ext2int(jpc1)
     jpc2, i2e2 = PowerFlow.ext2int(jpc2)
@@ -38,22 +40,22 @@ function runupf(case, jpc_3ph ,gs_eg,bs_eg ,opt)
     outer_tolerance_mva = 3e-8
     Count = 0
 
-    # 初始化不匹配量为布尔数组
+    # Initialize mismatch as boolean array
     s_mismatch = fill(true, (2,1))
 
-    # 记录开始时间
+    # Record start time
     t0 = time()
 
-    # 迭代循环
+    # Iteration loop
     max_iteration = 30
     while any(s_mismatch .> outer_tolerance_mva) && Count < max_iteration
-        # 计算标幺值功率
+        # Calculate per unit power
         s_abc_pu = -s_abc ./ jpc1["baseMVA"]
         s_abc_delta_pu = -s_abc_delta ./ jpc1["baseMVA"]
-        # 计算星形连接的电流
+        # Calculate star connection current
         i_abc_it_wye = conj.(s_abc_pu ./ v_abc_it)
 
-        # 计算三角形连接的电流
+        # Calculate delta connection current
         i_abc_it_delta = i_del_xfmn * conj.(s_abc_delta_pu ./ (v_del_xfmn * v_abc_it))
 
         # For buses with both delta and wye loads we need to sum of their currents
@@ -164,6 +166,12 @@ function runupf(case, jpc_3ph ,gs_eg,bs_eg ,opt)
     return jpc_3ph
 end
 
+"""
+    load_mapping(case::JuliaPowerCase, jpc1::JPC)
+
+Maps loads from the case to the power flow model, handling both wye and delta connections
+for all three phases.
+"""
 function load_mapping(case::JuliaPowerCase, jpc1::JPC)
 
     params = Dict{String, Any}()    
@@ -171,12 +179,12 @@ function load_mapping(case::JuliaPowerCase, jpc1::JPC)
     load_types = ["wye", "delta"]
     load_elements = ["loadsAC", "loadsAC_asymm", "gensAC", "asymmetric_sgen"]
 
-    # 获取总线数量
+    # Get number of buses
     nb = size(jpc1.busAC, 1)
 
     for phase in phases
         for typ in load_types
-            # 初始化功率数组
+            # Initialize power arrays
             params["S$(phase)$(typ)"] = (jpc1.busAC[:, PD] .+
                                         jpc1.busAC[:, QD] .* 1im) .* 0
             params["p$(phase)$(typ)"] = Float64[]  # p values from loads/sgens
@@ -211,32 +219,33 @@ function load_mapping(case::JuliaPowerCase, jpc1::JPC)
     return Sabc_del, Sabc_wye
 end
 
+"""
+    get_elements(params, case::JuliaPowerCase, element, phase, typ)
 
+This function is used to get the elements of the load mapping.
+Automatically skips elements that don't exist in case.
+"""
 function get_elements(params, case::JuliaPowerCase, element, phase, typ)
-    """
-    This function is used to get the elements of the load mapping
-    Automatically skips elements that don't exist in case
-    """
-    # 首先检查元素是否存在于case中
+    # First check if the element exists in the case
     if !hasfield(JuliaPowerCase, Symbol(element))
-        # 如果元素不存在，直接返回原参数，不做任何修改
+        # If the element doesn't exist, return the original parameters without modification
         return params
     end
 
     sign = endswith(element, "sgen") ? -1 : 1
     elm = getfield(case, Symbol(element))
     
-    # 检查elm是否为空
+    # Check if elm is empty
     if isempty(elm)
         return params
     end
     
-    # 根据元素类型处理数据
+    # Process data based on element type
     if element == "loadsAC" || element == "gensAC"
-        # 使用Load结构的准确字段名
+        # Use accurate field names for Load structure
         for item in elm
             if item.in_service == true && item.type == typ
-                # 获取相关数据
+                # Get relevant data
                 p_value = item.p_mw / 3 * item.scaling * sign
                 q_value = item.q_mvar / 3 * item.scaling * sign
                 bus_value = convert(Int64, item.bus)
@@ -247,10 +256,10 @@ function get_elements(params, case::JuliaPowerCase, element, phase, typ)
             end
         end
     elseif startswith(element, "asymmetric")
-        # 处理非对称负载/发电机
+        # Process asymmetric loads/generators
         for item in elm
             if item.in_service == true && item.type == typ
-                # 根据相位选择正确的功率字段
+                # Select correct power field based on phase
                 p_field = Symbol("p_$(phase)_mw")
                 q_field = Symbol("q_$(phase)_mvar")
                 
@@ -270,37 +279,39 @@ function get_elements(params, case::JuliaPowerCase, element, phase, typ)
     return params
 end
 
+"""
+    get_pf_variables_from_JPC(jpc::JPC)
+
+Extract power flow variables from JPC structure.
+"""
 function get_pf_variables_from_JPC(jpc::JPC)
-    # 不需要深拷贝，因为我们只是读取数据
+    # No need for deep copy since we're only reading data
     if isnothing(jpc)
         throw(ArgumentError("jpc cannot be nothing"))
     end
 
-    # 从JPC结构中获取数据
-
+    # Get data from JPC structure
     baseMVA = jpc.baseMVA
     bus = jpc.busAC
     branch = jpc.branchAC
     gen = jpc.genAC
 
-
-
-    # 获取每种类型母线的索引列表
+    # Get indices list for each bus type
     ref, pv, pq = PowerFlow.bustypes(bus, gen)
 
-    # 发电机信息
-    # 假设GEN_STATUS是常量，表示发电机状态列的索引
-    GEN_STATUS = 8  # 根据实际情况调整
-    GEN_BUS = 1     # 根据实际情况调整
-    VG = 6          # 根据实际情况调整
+    # Generator information
+    # Assuming GEN_STATUS is a constant representing the generator status column index
+    GEN_STATUS = 8  # Adjust according to actual situation
+    GEN_BUS = 1     # Adjust according to actual situation
+    VG = 6          # Adjust according to actual situation
     
-    on = Int.(findall(gen[:, GEN_STATUS] .> 0))  # 哪些发电机在运行
-    gbus = Int.(gen[on, GEN_BUS])                # 这些发电机连接到哪些母线
+    on = Int.(findall(gen[:, GEN_STATUS] .> 0))  # Which generators are running
+    gbus = Int.(gen[on, GEN_BUS])                # Which buses these generators are connected to
 
-    # 初始状态
-    # 假设VM和VA是常量，表示电压幅值和相角列的索引
-    VM = 8  # 根据实际情况调整
-    VA = 9  # 根据实际情况调整
+    # Initial state
+    # Assuming VM and VA are constants representing voltage magnitude and angle column indices
+    VM = 8  # Adjust according to actual situation
+    VA = 9  # Adjust according to actual situation
     
     V0 = bus[:, VM] .* exp.(1im * pi/180 * bus[:, VA])
     V0[gbus] = gen[on, VG] ./ abs.(V0[gbus]) .* V0[gbus]
@@ -308,43 +319,47 @@ function get_pf_variables_from_JPC(jpc::JPC)
     return baseMVA, bus, branch, gen, ref, pv, pq, on, gbus, V0
 end
 
+"""
+    sum_by_group(bus, first_val, second_val)
 
+Group values by bus and sum them within each group.
+"""
 function sum_by_group(bus, first_val, second_val)
-    # 创建排序索引
+    # Create sorting index
     order = sortperm(bus)
     
-    # 按排序索引重新排列数组
+    # Rearrange arrays according to sorting index
     sorted_bus = bus[order]
     sorted_first_val = first_val[order]
     sorted_second_val = second_val[order]
     
-    # 找出唯一元素的位置
+    # Find positions of unique elements
     n = length(sorted_bus)
     index = trues(n)
     for i in 1:(n-1)
         index[i] = sorted_bus[i+1] != sorted_bus[i]
     end
     
-    # 计算第一组值的累积和
+    # Calculate cumulative sum for first group of values
     cumsum_first = cumsum(sorted_first_val)
     
-    # 计算第二组值的累积和
+    # Calculate cumulative sum for second group of values
     cumsum_second = cumsum(sorted_second_val)
     
-    # 提取唯一母线及对应的累积和
+    # Extract unique buses and corresponding cumulative sums
     unique_buses = sorted_bus[index]
     cumsum_first_unique = cumsum_first[index]
     cumsum_second_unique = cumsum_second[index]
     
-    # 计算每组的和
+    # Calculate sum for each group
     result_first = similar(cumsum_first_unique)
     result_second = similar(cumsum_second_unique)
     
-    # 第一个元素保持不变
+    # First element remains unchanged
     result_first[1] = cumsum_first_unique[1]
     result_second[1] = cumsum_second_unique[1]
     
-    # 计算差值得到每组的和
+    # Calculate differences to get sum for each group
     for i in 2:length(unique_buses)
         result_first[i] = cumsum_first_unique[i] - cumsum_first_unique[i-1]
         result_second[i] = cumsum_second_unique[i] - cumsum_second_unique[i-1]
@@ -353,35 +368,44 @@ function sum_by_group(bus, first_val, second_val)
     return unique_buses, result_first, result_second
 end
 
+"""
+    extratct_jpc_3ph(jpc_3ph::PowerFlow.JPC_3ph)
+
+Extract individual sequence components from a three-phase JPC object.
+"""
 function extratct_jpc_3ph(jpc_3ph::PowerFlow.JPC_3ph)
-    # 创建JPC0, JPC1, JPC2的副本
+    # Create copies of JPC0, JPC1, JPC2
     jpc0 = PowerFlow.JPC()
     jpc1 = PowerFlow.JPC()
     jpc2 = PowerFlow.JPC()
 
-    # 将jpc_3ph的属性复制到jpc0, jpc1, jpc2
-    # 赋值jpc0
+    # Copy attributes from jpc_3ph to jpc0, jpc1, jpc2
+    # Assign to jpc0
     jpc0.busAC = jpc_3ph.busAC_0
     jpc0.branchAC = jpc_3ph.branchAC_0
     jpc0.genAC = jpc_3ph.genAC_0
     jpc0.loadAC = jpc_3ph.loadAC_0
 
-    # 赋值jpc1
+    # Assign to jpc1
     jpc1.busAC = jpc_3ph.busAC_1
     jpc1.branchAC = jpc_3ph.branchAC_1
     jpc1.genAC = jpc_3ph.genAC_1
     jpc1.loadAC = jpc_3ph.loadAC_1
 
-    # 赋值jpc2
+    # Assign to jpc2
     jpc2.busAC = jpc_3ph.busAC_2
     jpc2.branchAC = jpc_3ph.branchAC_2
     jpc2.genAC = jpc_3ph.genAC_2
     jpc2.loadAC = jpc_3ph.loadAC_2
 
     return jpc0, jpc1, jpc2
-
 end
 
+"""
+    get_y_bus(jpc0, jpc1, jpc2)
+
+Build admittance matrices for zero, positive, and negative sequence networks.
+"""
 function get_y_bus(jpc0, jpc1, jpc2)
         # build admittance matrices
         y_0_bus, y_0_f, y_0_t = PowerFlow.makeYbus(jpc0["baseMVA"], jpc0["busAC"], jpc0["branchAC"])
@@ -391,10 +415,20 @@ function get_y_bus(jpc0, jpc1, jpc2)
     return jpc0, jpc1, jpc2, y_0_bus, y_1_bus, y_2_bus, y_0_f, y_1_f, y_2_f, y_0_t, y_1_t, y_2_t
 end
 
+"""
+    phase_shift_unit_operator(angle_deg)
+
+Create a complex number representing a phase shift of the given angle in degrees.
+"""
 function phase_shift_unit_operator(angle_deg)
     return 1 * exp(im * deg2rad(angle_deg))
 end
 
+"""
+    sequence_to_phase(X012)
+
+Transform sequence components (zero, positive, negative) to phase components (a, b, c).
+"""
 function sequence_to_phase(X012)
     a = phase_shift_unit_operator(120)
     asq = phase_shift_unit_operator(-120)
@@ -405,6 +439,11 @@ function sequence_to_phase(X012)
     return Tabc * X012
 end
 
+"""
+    phase_to_sequence(Xabc)
+
+Transform phase components (a, b, c) to sequence components (zero, positive, negative).
+"""
 function phase_to_sequence(Xabc)
     a = phase_shift_unit_operator(120)
     asq = phase_shift_unit_operator(-120)  
@@ -414,26 +453,29 @@ function phase_to_sequence(Xabc)
     return T012 * Xabc
 end
 
+"""
+    run_newton_raphson_pf(jpc::JPC, opt)
 
-
+Run Newton-Raphson power flow calculation.
+"""
 function run_newton_raphson_pf(jpc::JPC, opt)
     baseMVA, bus, branch, gen, ref, pv, pq, _, _, V0 = get_pf_variables_from_JPC(jpc)
     
-    # 构建电网模型
+    # Build grid model
     Ybus, Yf, Yt = PowerFlow.makeYbus(baseMVA, bus, branch)
     Sbus = PowerFlow.makeSbus(baseMVA, bus, gen, V0)
     
-    # 执行牛顿-拉夫森潮流计算
+    # Execute Newton-Raphson power flow calculation
     V, success, iterations, norm_history = PowerFlow.newtonpf(
         baseMVA, bus, gen, Ybus, V0, ref, pv, pq, 
         opt["PF"]["PF_TOL"], opt["PF"]["PF_MAX_IT"], opt["PF"]["NR_ALG"]
     )
     
-    # 更新JPC对象的成功状态和迭代次数
+    # Update success status and iteration count in JPC object
     jpc.success = success
     jpc.iterationsAC = iterations
     
-    # 存储内部变量到全局字典中，使用JPC对象的内存地址作为键
+    # Store internal variables in global dictionary using JPC object's memory address as key
     jpc_id = objectid(jpc)
     _JPC_INTERNAL_STORAGE[jpc_id] = Dict(
         :bus => bus,
@@ -453,7 +495,11 @@ function run_newton_raphson_pf(jpc::JPC, opt)
     return jpc, success, iterations
 end
 
-# 函数用于获取存储的内部变量
+"""
+    get_internal_variables(jpc::JPC)
+
+Retrieve stored internal variables for a JPC object.
+"""
 function get_internal_variables(jpc::JPC)
     jpc_id = objectid(jpc)
     if haskey(_JPC_INTERNAL_STORAGE, jpc_id)
@@ -463,80 +509,119 @@ function get_internal_variables(jpc::JPC)
     end
 end
 
+"""
+    V_from_I(Y, I)
+
+Calculate voltage from current using V = Y\\I.
+"""
 function V_from_I(Y, I)
-    # 确保 I 是列向量形式
-    I_vec = vec(collect(I))  # 将任何形式的 I 转换为列向量
+    # Ensure I is in column vector form
+    I_vec = vec(collect(I))  # Convert any form of I to column vector
     
-    # 求解线性方程组
+    # Solve linear equation system
     V = Y \ I_vec
     
-    # 返回结果
+    # Return result
     return transpose(V)
 end
 
+"""
+    I1_from_V012(V012, Y)
+
+Calculate positive sequence current from sequence voltages and admittance matrix.
+"""
 function I1_from_V012(V012, Y)
-    # 从对称分量中提取正序分量
-    V1 = reshape(transpose(V012[2, :]), :, 1)  # 转换为列向量
+    # Extract positive sequence component from symmetrical components
+    V1 = reshape(transpose(V012[2, :]), :, 1)  # Convert to column vector
     
-    # 检查Y是否为稀疏矩阵
+    # Check if Y is a sparse matrix
     if issparse(Y)
-        # 如果是稀疏矩阵，先转为密集矩阵再计算
+        # If sparse, convert to dense matrix before calculation
         i1 = Array(Matrix(Y) * V1)
         return transpose(i1)
     else
-        # 如果是密集矩阵，直接计算
+        # If dense, calculate directly
         i1 = Array(Y * V1)
         return transpose(i1)
     end
 end
 
+"""
+    I0_from_V012(V012, Y)
+
+Calculate zero sequence current from sequence voltages and admittance matrix.
+"""
 function I0_from_V012(V012, Y)
-    # 从对称分量中提取零序分量
-    V0 = reshape(transpose(V012[1, :]), :, 1)  # 转换为列向量
+    # Extract zero sequence component from symmetrical components
+    V0 = reshape(transpose(V012[1, :]), :, 1)  # Convert to column vector
     
-    # 检查Y是否为稀疏矩阵
+    # Check if Y is a sparse matrix
     if issparse(Y)
-        # 如果是稀疏矩阵，先转为密集矩阵再计算
+        # If sparse, convert to dense matrix before calculation
         i0 = Array(Matrix(Y) * V0)
         return transpose(i0)
     else
-        # 如果是密集矩阵，直接计算
+        # If dense, calculate directly
         i0 = Array(Y * V0)
         return transpose(i0)
     end
 end
 
+"""
+    I2_from_V012(V012, Y)
+
+Calculate negative sequence current from sequence voltages and admittance matrix.
+"""
 function I2_from_V012(V012, Y)
-    # 从对称分量中提取负序分量
-    V2 = reshape(transpose(V012[3, :]), :, 1)  # 转换为列向量
+    # Extract negative sequence component from symmetrical components
+    V2 = reshape(transpose(V012[3, :]), :, 1)  # Convert to column vector
     
-    # 检查Y是否为稀疏矩阵
+    # Check if Y is a sparse matrix
     if issparse(Y)
-        # 如果是稀疏矩阵，先转为密集矩阵再计算
+        # If sparse, convert to dense matrix before calculation
         i2 = Array(Matrix(Y) * V2)
         return transpose(i2)
     else
-        # 如果是密集矩阵，直接计算
+        # If dense, calculate directly
         i2 = Array(Y * V2)
         return transpose(i2)
     end
 end
 
+"""
+    S_from_VI_elementwise(v, i)
+
+Calculate complex power from voltage and current: S = V * conj(I).
+"""
 function S_from_VI_elementwise(v, i)
     return v .* conj(i)
 end
 
-function V1_from_jpc(jpc)
+"""
+    V1_from_jpc(jpc)
 
+Extract positive sequence voltage from JPC structure.
+"""
+function V1_from_jpc(jpc)
     return transpose(
         jpc["busAC"][:, VM] .* exp.(1im .* deg2rad.(jpc["busAC"][:, VA]))
     )
 end
 
+"""
+    combine_X012(X0, X1, X2)
+
+Combine zero, positive, and negative sequence components into one matrix.
+"""
 function combine_X012(X0, X1, X2)
     return vcat(X0, X1, X2)
 end
 
+"""
+    current_from_voltage_results(y_0_pu, y_1_pu, v_012_pu)
+
+Calculate sequence currents from sequence voltages and admittance matrices.
+"""
 function current_from_voltage_results(y_0_pu, y_1_pu, v_012_pu)
     I012_pu = combine_X012(I0_from_V012(v_012_pu, y_0_pu),
                           I1_from_V012(v_012_pu, y_1_pu),
@@ -544,15 +629,19 @@ function current_from_voltage_results(y_0_pu, y_1_pu, v_012_pu)
     return I012_pu
 end
 
+"""
+    get_bus_v_results_3ph(jpc_3ph, jpc0, jpc1, jpc2)
+
+Calculate and store three-phase voltage results for all buses.
+"""
 function get_bus_v_results_3ph(jpc_3ph, jpc0, jpc1, jpc2)
 
     V012_pu = zeros(ComplexF64, 3, length(jpc1["busAC"][:, BUS_I]))
 
-
     V012_pu[1, :] = jpc0["busAC"][:, VM] .* exp.(1im * pi/180 * jpc0["busAC"][:, VA])
     V012_pu[2, :] = jpc1["busAC"][:, VM] .* exp.(1im * pi/180 * jpc1["busAC"][:, VA])
     V012_pu[3, :] = jpc2["busAC"][:, VM] .* exp.(1im * pi/180 * jpc2["busAC"][:, VA])
-    # 取消注释以获得以kV为单位的结果而非标幺值
+    # Uncomment to get results in kV units rather than per unit
     # bus_base_kv = ppc0["bus"][:, BASE_KV] ./ sqrt(3)
     # V012_pu = V012_pu .* bus_base_kv
     
@@ -560,25 +649,29 @@ function get_bus_v_results_3ph(jpc_3ph, jpc0, jpc1, jpc2)
     
     jpc_3ph["res_bus_3ph"] = Array{Float64}(undef, size(jpc1["busAC"], 1), 14)
     jpc_3ph["res_bus_3ph"][:,RES_3PH_BUS] = jpc_3ph["busAC_1"][:, BUS_I]
-    # 计算电压幅值
+    # Calculate voltage magnitude
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VM_A] = abs.(Vabc_pu[1, :])
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VM_B] = abs.(Vabc_pu[2, :])
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VM_C] = abs.(Vabc_pu[3, :])
     
-    # 电压角度
+    # Voltage angle
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VA_A] = angle.(Vabc_pu[1, :]) .* 180 ./ π
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VA_B] = angle.(Vabc_pu[2, :]) .* 180 ./ π
     jpc_3ph["res_bus_3ph"][:,RES_3PH_VA_C] = angle.(Vabc_pu[3, :]) .* 180 ./ π
     
     jpc_3ph["res_bus_3ph"][:,RES_3PH_UNBALANCED] = abs.(V012_pu[3, :] ./ V012_pu[2, :]) .* 100
     
-    
     return jpc_3ph
 end
 
+"""
+    get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
+
+Calculate and aggregate active and reactive power results for three-phase system.
+"""
 function get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
 
-    # 创建结果矩阵 (bus, p in kw, q in kvar)
+    # Create result matrix (bus, p in kw, q in kvar)
     bus_pq = zeros(Float64, length(jpc_3ph["busAC_1"][:,BUS_I]), 6)
     b, pA, pB, pC, qA, qB, qC = Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Float64[]
 
@@ -588,7 +681,7 @@ function get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
     # elements_3ph = ["loadsAC_asymm", "asymmetric_sgen"]
     
     for element in elements
-        # 检查元素是否存在于jpc中
+        # Check if element exists in jpc
         if  length(getproperty(case, Symbol(element)))==0
             continue
         end
@@ -609,7 +702,7 @@ function get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
     
     for element in elements_3ph
         if length(getproperty(case, Symbol(element)))==0
-            continue  # 如果不存在，跳过此次循环
+            continue  # Skip this iteration if it doesn't exist
         end
         sign = element in ["sgensAC", "asymmetric_sgen"] ? -1 : 1
         if length(getproperty(case, Symbol(element))) > 0
@@ -625,7 +718,7 @@ function get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
         end
     end
 
-    # 按组汇总每个元素的pq结果，稍后写入jpc['bus']
+    # Summarize pq results for each element by group, to be written to jpc['bus'] later
     b_pp, vp_A, vq_A, vp_B, vq_B, vp_C, vq_C = _sum_by_group_nvals(Int64.(b), pA, qA, pB, qB, pC, qC)
     bus_pq[b_pp, 1] = vp_A
     bus_pq[b_pp, 2] = vq_A
@@ -637,6 +730,11 @@ function get_p_q_results_3ph(case, jpc_3ph::PowerFlow.JPC_3ph)
     return bus_pq
 end
 
+"""
+    write_pq_results_to_element(case, jpc_3ph, element, suffix=nothing)
+
+Write power results to the specified element in jpc_3ph.
+"""
 function write_pq_results_to_element(case, jpc_3ph, element, suffix=nothing)
 
     # info element
@@ -656,6 +754,11 @@ function write_pq_results_to_element(case, jpc_3ph, element, suffix=nothing)
     return jpc_3ph
 end
 
+"""
+    get_p_q_b(case, jpc_3ph, element, suffix=nothing)
+
+Get active and reactive power values and bus indices for a specific element.
+"""
 function get_p_q_b(case, jpc_3ph, element, suffix=nothing)
     res_ = "res_" * element
     if suffix !== nothing
@@ -665,27 +768,30 @@ function get_p_q_b(case, jpc_3ph, element, suffix=nothing)
     el_data = getproperty(case, Symbol(element))
     # bus values are needed for stacking
     b = [el_data.bus for el_data in el_data]
-    p = jpc_3ph["res_loadsAC_3ph"][:, 1]  # 假设第1列是有功功率
-    q = jpc_3ph["res_loadsAC_3ph"][:, 2]  # 假设第2列是无功功率
+    p = jpc_3ph["res_loadsAC_3ph"][:, 1]  # Assuming column 1 is active power
+    q = jpc_3ph["res_loadsAC_3ph"][:, 2]  # Assuming column 2 is reactive power
     
     return p, q, b
 end
 
+"""
+    write_pq_results_to_element_3ph(net, element)
 
+Get p_mw and q_mvar for a specific pq element ("load", "sgen"...).
+This function basically writes values from element table to res_element table.
+
+Parameters:
+    net: pandapower network
+    element: element name (str)
+Returns:
+    net with updated results
+"""
 function write_pq_results_to_element_3ph(net, element)
-    """
-    get p_mw and q_mvar for a specific pq element ("load", "sgen"...).
-    This function basically writes values element table to res_element table
-
-    :param jpc: pandapower jpc
-    :param element: element name (str)
-    :return: jpc with updated results
-    """  
     # info element
     el_data = net[element]
     res_ = "res_" * element * "_3ph"
     
-    # 如果结果DataFrame不存在，创建它
+    # Create results DataFrame if it doesn't exist
     if !haskey(net, res_)
         net[res_] = DataFrame()
     end
@@ -693,30 +799,30 @@ function write_pq_results_to_element_3ph(net, element)
     scaling = el_data.scaling
     element_in_service = el_data.in_service .== true
 
-    # 假设p_mw和q_mvar的列索引
-    p_mw_idx = columnindex(el_data, :p_a_mw) # 假设这是总有功功率的列索引
-    q_mvar_idx = columnindex(el_data, :q_a_mvar) # 假设这是总无功功率的列索引
+    # Assumed column indices for p_mw and q_mvar
+    p_mw_idx = columnindex(el_data, :p_a_mw) # Assumed column index for total active power
+    q_mvar_idx = columnindex(el_data, :q_a_mvar) # Assumed column index for total reactive power
 
-    # 创建结果数组
+    # Create result arrays
     if element in ["load", "sgen"]
-        # 对于load和sgen，将总功率平均分配到三相
+        # For load and sgen, distribute total power equally to three phases
         p_a_mw = (el_data[:, p_mw_idx] ./ 3) .* scaling .* element_in_service
         p_b_mw = (el_data[:, p_mw_idx] ./ 3) .* scaling .* element_in_service
         p_c_mw = (el_data[:, p_mw_idx] ./ 3) .* scaling .* element_in_service
     else
-        # 对于其他元素，使用各相的具体功率
+        # For other elements, use specific power for each phase
         p_a_mw = el_data.p_a_mw .* scaling .* element_in_service
         p_b_mw = el_data.p_b_mw.* scaling .* element_in_service
         p_c_mw = el_data.p_c_mw .* scaling .* element_in_service
     end
 
-    # 将结果存入jpc中
+    # Store results in net
     net[res_].p_a_mw = p_a_mw
     net[res_].p_b_mw = p_b_mw
     net[res_].p_c_mw = p_c_mw
 
     
-    # 计算无功功率结果
+    # Calculate reactive power results
     if element in ["load", "sgen"]
         q_a_mvar = (el_data[:, q_mvar_idx] ./ 3) .* scaling .* element_in_service
         q_b_mvar = (el_data[:, q_mvar_idx] ./ 3) .* scaling .* element_in_service
@@ -727,26 +833,30 @@ function write_pq_results_to_element_3ph(net, element)
         q_c_mvar = el_data.q_c_mvar.* scaling .* element_in_service
     end
     
-    # 将无功功率结果存入jpc中
+    # Store reactive power results in net
     net[res_].q_a_mvar = q_a_mvar
     net[res_].q_b_mvar = q_b_mvar
     net[res_].q_c_mvar = q_c_mvar
 
-
     return net
 end
 
+"""
+    get_p_q_b_3ph(net, element)
+
+Get three-phase active and reactive power values and bus indices for a specific element.
+"""
 function get_p_q_b_3ph(net, element)
 
     res_ = "res_" * element * "_3ph"
 
     # bus values are needed for stacking
-    b = net[element].bus # 在 Julia 中，我们不需要 .values
+    b = net[element].bus # In Julia, we don't need .values
     pA = net[res_].p_a_mw
     pB = net[res_].p_b_mw
     pC = net[res_].p_c_mw
     
-    # 在 Julia 中使用三元运算符 ? :
+    # Using ternary operator ? : in Julia
     qA = net[res_].q_a_mvar 
     qB = net[res_].q_b_mvar 
     qC = net[res_].q_c_mvar
@@ -754,56 +864,60 @@ function get_p_q_b_3ph(net, element)
     return pA, qA, pB, qB, pC, qC, b
 end
 
+"""
+    _sum_by_group_nvals(bus, vals...)
+
+Group values by bus and sum them within each group for multiple value arrays.
+"""
 function _sum_by_group_nvals(bus, vals...)
-    # 获取排序顺序
+    # Get sorting order
     order = sortperm(bus)
     sorted_bus = bus[order]
     
-    # 创建索引数组，标记每个唯一bus的开始位置
+    # Create index array marking the start position of each unique bus
     index = ones(Bool, length(sorted_bus))
     if length(sorted_bus) > 1
         index[2:end] = sorted_bus[2:end] .!= sorted_bus[1:end-1]
     end
     
-    # 提取唯一的bus值
+    # Extract unique bus values
     unique_bus = sorted_bus[index]
     
-    # 创建结果数组
+    # Create result arrays
     newvals = ntuple(i -> zeros(eltype(vals[i]), length(unique_bus)), length(vals))
     
-    # 对每个值进行分组求和
+    # Group and sum each value
     for (i, val) in enumerate(vals)
         sorted_val = val[order]
-        # 计算累积和
+        # Calculate cumulative sum
         cumulative_sum = cumsum(sorted_val)
         
-        # 提取每个组的累积和
+        # Extract cumulative sum for each group
         group_sums = cumulative_sum[index]
         
-        # 计算每个组的和（通过差分）
+        # Calculate sum for each group (by differencing)
         if length(group_sums) > 1
             group_sums[2:end] = group_sums[2:end] .- group_sums[1:end-1]
         end
         
-        # 存储结果
+        # Store result
         newvals[i] .= group_sums
     end
     
-    # 返回结果元组，首个元素是唯一的bus值
+    # Return result tuple, first element is unique bus values
     return (unique_bus, newvals...)
 end
 
+"""
+    get_branch_results_3ph(jpc_3ph, jpc0, jpc1, jpc2, pq_buses)
+
+Extract branch results and write them to the appropriate dataframes.
+
+Parameters:
+    results: result of runpf loadflow calculation
+    p: dict to store "res_line" and "res_trafo" Dataframes
+"""
 function get_branch_results_3ph(jpc_3ph, jpc0, jpc1, jpc2, pq_buses)
-    """
-    Extract the bus results and writes it in the Dataframe net.res_line and net.res_trafo.
-
-    INPUT:
-
-        **results** - the result of runpf loadflow calculation
-
-        **p** - the dict to dump the "res_line" and "res_trafo" Dataframe
-
-    """
     I012_f, S012_f, V012_f, I012_t, S012_t, V012_t = get_branch_flows_3ph(jpc0, jpc1, jpc2)
     # get_line_results_3ph(net, jpc0, jpc1, jpc2, I012_f, V012_f, I012_t, V012_t)
     # get_trafo_results_3ph(net, jpc0, jpc1, jpc2, I012_f, V012_f, I012_t, V012_t)
@@ -813,41 +927,51 @@ function get_branch_results_3ph(jpc_3ph, jpc0, jpc1, jpc2, pq_buses)
     # _get_switch_results(net, i_ft)
 end
 
+"""
+    get_branch_flows_3ph(jpc0, jpc1, jpc2)
+
+Calculate branch flows for three-phase system.
+"""
 function get_branch_flows_3ph(jpc0, jpc1, jpc2)
 
     br_from_idx = Int64.(real(jpc1["branchAC"][:, F_BUS]))
     br_to_idx = Int64.(real(jpc1["branchAC"][:, T_BUS]))
     
-    # 计算起始端电压 - 使用 vec 代替 flatten
+    # Calculate from-end voltage - use vec instead of flatten
     V012_f = [vec(jpc["busAC"][br_from_idx, VM] .* jpc["busAC"][br_from_idx, BASE_KV] .*
                  exp.(1im .* deg2rad.(jpc["busAC"][br_from_idx, VA]))) for jpc in [jpc0, jpc1, jpc2]]
-    V012_f = transpose(hcat(V012_f...))  # 转换为与Python等效的数组形状
+    V012_f = transpose(hcat(V012_f...))  # Convert to array shape equivalent to Python
     
-    # 计算终止端电压
+    # Calculate to-end voltage
     V012_t = [vec(jpc["busAC"][br_to_idx, VM] .* jpc["busAC"][br_to_idx, BASE_KV] .*
                  exp.(1im .* deg2rad.(jpc["busAC"][br_to_idx, VA]))) for jpc in [jpc0, jpc1, jpc2]]
-    V012_t = transpose(hcat(V012_t...))  # 转换为与Python等效的数组形状
+    V012_t = transpose(hcat(V012_t...))  # Convert to array shape equivalent to Python
     
-    # 计算起始端复功率
+    # Calculate from-end complex power
     S012_f = [real(jpc["branchAC"][:, PF]) .+ 1im .* real(jpc["branchAC"][:, QF]) for jpc in [jpc0, jpc1, jpc2]]
-    S012_f = transpose(hcat(S012_f...))  # 转换为与Python等效的数组形状
+    S012_f = transpose(hcat(S012_f...))  # Convert to array shape equivalent to Python
     
-    # 计算终止端复功率
+    # Calculate to-end complex power
     S012_t = [real(jpc["branchAC"][:, PT]) .+ 1im .* real(jpc["branchAC"][:, QT]) for jpc in [jpc0, jpc1, jpc2]]
-    S012_t = transpose(hcat(S012_t...))  # 转换为与Python等效的数组形状
+    S012_t = transpose(hcat(S012_t...))  # Convert to array shape equivalent to Python
     
-    # 计算电流
+    # Calculate current
     I012_f = I_from_SV_elementwise(S012_f, V012_f ./ sqrt(3))
     I012_t = I_from_SV_elementwise(S012_t, V012_t ./ sqrt(3))
 
     return I012_f, S012_f, V012_f, I012_t, S012_t, V012_t
 end
 
+"""
+    I_from_SV_elementwise(S, V)
+
+Calculate current from complex power and voltage: I = conj(S/V).
+"""
 function I_from_SV_elementwise(S, V)
-    # 创建与 S 相同大小的零数组
+    # Create zero array of same size as S
     result = zeros(Complex{Float64}, size(S))
     
-    # 对于 V 不为零的元素，计算 S/V 的共轭
+    # For elements where V is non-zero, calculate conj(S/V)
     for i in eachindex(S)
         if V[i] != 0
             result[i] = conj(S[i] / V[i])
@@ -857,6 +981,11 @@ function I_from_SV_elementwise(S, V)
     return result
 end
 
+"""
+    get_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, pq_bus)
+
+Calculate and store three-phase generator results.
+"""
 function get_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, pq_bus)
 
     eg_end = size(case.ext_grids,1)
@@ -866,20 +995,19 @@ function get_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, pq_bus)
         gen_end = eg_end
     end
     
-
-    # 获取外部电网结果
+    # Get external grid results
     b, pA, qA, pB, qB, pC, qC = get_ext_grid_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
 
-    # 获取发电机结果
+    # Get generator results
     if gen_end > eg_end
         b, pA, qA, pB, qB, pC, qC = get_pp_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, b, pA, qA, pB, qB, pC, qC)
     end
 
-    # 按组对值求和
+    # Sum values by group
     b_pp, pA_sum, qA_sum, pB_sum, qB_sum, pC_sum, qC_sum = _sum_by_group_nvals(
         convert.(Int64, b), pA, qA, pB, qB, pC, qC)
     
-    # 更新母线功率
+    # Update bus power
     b_jpc = b_pp
     pq_bus[b_jpc, 1] .-= pA_sum
     pq_bus[b_jpc, 2] .-= qA_sum
@@ -889,26 +1017,31 @@ function get_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, pq_bus)
     pq_bus[b_jpc, 6] .-= qC_sum
 end
 
+"""
+    get_ext_grid_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
+
+Calculate and store three-phase external grid results.
+"""
 function get_ext_grid_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
 
-    # 获取外部电网结果
+    # Get external grid results
     n_res_eg = length(case.ext_grids)
     
     eg_idx_net = [el_data.index for el_data in case.ext_grids]
-    # 修复：使用发电机的母线索引而不是发电机索引
+    # Fix: Use bus index of generator instead of generator index
     eg_bus_idx_net = [el_data.bus for el_data in case.ext_grids]
     
-    # 从jpc读取这些母线的结果
+    # Read results for these buses from jpc
     V012 = zeros(ComplexF64, (3, n_res_eg))
     V012_temp= [net["busAC"][eg_bus_idx_net, VM] .* net["busAC"][eg_bus_idx_net, BASE_KV] .*
                           exp.(1im .* deg2rad.(net["busAC"][eg_bus_idx_net, VA]))
                           for net in [jpc0, jpc1, jpc2]]
-    V012[:, eg_idx_net] = transpose(hcat(V012_temp...))  # 转换为与Python等效的数组形状
+    V012[:, eg_idx_net] = transpose(hcat(V012_temp...))  # Convert to array shape equivalent to Python
     S012 = zeros(ComplexF64, (3, n_res_eg))
     S012_temp = [(net["genAC"][eg_idx_net, PG] .+ 1im .* 
                            net["genAC"][eg_idx_net, QG])
                            for net in [jpc0, jpc1, jpc2]]
-    S012[:, eg_idx_net] = transpose(hcat(S012_temp...))  # 转换为与Python等效的数组形状
+    S012[:, eg_idx_net] = transpose(hcat(S012_temp...))  # Convert to array shape equivalent to Python
     Sabc, Vabc = SVabc_from_SV012(S012, V012 ./ sqrt(3), n_res=n_res_eg, idx=eg_idx_net)
 
     pA = vec(real.(Sabc[1, :]))
@@ -918,7 +1051,7 @@ function get_ext_grid_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
     qB = vec(imag.(Sabc[2, :]))
     qC = vec(imag.(Sabc[3, :]))
 
-    # 复制结果的索引
+    # Copy result indices
     jpc_3ph["res_ext_grid_3ph"].bus =  [el_data.bus for el_data in case.ext_grids]
     jpc_3ph["res_ext_grid_3ph"].p_a_mw = pA
     jpc_3ph["res_ext_grid_3ph"].p_b_mw = pB
@@ -927,13 +1060,17 @@ function get_ext_grid_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
     jpc_3ph["res_ext_grid_3ph"].q_b_mvar = qB
     jpc_3ph["res_ext_grid_3ph"].q_c_mvar = qC
 
-    # 获取pq_bus的母线值
+    # Get bus values for pq_bus
     b = [el_data.bus for el_data in case.ext_grids]
     
-
     return b, pA, qA, pB, qB, pC, qC
 end
 
+"""
+    get_pp_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, b, pA, qA, pB, qB, pC, qC)
+
+Calculate and store three-phase generator results.
+"""
 function get_pp_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, b, pA, qA, pB, qB, pC, qC)
     pA_gen, qA_gen, pB_gen, qB_gen, pC_gen, qC_gen = _get_p_q_gen_results_3ph(case, jpc_3ph, ppc0, ppc1, ppc2)
     _get_v_gen_results_3ph(net, ppc0, ppc1, ppc2)
@@ -941,7 +1078,7 @@ function get_pp_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, b, pA, qA, pB, 
     ac = net["_options"]["ac"]
 
     net["res_gen_3ph"].index = net["gen"].index
-    b = vcat(b, net["gen"].bus)  # 在Julia中使用vcat而不是np.hstack
+    b = vcat(b, net["gen"].bus)  # In Julia use vcat instead of np.hstack
 
     pA = vcat(pA, pA_gen)
     pB = vcat(pB, pB_gen)
@@ -956,6 +1093,11 @@ function get_pp_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2, b, pA, qA, pB, 
     return b, pA, qA, pB, qB, pC, qC
 end
 
+"""
+    _get_p_q_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
+
+Calculate active and reactive power for generators in three-phase system.
+"""
 function _get_p_q_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
     
     # indices of in service gens in the ppc
@@ -967,7 +1109,7 @@ function _get_p_q_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
 
     # read results from ppc for these buses
     n_res_gen = length(case.gensAC)
-    gen_idx_ppc = findall(jpc1["genAC"][:, GEN_STATUS] .== 1)  # 获取所有在用发电机的索引
+    gen_idx_ppc = findall(jpc1["genAC"][:, GEN_STATUS] .== 1)  # Get indices of all in-use generators
     # 2 ext_grids Fix: Instead of the generator index, bus indices of the generators are used
     gen_bus_idx_ppc = Int64.(real(jpc1["genAC"][gen_idx_ppc, GEN_BUS]))
 
@@ -1000,7 +1142,11 @@ function _get_p_q_gen_results_3ph(case, jpc_3ph, jpc0, jpc1, jpc2)
     return pA, qA, pB, qB, pC, qC
 end
 
+"""
+    SVabc_from_SV012(S012, V012; n_res=nothing, idx=nothing)
 
+Convert sequence components of power and voltage to phase components.
+"""
 function SVabc_from_SV012(S012, V012; n_res=nothing, idx=nothing)
     if isnothing(n_res)
         n_res = size(S012, 2)
@@ -1020,20 +1166,25 @@ function SVabc_from_SV012(S012, V012; n_res=nothing, idx=nothing)
     return Sabc, Vabc
 end
 
+"""
+    get_bus_results_3ph(case, jpc_3ph, bus_pq)
+
+Store three-phase bus results in the appropriate fields.
+"""
 function get_bus_results_3ph(case, jpc_3ph, bus_pq)
 
     # update index in res bus bus
     # jpc["res_bus"].index = jpc["bus"].index
     jpc_3ph["res_bus_3ph"][:,RES_3PH_BUS] = jpc_3ph["busAC_1"][:, BUS_I]
     # write sum of p and q values to bus
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_PA_MW] = bus_pq[:, 1]  # Julia 索引从 1 开始
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_PB_MW]= bus_pq[:, 3]  # Python 的 2 对应 Julia 的 3
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_PC_MW] = bus_pq[:, 5]  # Python 的 4 对应 Julia 的 5
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_PA_MW] = bus_pq[:, 1]  # Julia indices start at 1
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_PB_MW]= bus_pq[:, 3]  # Python's 2 corresponds to Julia's 3
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_PC_MW] = bus_pq[:, 5]  # Python's 4 corresponds to Julia's 5
     
 
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_QA_MVAR] = bus_pq[:, 2]  # Python 的 1 对应 Julia 的 2
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_QB_MVAR] = bus_pq[:, 4]  # Python 的 3 对应 Julia 的 4
-    jpc_3ph["res_bus_3ph"][:,RES_3PH_QC_MVAR] = bus_pq[:, 6]  # Python 的 5 对应 Julia 的 6
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_QA_MVAR] = bus_pq[:, 2]  # Python's 1 corresponds to Julia's 2
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_QB_MVAR] = bus_pq[:, 4]  # Python's 3 corresponds to Julia's 4
+    jpc_3ph["res_bus_3ph"][:,RES_3PH_QC_MVAR] = bus_pq[:, 6]  # Python's 5 corresponds to Julia's 6
 
 
     # Todo: OPF
@@ -1043,9 +1194,14 @@ function get_bus_results_3ph(case, jpc_3ph, bus_pq)
     return nothing
 end
 
+"""
+    _clean_up(net, res=true)
+
+Clean up temporary data structures after power flow calculation.
+"""
 function _clean_up(net, res=true)
     
-    # 大部分代码被注释掉了，我保留了这些注释
+    # Most code is commented out, I kept these comments
     # mode = net.__internal_options["mode"]
 
     # set internal selected _is_elements to nothing. This way it is not stored (saves disk space)
@@ -1076,9 +1232,9 @@ function _clean_up(net, res=true)
     #    end
 
     if length(net["dcline"]) > 0
-        # 获取直流线路对应的发电机索引
+        # Get generator indices corresponding to DC lines
         dc_gens = net.gen.index[(length(net.gen) - length(net.dcline) * 2):end]
-        # 删除这些发电机
+        # Remove these generators
         net.gen = net.gen[setdiff(1:nrow(net.gen), dc_gens), :]
         if res
             net.res_gen = net.res_gen[setdiff(1:nrow(net.res_gen), dc_gens), :]
@@ -1088,6 +1244,11 @@ function _clean_up(net, res=true)
     return nothing
 end
 
+"""
+    robust_process(net, jpc)
+
+Process network and JPC data to ensure robust operation.
+"""
 function robust_process(net, jpc)
 
     bus = jpc["bus"]
@@ -1097,26 +1258,26 @@ function robust_process(net, jpc)
     nb = size(bus, 1)
     
     internal_index = collect(1:nb)
-    # 这里的 internal_index 是一个从 1 到 nb 的整数数组，表示所有母线的索引
-    # 你可以根据需要修改这个索引数组，以选择特定的母线进行处理
+    # Here internal_index is an array of integers from 1 to nb, representing indices of all buses
+    # You can modify this index array as needed to select specific buses for processing
     bus_i = bus[:, BUS_I]
 
-    # 创建从 internal_index 到 bus_i 的映射
+    # Create mapping from internal_index to bus_i
     idx2bus = Dict(i => bus_i[i] for i in internal_index)
 
-    # 创建从 bus_i 到 internal_index 的映射
+    # Create mapping from bus_i to internal_index
     bus2idx = Dict(bus_i[i] => i for i in internal_index)
 
     net["bus2idx"] = bus2idx
     net["idx2bus"] = idx2bus
-    #更新bus
+    # Update bus
     bus[:, BUS_I] = map(k -> bus2idx[k], bus[:, BUS_I])
-    # 更新发电机和支路的母线索引
+    # Update generator and branch bus indices
     gen[:, GEN_BUS] = map(k -> bus2idx[k], gen[:, GEN_BUS])
     branch[:, F_BUS] = map(k -> bus2idx[k], branch[:, F_BUS])
     branch[:, T_BUS] = map(k -> bus2idx[k], branch[:, T_BUS])
 
-    # 更新外部电网的母线索引
+    # Update external grid bus indices
     if haskey(net, "ext_grid")
         net["ext_grid"].bus = map(k -> bus2idx[k], net["ext_grid"].bus)
     end
@@ -1154,10 +1315,13 @@ function robust_process(net, jpc)
     jpc["bus"] = bus
     jpc["branch"] = branch
     jpc["gen"] = gen
-
-
 end
 
+"""
+    get_full_branch_zero(jpc_3ph)
+
+Add non-service branches to zero sequence branch data.
+"""
 function get_full_branch_zero(jpc_3ph)
 
     branch_not_in_service = jpc_3ph.branchAC_0[findall(jpc_3ph.branchAC_0[:, BR_STATUS] .== 0),:]

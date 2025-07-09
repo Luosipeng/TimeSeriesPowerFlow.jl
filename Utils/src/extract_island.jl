@@ -1,36 +1,56 @@
+"""
+    extract_islands(jpc::JPC)
+
+Extract electrically isolated islands from a power system case.
+
+This function identifies separate electrical islands in the power system and creates
+individual JPC objects for each valid island. It also identifies isolated buses that
+don't belong to any energized island.
+
+# Arguments
+- `jpc::JPC`: Power system case data structure
+
+# Returns
+- `Vector{JPC}`: List of JPC objects, each representing an energized island
+- `Vector{Int}`: List of isolated buses (buses not connected to any energized island)
+
+# Notes
+- An island is considered valid/energized if it contains at least one generator or reference bus
+- Islands with only PQ buses and no generation are considered isolated
+"""
 function extract_islands(jpc::JPC)
     
-    # 设置连接矩阵
-    nb = size(jpc.busAC, 1)     # 母线数量
-    nl = size(jpc.branchAC, 1)  # 支路数量
-    ng = size(jpc.genAC, 1)     # 发电机数量
-    nld = size(jpc.loadAC, 1)   # 负载数量
+    # Set up connection matrices
+    nb = size(jpc.busAC, 1)     # Number of buses
+    nl = size(jpc.branchAC, 1)  # Number of branches
+    ng = size(jpc.genAC, 1)     # Number of generators
+    nld = size(jpc.loadAC, 1)   # Number of loads
 
-    # 创建外部母线编号到内部索引的映射
+    # Create mapping from external bus numbers to internal indices
     i2e = jpc.busAC[:, BUS_I]
     e2i = Dict{Int, Int}()
     for i in 1:nb
         e2i[Int(i2e[i])] = i
     end
     
-    # 找出所有岛屿
+    # Find all islands
     groups, isolated = find_islands(jpc)
     
-    # 提取每个岛屿
+    # Extract each island
     jpc_list = JPC[]
     
-    # 创建一个集合，记录所有在有效岛屿中的母线编号
+    # Create a set to record all bus numbers in valid islands
     all_valid_island_buses = Set{Int}()
     
-    # 处理每个岛屿
+    # Process each island
     for i in eachindex(groups)
-        # 获取岛屿i中的外部母线编号
+        # Get external bus numbers in island i
         b_external = groups[i]
         
-        # 检查岛屿是否有发电机或参考节点（即是否带电）
+        # Check if the island has generators or reference nodes (i.e., if it is energized)
         has_power_source = false
         for bus_id in b_external
-            # 找到对应的母线在jpc.busAC中的行
+            # Find the corresponding bus row in jpc.busAC
             bus_row = findfirst(x -> Int(x) == bus_id, jpc.busAC[:, BUS_I])
             if bus_row !== nothing
                 bus_type = Int(jpc.busAC[bus_row, BUS_TYPE])
@@ -40,7 +60,7 @@ function extract_islands(jpc::JPC)
                 end
             end
             
-            # 检查是否有连接到该母线的发电机
+            # Check if there are generators connected to this bus
             for j in 1:ng
                 gen_bus = Int(jpc.genAC[j, GEN_BUS])
                 if gen_bus == bus_id && jpc.genAC[j, GEN_STATUS] == 1
@@ -54,26 +74,26 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 如果岛屿没有电源，将其母线添加到isolated中，并跳过后续处理
+        # If the island has no power source, add its buses to isolated and skip further processing
         if !has_power_source
             append!(isolated, b_external)
             continue
         end
         
-        # 记录有效岛屿中的母线
+        # Record buses in valid islands
         union!(all_valid_island_buses, b_external)
         
-        # 将外部母线编号转换为内部索引
+        # Convert external bus numbers to internal indices
         b_internal = Int[]
         for bus_id in b_external
             if haskey(e2i, bus_id)
                 push!(b_internal, e2i[bus_id])
             else
-                @warn "母线编号 $bus_id 不在系统中"
+                @warn "Bus number $bus_id is not in the system"
             end
         end
         
-        # 找出两端都在岛屿i中的支路
+        # Find branches with both ends in island i
         ibr = Int[]
         for j in 1:nl
             f_bus = Int(jpc.branchAC[j, F_BUS])
@@ -83,7 +103,7 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的发电机
+        # Find generators connected to buses in island i
         ig = Int[]
         for j in 1:ng
             gen_bus = Int(jpc.genAC[j, GEN_BUS])
@@ -92,56 +112,56 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的负载
+        # Find loads connected to buses in island i
         ild = Int[]
         for j in 1:nld
-            load_bus = Int(jpc.loadAC[j, LOAD_CND])  # 使用LOAD_CND常量表示负载连接的母线
+            load_bus = Int(jpc.loadAC[j, LOAD_CND])  # Use LOAD_CND constant for load connection bus
             if load_bus in b_external
                 push!(ild, j)
             end
         end
         
-        # 找出连接到岛屿i中母线的灵活负载
+        # Find flexible loads connected to buses in island i
         ild_flex = Int[]
         if size(jpc.loadAC_flex, 1) > 0
             for j in 1:size(jpc.loadAC_flex, 1)
-                load_bus = Int(jpc.loadAC_flex[j, 1])  # 假设第一列是母线编号
+                load_bus = Int(jpc.loadAC_flex[j, 1])  # Assume first column is bus number
                 if load_bus in b_external
                     push!(ild_flex, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的非对称负载
+        # Find asymmetric loads connected to buses in island i
         ild_asymm = Int[]
         if size(jpc.loadAC_asymm, 1) > 0
             for j in 1:size(jpc.loadAC_asymm, 1)
-                load_bus = Int(jpc.loadAC_asymm[j, 1])  # 假设第一列是母线编号
+                load_bus = Int(jpc.loadAC_asymm[j, 1])  # Assume first column is bus number
                 if load_bus in b_external
                     push!(ild_asymm, j)
                 end
             end
         end
         
-        # 找出两端都在岛屿i中的三相支路
+        # Find three-phase branches with both ends in island i
         ibr3ph = Int[]
         if size(jpc.branch3ph, 1) > 0
             for j in 1:size(jpc.branch3ph, 1)
-                f_bus = Int(jpc.branch3ph[j, 1])  # 假设第一列是起始母线
-                t_bus = Int(jpc.branch3ph[j, 2])  # 假设第二列是终止母线
+                f_bus = Int(jpc.branch3ph[j, 1])  # Assume first column is from bus
+                t_bus = Int(jpc.branch3ph[j, 2])  # Assume second column is to bus
                 if (f_bus in b_external) && (t_bus in b_external)
                     push!(ibr3ph, j)
                 end
             end
         end
         
-        # 找出岛屿i中的DC母线
+        # Find DC buses in island i
         bdc_external = Int[]
         bdc_internal = Int[]
         if size(jpc.busDC, 1) > 0
             for j in 1:size(jpc.busDC, 1)
-                bus_id = Int(jpc.busDC[j, 1])  # 假设第一列是DC母线编号
-                # 这里需要确定DC母线与AC母线的关联关系
+                bus_id = Int(jpc.busDC[j, 1])  # Assume first column is DC bus number
+                # Need to determine relationship between DC buses and AC buses
                 if bus_id in b_external
                     push!(bdc_external, bus_id)
                     push!(bdc_internal, j)
@@ -149,104 +169,104 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 找出两端都在岛屿i中的DC支路
+        # Find DC branches with both ends in island i
         ibrdc = Int[]
         if size(jpc.branchDC, 1) > 0
             for j in 1:size(jpc.branchDC, 1)
-                f_bus = Int(jpc.branchDC[j, 1])  # 假设第一列是起始母线
-                t_bus = Int(jpc.branchDC[j, 2])  # 假设第二列是终止母线
+                f_bus = Int(jpc.branchDC[j, 1])  # Assume first column is from bus
+                t_bus = Int(jpc.branchDC[j, 2])  # Assume second column is to bus
                 if (f_bus in bdc_external) && (t_bus in bdc_external)
                     push!(ibrdc, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的AC分布式发电
+        # Find AC distributed generators connected to buses in island i
         isgen = Int[]
         if size(jpc.sgenAC, 1) > 0
             for j in 1:size(jpc.sgenAC, 1)
-                sgen_bus = Int(jpc.sgenAC[j, 1])  # 假设第一列是母线编号
+                sgen_bus = Int(jpc.sgenAC[j, 1])  # Assume first column is bus number
                 if sgen_bus in b_external
                     push!(isgen, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的储能系统
+        # Find storage systems connected to buses in island i
         istorage = Int[]
         if size(jpc.storage, 1) > 0
             for j in 1:size(jpc.storage, 1)
-                storage_bus = Int(jpc.storage[j, 1])  # 假设第一列是母线编号
+                storage_bus = Int(jpc.storage[j, 1])  # Assume first column is bus number
                 if storage_bus in b_external
                     push!(istorage, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中DC母线的DC分布式发电
+        # Find DC distributed generators connected to DC buses in island i
         isgendc = Int[]
         if size(jpc.sgenDC, 1) > 0
             for j in 1:size(jpc.sgenDC, 1)
-                sgen_bus = Int(jpc.sgenDC[j, 1])  # 假设第一列是DC母线编号
+                sgen_bus = Int(jpc.sgenDC[j, 1])  # Assume first column is DC bus number
                 if sgen_bus in bdc_external
                     push!(isgendc, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的转换器
+        # Find converters connecting buses in island i
         iconv = Int[]
         if size(jpc.converter, 1) > 0
             for j in 1:size(jpc.converter, 1)
-                ac_bus = Int(jpc.converter[j, 1])  # 假设第一列是AC母线编号
-                dc_bus = Int(jpc.converter[j, 2])  # 假设第二列是DC母线编号
+                ac_bus = Int(jpc.converter[j, 1])  # Assume first column is AC bus number
+                dc_bus = Int(jpc.converter[j, 2])  # Assume second column is DC bus number
                 if (ac_bus in b_external) && (dc_bus in bdc_external)
                     push!(iconv, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的外部电网
+        # Find external grids connected to buses in island i
         iext = Int[]
         if size(jpc.ext_grid, 1) > 0
             for j in 1:size(jpc.ext_grid, 1)
-                ext_bus = Int(jpc.ext_grid[j, 1])  # 假设第一列是母线编号
+                ext_bus = Int(jpc.ext_grid[j, 1])  # Assume first column is bus number
                 if ext_bus in b_external
                     push!(iext, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的高压断路器
+        # Find high voltage circuit breakers with both ends in island i
         ihvcb = Int[]
         if size(jpc.hvcb, 1) > 0
             for j in 1:size(jpc.hvcb, 1)
-                f_bus = Int(jpc.hvcb[j, 1])  # 假设第一列是起始母线
-                t_bus = Int(jpc.hvcb[j, 2])  # 假设第二列是终止母线
+                f_bus = Int(jpc.hvcb[j, 1])  # Assume first column is from bus
+                t_bus = Int(jpc.hvcb[j, 2])  # Assume second column is to bus
                 if (f_bus in b_external) && (t_bus in b_external)
                     push!(ihvcb, j)
                 end
             end
         end
         
-        # 找出岛屿i中的微电网
+        # Find microgrids in island i
         img = Int[]
         if size(jpc.microgrid, 1) > 0
             for j in 1:size(jpc.microgrid, 1)
-                mg_bus = Int(jpc.microgrid[j, 1])  # 假设第一列是母线编号
+                mg_bus = Int(jpc.microgrid[j, 1])  # Assume first column is bus number
                 if mg_bus in b_external
                     push!(img, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的光伏系统
+        # Find PV systems connected to buses in island i
         ipv = Int[]
         if isdefined(jpc, :pv) && size(jpc.pv, 1) > 0
             for j in 1:size(jpc.pv, 1)
-                pv_bus = Int(jpc.pv[j, 2])  # 假设第二列是母线编号
+                pv_bus = Int(jpc.pv[j, 2])  # Assume second column is bus number
                 if pv_bus in b_external
-                    # 如果有状态字段，检查设备是否在运行
+                    # If status field exists, check if device is in service
                     is_in_service = size(jpc.pv, 2) >= 9 ? jpc.pv[j, 9] == 1 : true
                     
                     if is_in_service
@@ -256,13 +276,13 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的交流光伏系统
+        # Find AC PV systems connected to buses in island i
         ipv_ac = Int[]
         if isdefined(jpc, :pv_acsystem) && size(jpc.pv_acsystem, 1) > 0
             for j in 1:size(jpc.pv_acsystem, 1)
-                pv_bus = Int(jpc.pv_acsystem[j, 2])  # 假设第二列是母线编号
+                pv_bus = Int(jpc.pv_acsystem[j, 2])  # Assume second column is bus number
                 if pv_bus in b_external
-                    # 如果有状态字段(假设是第9列)，检查设备是否在运行
+                    # If status field exists (assume column 9), check if device is in service
                     is_in_service = size(jpc.pv_acsystem, 2) >= 9 ? jpc.pv_acsystem[j, 9] == 1 : true
                     
                     if is_in_service
@@ -272,10 +292,10 @@ function extract_islands(jpc::JPC)
             end
         end
         
-        # 创建这个岛屿的JPC副本
+        # Create a copy of JPC for this island
         jpck = JPC(jpc.version, jpc.baseMVA)
         
-        # 复制相关数据
+        # Copy relevant data
         if !isempty(b_internal)
             jpck.busAC = jpc.busAC[b_internal, :]
         end
@@ -340,34 +360,34 @@ function extract_islands(jpc::JPC)
             jpck.microgrid = jpc.microgrid[img, :]
         end
         
-        # 复制光伏数据
+        # Copy PV data
         if !isempty(ipv) && isa(jpc.pv, Array)
-            jpck.pv = jpc.pv[ipv, :]
+            jpck.pv = copy(jpc.pv[ipv, :])
         else
-            # 如果没有光伏设备连接到这个岛屿，创建一个空数组
+            # If no PV devices are connected to this island, create an empty array
             if isa(jpc.pv, Array)
                 jpck.pv = similar(jpc.pv, 0, size(jpc.pv, 2))
             else
-                jpck.pv = deepcopy(jpc.pv)  # 如果pv不是数组，直接复制
+                jpck.pv = deepcopy(jpc.pv)  # If pv is not an array, copy directly
             end
         end
         
-        # 复制交流光伏系统数据
+        # Copy AC PV system data
         if !isempty(ipv_ac) && isdefined(jpc, :pv_acsystem)
             jpck.pv_acsystem = jpc.pv_acsystem[ipv_ac, :]
         else
-            # 如果没有交流光伏系统连接到这个岛屿，创建一个空数组
+            # If no AC PV systems are connected to this island, create an empty array
             if isdefined(jpc, :pv_acsystem) && isa(jpc.pv_acsystem, Array)
                 jpck.pv_acsystem = similar(jpc.pv_acsystem, 0, size(jpc.pv_acsystem, 2))
             elseif isdefined(jpc, :pv_acsystem)
-                jpck.pv_acsystem = deepcopy(jpc.pv_acsystem)  # 如果pv_acsystem不是数组，直接复制
+                jpck.pv_acsystem = deepcopy(jpc.pv_acsystem)  # If pv_acsystem is not an array, copy directly
             end
         end
         
         push!(jpc_list, jpck)
     end
     
-    # 检查是否有不在任何有效岛屿中的母线（即不在all_valid_island_buses中且不在isolated中的母线）
+    # Check if there are buses not in any valid island (i.e., not in all_valid_island_buses and not in isolated)
     for i in 1:nb
         bus_id = Int(jpc.busAC[i, BUS_I])
         if !(bus_id in all_valid_island_buses) && !(bus_id in isolated)
@@ -379,46 +399,69 @@ function extract_islands(jpc::JPC)
 end
 
 
+"""
+    extract_islands_acdc(jpc::JPC)
+
+Extract electrically isolated islands from a hybrid AC-DC power system case.
+
+This function identifies separate electrical islands in a hybrid AC-DC power system
+and creates individual JPC objects for each valid island. It handles the complexity
+of interconnected AC and DC subsystems through converters.
+
+# Arguments
+- `jpc::JPC`: Power system case data structure containing both AC and DC components
+
+# Returns
+- `Vector{JPC}`: List of JPC objects, each representing an energized island
+- `Vector{Int}`: List of isolated AC buses (buses not connected to any energized island)
+
+# Notes
+- An island is considered valid/energized if it contains at least one generator, reference bus,
+  or has a power source in its connected DC subsystem
+- Islands with only PQ buses and no generation capability are considered isolated
+- The function checks for potential issues like multiple reference nodes or batteries in
+  constant Vdc mode that might cause power flow calculation errors
+"""
 function extract_islands_acdc(jpc::JPC)
-    # 设置连接矩阵
-    nb_ac = size(jpc.busAC, 1)     # AC母线数量
-    nb_dc = size(jpc.busDC, 1)     # DC母线数量
-    nl_ac = size(jpc.branchAC, 1)  # AC支路数量
-    nl_dc = size(jpc.branchDC, 1)  # DC支路数量
-    ng = size(jpc.genAC, 1)        # 发电机数量
-    nld = size(jpc.loadAC, 1)      # 负载数量
+    # Set up connection matrices
+    nb_ac = size(jpc.busAC, 1)     # Number of AC buses
+    nb_dc = size(jpc.busDC, 1)     # Number of DC buses
+    nl_ac = size(jpc.branchAC, 1)  # Number of AC branches
+    nl_dc = size(jpc.branchDC, 1)  # Number of DC branches
+    ng = size(jpc.genAC, 1)        # Number of generators
+    nld = size(jpc.loadAC, 1)      # Number of loads
     
-    # 创建外部母线编号到内部索引的映射
+    # Create mapping from external bus numbers to internal indices
     i2e_ac = jpc.busAC[:, BUS_I]
     e2i_ac = Dict{Int, Int}()
     for i in 1:nb_ac
         e2i_ac[Int(i2e_ac[i])] = i
     end
     
-    i2e_dc = nb_dc > 0 ? jpc.busDC[:, 1] : Int[]  # 假设第一列是DC母线编号
+    i2e_dc = nb_dc > 0 ? jpc.busDC[:, 1] : Int[]  # Assume first column is DC bus number
     e2i_dc = Dict{Int, Int}()
     for i in 1:nb_dc
         e2i_dc[Int(i2e_dc[i])] = i
     end
     
-    # 找出所有岛屿
+    # Find all islands
     groups, isolated = find_islands_acdc(jpc)
     
-    # 提取每个岛屿
+    # Extract each island
     jpc_list = JPC[]
     
-    # 创建一个集合，记录所有在有效岛屿中的母线编号
+    # Create a set to record all bus numbers in valid islands
     all_valid_island_buses = Set{Int}()
     
-    # 处理每个岛屿
+    # Process each island
     for i in eachindex(groups)
-        # 获取岛屿i中的外部AC母线编号
+        # Get external AC bus numbers in island i
         b_external_ac = groups[i]
         
-        # 检查岛屿是否有发电机或参考节点（即是否带电）
+        # Check if the island has generators or reference nodes (i.e., if it is energized)
         has_power_source = false
         for bus_id in b_external_ac
-            # 找到对应的母线在jpc.busAC中的行
+            # Find the corresponding bus row in jpc.busAC
             bus_row = findfirst(x -> Int(x) == bus_id, jpc.busAC[:, BUS_I])
             if bus_row !== nothing
                 bus_type = Int(jpc.busAC[bus_row, BUS_TYPE])
@@ -428,7 +471,7 @@ function extract_islands_acdc(jpc::JPC)
                 end
             end
             
-            # 检查是否有连接到该母线的发电机
+            # Check if there are generators connected to this bus
             for j in 1:ng
                 gen_bus = Int(jpc.genAC[j, GEN_BUS])
                 if gen_bus == bus_id && jpc.genAC[j, GEN_STATUS] == 1
@@ -442,13 +485,13 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出与这些AC母线相连的DC母线
+        # Find DC buses connected to these AC buses
         b_external_dc = Int[]
         if size(jpc.converter, 1) > 0
             for j in 1:size(jpc.converter, 1)
                 ac_bus = Int(jpc.converter[j, 1])
                 dc_bus = Int(jpc.converter[j, 2])
-                # 假设第3列是状态字段，如果没有状态字段，则假设为投运
+                # Assume column 3 is status field, if no status field, assume it's in service
                 is_active = size(jpc.converter, 2) >= 3 ? jpc.converter[j, 3] == 1 : true
                 
                 if ac_bus in b_external_ac && is_active
@@ -457,9 +500,9 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 通过DC支路扩展DC母线集合
+        # Expand DC bus set through DC branches
         if !isempty(b_external_dc) && nl_dc > 0
-            # 使用广度优先搜索找到所有连通的DC母线
+            # Use breadth-first search to find all connected DC buses
             visited_dc = Set(b_external_dc)
             queue = copy(b_external_dc)
             
@@ -468,8 +511,8 @@ function extract_islands_acdc(jpc::JPC)
                 
                 for j in 1:nl_dc
                     branch = jpc.branchDC[j, :]
-                    # 假设DC支路结构与AC支路相似
-                    if branch[11] != 1  # 检查状态
+                    # Assume DC branch structure is similar to AC branch
+                    if branch[11] != 1  # Check status
                         continue
                     end
                     
@@ -489,26 +532,26 @@ function extract_islands_acdc(jpc::JPC)
             b_external_dc = collect(visited_dc)
         end
         
-        # 检查DC系统是否有电源
+        # Check if DC system has power sources
         if !has_power_source && !isempty(b_external_dc)
-            # 检查DC母线中是否有参考节点（类型为2）
+            # Check if there are reference nodes (type 2) in DC buses
             for bus_id in b_external_dc
-                # 找到对应的母线在jpc.busDC中的行
+                # Find the corresponding bus row in jpc.busDC
                 bus_row = findfirst(x -> Int(x) == bus_id, jpc.busDC[:, 1])
                 if bus_row !== nothing && size(jpc.busDC, 2) >= 2
-                    bus_type = Int(jpc.busDC[bus_row, 2])  # 假设第2列是母线类型
-                    if bus_type == 2  # DC参考节点类型为2
+                    bus_type = Int(jpc.busDC[bus_row, 2])  # Assume column 2 is bus type
+                    if bus_type == 2  # DC reference node type is 2
                         has_power_source = true
                         break
                     end
                 end
             end
             
-            # 检查DC分布式发电
+            # Check DC distributed generation
             if !has_power_source && size(jpc.sgenDC, 1) > 0
                 for j in 1:size(jpc.sgenDC, 1)
                     sgen_bus = Int(jpc.sgenDC[j, 1])
-                    # 假设第3列是状态字段
+                    # Assume column 3 is status field
                     is_active = size(jpc.sgenDC, 2) >= 3 ? jpc.sgenDC[j, 3] == 1 : true
                     
                     if sgen_bus in b_external_dc && is_active
@@ -518,7 +561,7 @@ function extract_islands_acdc(jpc::JPC)
                 end
             end
             
-            # 检查DC发电机
+            # Check DC generators
             if !has_power_source && isdefined(jpc, :genDC) && size(jpc.genDC, 1) > 0
                 for j in 1:size(jpc.genDC, 1)
                     gen_bus = Int(jpc.genDC[j, 1])
@@ -532,22 +575,22 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 如果岛屿没有电源，将其母线添加到isolated中，并跳过后续处理
+        # If the island has no power source, add its buses to isolated and skip further processing
         if !has_power_source
             append!(isolated, b_external_ac)
             continue
         end
         
-        # 记录有效岛屿中的母线
+        # Record buses in valid islands
         union!(all_valid_island_buses, b_external_ac)
         
-        # 将外部母线编号转换为内部索引
+        # Convert external bus numbers to internal indices
         b_internal_ac = Int[]
         for bus_id in b_external_ac
             if haskey(e2i_ac, bus_id)
                 push!(b_internal_ac, e2i_ac[bus_id])
             else
-                @warn "AC母线编号 $bus_id 不在系统中"
+                @warn "AC bus number $bus_id is not in the system"
             end
         end
         
@@ -556,11 +599,11 @@ function extract_islands_acdc(jpc::JPC)
             if haskey(e2i_dc, bus_id)
                 push!(b_internal_dc, e2i_dc[bus_id])
             else
-                @warn "DC母线编号 $bus_id 不在系统中"
+                @warn "DC bus number $bus_id is not in the system"
             end
         end
         
-        # 找出两端都在岛屿i中的AC支路
+        # Find AC branches with both ends in island i
         ibr_ac = Int[]
         for j in 1:nl_ac
             f_bus = Int(jpc.branchAC[j, F_BUS])
@@ -570,17 +613,17 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出两端都在岛屿i中的DC支路
+        # Find DC branches with both ends in island i
         ibr_dc = Int[]
         for j in 1:nl_dc
-            f_bus = Int(jpc.branchDC[j, 1])  # 假设第一列是起始母线
-            t_bus = Int(jpc.branchDC[j, 2])  # 假设第二列是终止母线
+            f_bus = Int(jpc.branchDC[j, 1])  # Assume first column is from bus
+            t_bus = Int(jpc.branchDC[j, 2])  # Assume second column is to bus
             if (f_bus in b_external_dc) && (t_bus in b_external_dc)
                 push!(ibr_dc, j)
             end
         end
         
-        # 找出连接岛屿i中AC和DC母线的转换器
+        # Find converters connecting AC and DC buses in island i
         iconv = Int[]
         if size(jpc.converter, 1) > 0
             for j in 1:size(jpc.converter, 1)
@@ -592,7 +635,7 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的发电机
+        # Find generators connected to buses in island i
         ig = Int[]
         for j in 1:ng
             gen_bus = Int(jpc.genAC[j, GEN_BUS])
@@ -601,35 +644,35 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中DC母线的DC发电机
+        # Find DC generators connected to DC buses in island i
         igen_dc = Int[]
         if isdefined(jpc, :genDC) && size(jpc.genDC, 1) > 0
             for j in 1:size(jpc.genDC, 1)
-                gen_bus = Int(jpc.genDC[j, 1])  # 假设第一列是母线编号
+                gen_bus = Int(jpc.genDC[j, 1])  # Assume first column is bus number
                 if gen_bus in b_external_dc
                     push!(igen_dc, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的负载
+        # Find loads connected to buses in island i
         ild = Int[]
         for j in 1:nld
-            load_bus = Int(jpc.loadAC[j, LOAD_CND])  # 使用LOAD_CND常量表示负载连接的母线
+            load_bus = Int(jpc.loadAC[j, LOAD_CND])  # Use LOAD_CND constant for load connection bus
             if load_bus in b_external_ac
                 push!(ild, j)
             end
         end
         
-        # 找出连接到岛屿i中母线的光伏设备
+        # Find PV devices connected to buses in island i
         ipv = Int[]
         if isa(jpc.pv, Array) && size(jpc.pv, 1) > 0
             for j in 1:size(jpc.pv, 1)
-                pv_bus = Int(jpc.pv[j, 2])  # 使用第二列作为母线编号
+                pv_bus = Int(jpc.pv[j, 2])  # Use column 2 as bus number
                 
-                # 检查光伏设备是否连接到直流母线
+                # Check if PV device is connected to DC bus
                 if pv_bus in b_external_dc
-                    # 如果有状态字段(假设是第8列或其他位置)，检查设备是否在运行
+                    # If status field exists (assume column 8 or other position), check if device is in service
                     is_in_service = size(jpc.pv, 2) >= 8 ? jpc.pv[j, 8] == 1 : true
                     
                     if is_in_service
@@ -639,13 +682,13 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的交流光伏系统
+        # Find AC PV systems connected to buses in island i
         ipv_ac = Int[]
         if isdefined(jpc, :pv_acsystem) && size(jpc.pv_acsystem, 1) > 0
             for j in 1:size(jpc.pv_acsystem, 1)
-                pv_bus = Int(jpc.pv_acsystem[j, PV_AC_BUS])  # 使用PV_AC_BUS常量获取母线编号
+                pv_bus = Int(jpc.pv_acsystem[j, PV_AC_BUS])  # Use PV_AC_BUS constant to get bus number
                 if pv_bus in b_external_ac
-                    # 如果有状态字段，检查设备是否在运行
+                    # If status field exists, check if device is in service
                     is_in_service = jpc.pv_acsystem[j, PV_AC_IN_SERVICE] == 1
                     
                     if is_in_service
@@ -655,83 +698,83 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的灵活负载
+                # Find flexible loads connected to buses in island i
         ild_flex = Int[]
         if size(jpc.loadAC_flex, 1) > 0
             for j in 1:size(jpc.loadAC_flex, 1)
-                load_bus = Int(jpc.loadAC_flex[j, 1])  # 假设第一列是母线编号
+                load_bus = Int(jpc.loadAC_flex[j, 1])  # Assume first column is bus number
                 if load_bus in b_external_ac
                     push!(ild_flex, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的非对称负载
+        # Find asymmetric loads connected to buses in island i
         ild_asymm = Int[]
         if size(jpc.loadAC_asymm, 1) > 0
             for j in 1:size(jpc.loadAC_asymm, 1)
-                load_bus = Int(jpc.loadAC_asymm[j, 1])  # 假设第一列是母线编号
+                load_bus = Int(jpc.loadAC_asymm[j, 1])  # Assume first column is bus number
                 if load_bus in b_external_ac
                     push!(ild_asymm, j)
                 end
             end
         end
         
-        # 找出两端都在岛屿i中的三相支路
+        # Find three-phase branches with both ends in island i
         ibr3ph = Int[]
         if size(jpc.branch3ph, 1) > 0
             for j in 1:size(jpc.branch3ph, 1)
-                f_bus = Int(jpc.branch3ph[j, 1])  # 假设第一列是起始母线
-                t_bus = Int(jpc.branch3ph[j, 2])  # 假设第二列是终止母线
+                f_bus = Int(jpc.branch3ph[j, 1])  # Assume first column is from bus
+                t_bus = Int(jpc.branch3ph[j, 2])  # Assume second column is to bus
                 if (f_bus in b_external_ac) && (t_bus in b_external_ac)
                     push!(ibr3ph, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中DC母线的DC负载
+        # Find DC loads connected to DC buses in island i
         ild_dc = Int[]
         if size(jpc.loadDC, 1) > 0
             for j in 1:size(jpc.loadDC, 1)
-                load_bus = Int(jpc.loadDC[j, 2])  # 假设第二列是母线编号
+                load_bus = Int(jpc.loadDC[j, 2])  # Assume second column is bus number
                 if load_bus in b_external_dc
                     push!(ild_dc, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中DC母线的DC分布式发电
+        # Find DC distributed generators connected to DC buses in island i
         isgen_dc = Int[]
         if size(jpc.sgenDC, 1) > 0
             for j in 1:size(jpc.sgenDC, 1)
-                sgen_bus = Int(jpc.sgenDC[j, 1])  # 假设第一列是母线编号
+                sgen_bus = Int(jpc.sgenDC[j, 1])  # Assume first column is bus number
                 if sgen_bus in b_external_dc
                     push!(isgen_dc, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的AC分布式发电
+        # Find AC distributed generators connected to buses in island i
         isgen_ac = Int[]
         if size(jpc.sgenAC, 1) > 0
             for j in 1:size(jpc.sgenAC, 1)
-                sgen_bus = Int(jpc.sgenAC[j, 1])  # 假设第一列是母线编号
+                sgen_bus = Int(jpc.sgenAC[j, 1])  # Assume first column is bus number
                 if sgen_bus in b_external_ac
                     push!(isgen_ac, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中DC母线的储能系统
+        # Find storage systems connected to DC buses in island i
         istorage = Int[]
         if size(jpc.storage, 1) > 0
-            # 确定储能系统连接的DC母线编号所在的列索引
+            # Determine the column index for DC bus number
             ess_bus_col = -1
-            # 尝试查找名为ESS_BUS的列（如果存在列名）
+            # Try to find column named ESS_BUS (if column names exist)
             if isdefined(jpc.storage, :colnames) && :ESS_BUS in jpc.storage.colnames
                 ess_bus_col = findfirst(x -> x == :ESS_BUS, jpc.storage.colnames)
             else
-                # 如果没有列名，假设第1列是储能系统连接的DC母线编号
+                # If no column names, assume column 1 is the DC bus number
                 ess_bus_col = 1
             end
             
@@ -745,44 +788,44 @@ function extract_islands_acdc(jpc::JPC)
             end
         end
         
-        # 找出连接到岛屿i中母线的外部电网
+        # Find external grids connected to buses in island i
         iext = Int[]
         if size(jpc.ext_grid, 1) > 0
             for j in 1:size(jpc.ext_grid, 1)
-                ext_bus = Int(jpc.ext_grid[j, 1])  # 假设第一列是母线编号
+                ext_bus = Int(jpc.ext_grid[j, 1])  # Assume first column is bus number
                 if ext_bus in b_external_ac
                     push!(iext, j)
                 end
             end
         end
         
-        # 找出连接到岛屿i中母线的高压断路器
+        # Find high voltage circuit breakers with both ends in island i
         ihvcb = Int[]
         if size(jpc.hvcb, 1) > 0
             for j in 1:size(jpc.hvcb, 1)
-                f_bus = Int(jpc.hvcb[j, 1])  # 假设第一列是起始母线
-                t_bus = Int(jpc.hvcb[j, 2])  # 假设第二列是终止母线
+                f_bus = Int(jpc.hvcb[j, 1])  # Assume first column is from bus
+                t_bus = Int(jpc.hvcb[j, 2])  # Assume second column is to bus
                 if (f_bus in b_external_ac) && (t_bus in b_external_ac)
                     push!(ihvcb, j)
                 end
             end
         end
         
-        # 找出岛屿i中的微电网
+        # Find microgrids in island i
         img = Int[]
         if size(jpc.microgrid, 1) > 0
             for j in 1:size(jpc.microgrid, 1)
-                mg_bus = Int(jpc.microgrid[j, 1])  # 假设第一列是母线编号
+                mg_bus = Int(jpc.microgrid[j, 1])  # Assume first column is bus number
                 if mg_bus in b_external_ac
                     push!(img, j)
                 end
             end
         end
         
-        # 创建这个岛屿的JPC副本
+        # Create a copy of JPC for this island
         jpck = JPC(jpc.version, jpc.baseMVA)
         
-        # 复制相关数据
+        # Copy relevant data
         if !isempty(b_internal_ac)
             jpck.busAC = deepcopy(jpc.busAC[b_internal_ac, :])
         end
@@ -790,11 +833,11 @@ function extract_islands_acdc(jpc::JPC)
         if !isempty(b_internal_dc)
             jpck.busDC = deepcopy(jpc.busDC[b_internal_dc, :])
             
-            # 确保DC系统中的参考节点类型保持为2而不是3
+            # Ensure reference node type in DC system remains 2 instead of 3
             if size(jpck.busDC, 1) > 0 && size(jpck.busDC, 2) >= 2
                 for j in 1:size(jpck.busDC, 1)
-                    if jpck.busDC[j, 2] == 3  # 如果被错误地设置为3
-                        jpck.busDC[j, 2] = 2  # 将其改回2
+                    if jpck.busDC[j, 2] == 3  # If incorrectly set to 3
+                        jpck.busDC[j, 2] = 2  # Change it back to 2
                     end
                 end
             end
@@ -828,27 +871,27 @@ function extract_islands_acdc(jpc::JPC)
             jpck.loadDC = deepcopy(jpc.loadDC[ild_dc, :])
         end
         
-        # 复制光伏数据
+        # Copy PV data
         if !isempty(ipv) && isa(jpc.pv, Array)
             jpck.pv = deepcopy(jpc.pv[ipv, :])
         else
-            # 如果没有光伏设备连接到这个岛屿，创建一个空数组
+            # If no PV devices are connected to this island, create an empty array
             if isa(jpc.pv, Array)
                 jpck.pv = similar(jpc.pv, 0, size(jpc.pv, 2))
             else
-                jpck.pv = deepcopy(jpc.pv)  # 如果pv不是数组，直接复制
+                jpck.pv = deepcopy(jpc.pv)  # If pv is not an array, copy directly
             end
         end
         
-        # 复制交流光伏系统数据
+        # Copy AC PV system data
         if !isempty(ipv_ac) && isdefined(jpc, :pv_acsystem)
             jpck.pv_acsystem = deepcopy(jpc.pv_acsystem[ipv_ac, :])
         else
-            # 如果没有交流光伏系统连接到这个岛屿，创建一个空数组
+            # If no AC PV systems are connected to this island, create an empty array
             if isdefined(jpc, :pv_acsystem) && isa(jpc.pv_acsystem, Array)
                 jpck.pv_acsystem = similar(jpc.pv_acsystem, 0, size(jpc.pv_acsystem, 2))
             elseif isdefined(jpc, :pv_acsystem)
-                jpck.pv_acsystem = deepcopy(jpc.pv_acsystem)  # 如果pv_acsystem不是数组，直接复制
+                jpck.pv_acsystem = deepcopy(jpc.pv_acsystem)  # If pv_acsystem is not an array, copy directly
             end
         end
         
@@ -891,7 +934,7 @@ function extract_islands_acdc(jpc::JPC)
         push!(jpc_list, jpck)
     end
     
-    # 检查是否有不在任何有效岛屿中的母线（即不在all_valid_island_buses中且不在isolated中的母线）
+    # Check if there are buses not in any valid island (i.e., not in all_valid_island_buses and not in isolated)
     for i in 1:nb_ac
         bus_id = Int(jpc.busAC[i, BUS_I])
         if !(bus_id in all_valid_island_buses) && !(bus_id in isolated)
@@ -899,24 +942,23 @@ function extract_islands_acdc(jpc::JPC)
         end
     end
     
-    # 检测是否在Vdc恒定模式下存在蓄电池
+    # Detect if there are batteries in constant Vdc mode
     for i in 1:length(jpc_list)
         if !isempty(jpc_list[i].storage)
-            # 使用逻辑或的向量化操作 .||
+            # Use vectorized logical OR operation .||
             Vdc_converter = findall((jpc_list[i].converter[:,CONV_MODE] .== 4) .|| (jpc_list[i].converter[:,CONV_MODE] .== 5))
             if !isempty(Vdc_converter)
-                @error "在岛屿 $(i) 中发现Vdc恒定模式下的蓄电池，可能导致功率流计算错误。请检查JPC数据。"
+                @error "Batteries in constant Vdc mode detected in island $(i), which may cause power flow calculation errors. Please check JPC data."
             end
         end
 
         slack_bus_indices = findall(jpc_list[i].busAC[:, BUS_TYPE] .== REF)
         if length(slack_bus_indices) > 1
-            # 检查是否有多个参考节点
-                @warn "在岛屿 $(i) 中发现多个参考节点，可能导致功率流计算错误。请检查JPC数据。"
+            # Check if there are multiple reference nodes
+            @warn "Multiple reference nodes detected in island $(i), which may cause power flow calculation errors. Please check JPC data."
         end
     end
 
     return jpc_list, isolated
 end
-
 

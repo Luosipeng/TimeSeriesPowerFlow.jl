@@ -1,7 +1,19 @@
+
 """
     resolve_node_mapping(node_id, node_merge_map)
 
-递归解析节点映射，确保多层合并正确处理。
+Resolves the final mapping of a node by traversing through a node merge map.
+
+This function follows the chain of node mappings to find the final destination node.
+It handles multiple levels of redirection by iteratively looking up each node ID
+in the mapping until it finds a node that doesn't have a further mapping.
+
+# Arguments
+- `node_id`: The initial node ID to resolve
+- `node_merge_map`: A dictionary mapping source nodes to destination nodes
+
+# Returns
+The final resolved node ID after following all mappings
 """
 function resolve_node_mapping(node_id, node_merge_map)
     while haskey(node_merge_map, node_id)
@@ -13,8 +25,28 @@ end
 """
     merge_virtual_nodes(case::JuliaPowerCase)
 
-合并虚拟节点两侧的节点，去除虚拟节点和虚拟连接，避免在潮流计算中出现奇异导纳矩阵。
-返回更新后的case对象，不含虚拟节点和虚拟连接。
+Merges virtual nodes in a power system case and updates all connected elements.
+
+This function identifies virtual nodes (nodes with "_虚拟节点" in their name), 
+merges them with their connected real nodes, and updates all references in the system.
+The process includes:
+1. Identifying virtual nodes and their connections
+2. Creating a mapping strategy for node merging
+3. Updating all elements (lines, transformers, circuit breakers, loads, generators)
+4. Removing virtual nodes and their associated circuit breakers
+5. Merging loads connected to the same bus after node consolidation
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case
+
+# Returns
+A new JuliaPowerCase with virtual nodes merged and all references updated
+
+# Note
+- Virtual nodes are identified by the substring "_虚拟节点" in their names
+- At least two connections are required for a virtual node to be merged
+- Self-loops created during merging are disabled
+- Loads at the same bus after merging are consolidated into a single load
 """
 function merge_virtual_nodes(case::JuliaPowerCase)
     # 深拷贝case以便修改
@@ -259,125 +291,219 @@ function merge_virtual_nodes(case::JuliaPowerCase)
     return new_case
 end
 
+"""
+    JuliaPowerCase2Jpc(case::Utils.JuliaPowerCase)
+
+Converts a JuliaPowerCase object to a JPC (Julia Power Case) format for power flow analysis.
+
+This function performs a complete transformation of the power system case data,
+processing all components and preparing them for power flow calculations.
+The conversion process includes:
+
+1. Merging virtual nodes to ensure a proper network topology
+2. Creating and populating a new JPC object with the following data:
+   - Basic parameters (base MVA)
+   - AC buses
+   - DC buses
+   - AC branches (lines and transformers)
+   - DC branches
+   - AC generators
+   - Battery systems (as DC generators)
+   - Battery state of charge data
+   - AC loads
+   - DC loads
+   - PV array data
+   - Inverters (AC/DC converters)
+   - AC-connected PV systems
+
+# Arguments
+- `case::Utils.JuliaPowerCase`: The original power system case data
+
+# Returns
+A fully populated JPC object ready for power flow analysis
+"""
 function JuliaPowerCase2Jpc(case::Utils.JuliaPowerCase)
-    # 1. 合并虚拟节点
+    # 1. merge virtual nodes
     case = merge_virtual_nodes(case)
     
-    # 2. 创建JPC对象
+    # 2. create a new JPC object
     jpc = JPC()
     
-    # 3. 设置基本参数
+    # 3. setting basic parameters
     jpc.baseMVA = case.baseMVA
     
-    # 4. 设置节点数据
+    # 4. setting ac node data
     JPC_buses_process(case, jpc)
 
-    # 5. 设置直流节点数据
+    # 5. setting dc node data
     JPC_dcbuses_process(case, jpc)
     
-    # 6. 设置线路数据
+    # 6. setting ac branches data
     JPC_branches_process(case, jpc)
     
-    # 7. 设置直流线路数据
+    # 7. setting dc branches data
     JPC_dcbranches_process(case, jpc)
 
-    # 8. 设置发电机数据
+    # 8. setting ac generators data
     JPC_gens_process(case, jpc)
 
-    # 9. 设置直流发电机数据
+    # 9. setting battery systems data
     JPC_battery_gens_process(case, jpc)
 
-    # 10. 设置soc电池数据
+    # 10. setting battery state of charge data
     JPC_battery_soc_process(case, jpc)
     
-    # 11. 设置负荷数据
+    # 11. setting ac loads data
     JPC_loads_process(case, jpc)
 
-    # 12. 设置直流负荷数据
+    # 12. setting dc loads data
     JPC_dcloads_process(case, jpc)
 
-    # 13. 设置PV阵列数据 
+    # 13. setting pv array data 
     JPC_pv_process(case, jpc)
 
-    # 14. 设置换流器数据
+    # 14. setting inverters data
     JPC_inverters_process(case, jpc)
 
-    # 15. 设置交流光伏系统数据
+    # 15. setting ac-connected pv systems data
     JPC_ac_pv_system_process(case, jpc)
 
     return jpc
 
 end
 
+"""
+    JPC_buses_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes AC bus data from a JuliaPowerCase and converts it to JPC format.
+
+This function extracts AC bus information from the input case, transforms it into 
+the standard matrix format required by JPC, and stores it in the JPC object.
+Each bus is represented as a row in the matrix with the following columns:
+
+1. Bus ID
+2. Bus type (all initialized as PQ nodes with value 1.0)
+3. Active power demand (PD) in MW (initialized to 0.0)
+4. Reactive power demand (QD) in MVAR (initialized to 0.0)
+5. Active power shunt conductance (GS) in MW (initialized to 0.0)
+6. Reactive power shunt susceptance (BS) in MVAR (initialized to 0.0)
+7. Area ID
+8. Voltage magnitude (VM) in p.u. (initialized to 1.0)
+9. Voltage angle (VA) in degrees (initialized to 0.0)
+10. Base voltage (VN) in kV
+11. Zone ID
+12. Maximum voltage magnitude in p.u.
+13. Minimum voltage magnitude in p.u.
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing bus data
+- `jpc::JPC`: The JPC object where the processed bus data will be stored
+
+# Returns
+The updated JPC object with the busAC field populated
+"""
 function JPC_buses_process(case::JuliaPowerCase, jpc::JPC)
-    # 获取节点数据并深拷贝防止误操作
+    # obtain AC node data and convert to JPC format
     buses = deepcopy(case.busesAC)
     
-    # 创建一个空矩阵，行数为节点数，列数为13
+    # crate a matrix to store bus data
     num_buses = length(buses)
     bus_matrix = zeros(num_buses, 13)
     
     for (i, bus) in enumerate(buses)
-        # 设置电压初始值（根据序号）
+        # setting initial voltage values (based on index)
         vm = 1.0
         va = 0.0
         
-        # 填充矩阵的每一行
+        # fill each row of the matrix
         bus_matrix[i, :] = [
-            bus.bus_id,      # 节点ID
-            1.0,             # 节点类型(全部设为PQ节点)
-            0.0,             # PD (MW) 有功负荷（MW）
-            0.0,             # QD (MVAR) 无功负荷（MVAR）
-            0.0,             # GS (MW) 有功发电（MW）
-            0.0,             # BS (MVAR) 无功发电（MVAR）
-            bus.area_id,     # 区域编号
-            vm,              # 节点电压幅值（p.u.）
-            va,              # 节点电压相角（度）
-            bus.vn_kv,       # 节点电压基准（kV）
-            bus.zone_id,     # 区域编号
-            bus.max_vm_pu,   # 最大电压幅值（p.u.）
-            bus.min_vm_pu,   # 最小电压幅值（p.u.）
+            bus.bus_id,      # node ID
+            1.0,             # node type (all set to PQ node)
+            0.0,             # PD (MW) active load (MW)
+            0.0,             # QD (MVAR) reactive load (MVAR)
+            0.0,             # GS (MW) active generation (MW)
+            0.0,             # BS (MVAR) reactive generation (MVAR)
+            bus.area_id,     # area ID
+            vm,              # node voltage magnitude (p.u.)
+            va,              # node voltage angle (degrees)
+            bus.vn_kv,       # node voltage base (kV)
+            bus.zone_id,     # zone ID
+            bus.max_vm_pu,   # maximum voltage magnitude (p.u.)
+            bus.min_vm_pu,   # minimum voltage magnitude (p.u.
         ]
     end
     
-    # 所有序号的结果都存储到busAC字段
+    # store all bus data in the busAC field of jpc
     jpc.busAC = bus_matrix
     
     return jpc
 end
 
+"""
+    JPC_dcbuses_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes DC bus data from a JuliaPowerCase and converts it to JPC format.
+
+This function extracts DC bus information from the input case, transforms it into 
+the standard matrix format required by JPC, and stores it in the JPC object.
+Each DC bus is represented as a row in the matrix with the following columns:
+
+1. Bus ID
+2. Bus type (all initialized as PQ nodes with value 1.0)
+3. Active power demand (PD) in MW (initialized to 0.0)
+4. Reactive power demand (QD) in MVAR (initialized to 0.0)
+5. Active power shunt conductance (GS) in MW (initialized to 0.0)
+6. Reactive power shunt susceptance (BS) in MVAR (initialized to 0.0)
+7. Area ID
+8. Voltage magnitude (VM) in p.u. (initialized to 1.0)
+9. Voltage angle (VA) in degrees (initialized to 0.0)
+10. Base voltage (VN) in kV
+11. Zone ID
+12. Maximum voltage magnitude in p.u.
+13. Minimum voltage magnitude in p.u.
+
+After processing the basic DC bus data, this function also calls JPC_battery_bus_process
+to handle battery-specific bus information.
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing DC bus data
+- `jpc::JPC`: The JPC object where the processed DC bus data will be stored
+
+# Returns
+The updated JPC object with the busDC field populated and battery bus data processed
+"""
 function JPC_dcbuses_process(case, jpc)
-    # 处理直流节点数据，转换为JPC格式
+    # obtain DC node data and convert to JPC format
     dcbuses = deepcopy(case.busesDC)
     
-    # 创建一个空矩阵，行数为节点数，列数为13
+    # create a matrix to store DC bus data
     num_dcbuses = length(dcbuses)
     dcbus_matrix = zeros(num_dcbuses, 13)
     
     for (i, dcbus) in enumerate(dcbuses)
-        # 设置电压初始值（根据序号）
+        # setting initial voltage values (based on index)
         vm = 1.0
         va = 0.0
         
-        # 填充矩阵的每一行
+        # fill each row of the matrix
         dcbus_matrix[i, :] = [
-            dcbus.bus_id,      # 节点ID
-            1.0,               # 节点类型(全部设为PQ节点)
-            0.0,               # PD (MW) 有功负荷（MW）
-            0.0,               # QD (MVAR) 无功负荷（MVAR）
-            0.0,               # GS (MW) 有功发电（MW）
-            0.0,               # BS (MVAR) 无功发电（MVAR）
-            dcbus.area_id,     # 区域编号
-            vm,                # 节点电压幅值（p.u.）
-            va,                # 节点电压相角（度）
-            dcbus.vn_kv,       # 节点电压基准（kV）
-            dcbus.zone_id,     # 区域编号
-            dcbus.max_vm_pu,   # 最大电压幅值（p.u.）
-            dcbus.min_vm_pu,   # 最小电压幅值（p.u.）
+            dcbus.bus_id,      # node ID
+            1.0,               # node type (all set to PQ node)
+            0.0,               # PD (MW) active load (MW)
+            0.0,               # QD (MVAR) reactive load (MVAR)
+            0.0,               # GS (MW) active generation (MW)
+            0.0,               # BS (MVAR) reactive generation (MVAR)
+            dcbus.area_id,     # area ID
+            vm,                # node voltage magnitude (p.u.)
+            va,                # node voltage angle (degrees)
+            dcbus.vn_kv,       # node voltage base (kV)
+            dcbus.zone_id,     # zone ID
+            dcbus.max_vm_pu,   # maximum voltage magnitude (p.u.)
+            dcbus.min_vm_pu,   # minimum voltage magnitude (p.u.
         ]
     end
     
-    # 所有序号的结果都存储到busDC字段
+    # store all DC bus data in the busDC field of jpc
     jpc.busDC = dcbus_matrix
 
     jpc = JPC_battery_bus_process(case, jpc)
@@ -385,145 +511,269 @@ function JPC_dcbuses_process(case, jpc)
     return jpc
 end
 
+"""
+    JPC_battery_bus_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes battery storage data from a JuliaPowerCase and creates virtual DC buses for them in the JPC format.
+
+This function extracts battery storage information from the input case, creates virtual DC buses
+to represent the batteries in the power system model, and appends these buses to the existing
+DC bus matrix in the JPC object.
+
+Each battery is represented as a virtual DC bus with the following characteristics:
+1. Bus ID assigned sequentially after existing DC buses
+2. Bus type set to PV node (value 2.0)
+3. No initial power demand or generation
+4. Voltage magnitude initialized to 1.0 p.u.
+5. Voltage angle initialized to 0.0 degrees
+6. Base voltage set to the battery's open-circuit voltage
+7. Area and zone IDs set to 1.0
+8. Voltage limits set to 0.95 (min) and 1.05 (max) p.u.
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing battery storage data
+- `jpc::JPC`: The JPC object where the virtual battery buses will be added
+
+# Returns
+The updated JPC object with virtual battery buses added to the busDC field
+"""
 function JPC_battery_bus_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理电池节点数据，转换为JPC格式并合并到busDC
+    # process battery data and create virtual nodes for batteries
     batteries = deepcopy(case.storageetap)
     
-    # 获取当前busDC的数据
+    # obtain the current busDC data
     busDC = jpc.busDC
     current_size = size(busDC, 1)
     
-    # 创建一个矩阵来存储电池节点数据
+    # create a matrix to store battery data
     num_batteries = length(batteries)
     battery_matrix = zeros(num_batteries, size(busDC, 2))
     
     for (i, battery) in enumerate(batteries)
-        # 设置电压初始值
+        # setting initial voltage values (based on index)
         vm = 1.0
         va = 0.0
         vn_kv = battery.voc
-        # 创建虚拟节点数据
+        # create a new row for the battery node
         battery_row = zeros(1, size(busDC, 2))
         battery_row[1, :] = [
-            current_size + i,    # 为电池分配新的节点ID
-            2.0,                 # 节点类型(全部设为slack节点)
-            0.0,                 # PD (MW) 有功负荷（MW）
-            0.0,                 # QD (MVAR) 无功负荷（MVAR）
-            0.0,                 # GS (MW) 有功发电（MW）
-            0.0,                 # BS (MVAR) 无功发电（MVAR）
-            1.0,                 # 区域编号
-            vm,                  # 节点电压幅值（p.u.）
-            va,                  # 节点电压相角（度）
-            vn_kv,               # 节点电压基准（kV）
-            1.0,                 # 区域编号
-            1.05,                 # 最大电压幅值（p.u.）
-            0.95                  # 最小电压幅值（p.u.）
+            current_size + i,    # distributed node ID (starting from the end of busDC)
+            2.0,                 # node type (set to PV node)
+            0.0,                 # PD (MW) active load (MW)
+            0.0,                 # QD (MVAR) reactive load (MVAR)
+            0.0,                 # GS (MW) active generation (MW)
+            0.0,                 # BS (MVAR) reactive generation (MVAR)
+            1.0,                 # area ID (set to 1.0)
+            vm,                  # node voltage magnitude (p.u.)
+            va,                  # node voltage angle (degrees)
+            vn_kv,               # node voltage base (kV)
+            1.0,                 # zone ID (set to 1.0)
+            1.05,                 # maximum voltage magnitude (p.u.)
+            0.95                  # minimum voltage magnitude (p.u.)
         ]
         
-        # 将电池节点数据存入矩阵
+        # store the battery row in the matrix
         battery_matrix[i, :] = battery_row
     end
     
-    # 将电池虚拟节点合并到busDC中
+    # merge the battery data into the busDC field of jpc
     jpc.busDC = vcat(busDC, battery_matrix)
     
-    # # 同时保存原始电池数据到jpc.battery字段，以便后续处理
+    # # save the battery data in the jpc structure
     # jpc.battery = battery_matrix
 
     return jpc
 end
 
+"""
+    JPC_branches_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes AC branch data from a JuliaPowerCase and converts it to JPC format.
+
+This function handles the calculation and conversion of various branch elements 
+in the power system to the format required by JPC. It processes:
+
+1. AC transmission lines by calling calculate_line_parameters()
+2. Two-winding transformers by calling calculate_transformer2w_parameters()
+
+The function is structured to potentially handle different sequence components
+(positive, negative, zero), though the conditional logic for sequence selection
+is currently commented out. In its current implementation, it processes only the
+positive sequence components.
+
+Note: The commented code suggests that for sequence 1 or 2 (positive or negative sequence),
+the function processes lines and transformers with their standard parameters, while for
+sequence 0 (zero sequence), it would call a different function (calculate_branch_JPC_zero).
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing branch data
+- `jpc::JPC`: The JPC object where the processed branch data will be stored
+
+# Returns
+The updated JPC object with branch data processed (implicitly, as the jpc object is modified in place)
+"""
 function JPC_branches_process(case::JuliaPowerCase, jpc::JPC)
     # if sequence == 1||sequence == 2
-        # 处理线路数据，转换为JPC格式
+        # process AC branch data, converting to JPC format
         calculate_line_parameters(case::JuliaPowerCase, jpc)
-        # 处理变压器数据，转换为JPC格式
+        # process transformer data, converting to JPC format
         calculate_transformer2w_parameters(case::JuliaPowerCase, jpc)
-        # 处理三相变压器数据，转换为JPC格式
+        # process transformer 3-winding data, converting to JPC format
     # else
-    #     # 处理支路数据，转换为JPC格式
+    #     # process AC branch data, converting to JPC format
     #     calculate_branch_JPC_zero(case::JuliaPowerCase, jpc)
     # end
 end
 
+"""
+    JPC_dcbranches_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes DC branch data from a JuliaPowerCase and converts it to JPC format.
+
+This function extracts DC branch information from the input case, transforms it into 
+the standard matrix format required by JPC, and stores it in the JPC object.
+Each DC branch is represented as a row in the matrix with the following columns:
+
+1. From bus index (F_BUS)
+2. To bus index (T_BUS)
+3. Branch resistance in p.u. (BR_R) - calculated from length and ohms/km
+4. Branch reactance in p.u. (BR_X) - set to 0 for DC branches
+5. Branch rating in MVA (RATE_A) - calculated from max current or set to default
+6. Branch status (BR_STATUS) - 1.0 if in service, 0.0 if not
+7-14. Various parameters including angle limits (ANGMIN, ANGMAX)
+
+The function performs the following steps:
+1. Initializes a matrix to store DC branch data
+2. For each DC branch in the case:
+   - Identifies the from and to bus indices
+   - Calculates the base impedance using the from bus base voltage
+   - Converts resistance from ohms to per unit values
+   - Sets the branch parameters including status and ratings
+   - Sets angle limits to -360° and 360°
+3. Appends the processed branch data to the JPC object
+4. Processes battery branches by calling JPC_battery_branch_process
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing DC branch data
+- `jpc::JPC`: The JPC object where the processed DC branch data will be stored
+
+# Returns
+The updated JPC object with the branchDC field populated and battery branch data processed
+"""
 function JPC_dcbranches_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理直流线路数据，转换为JPC格式
+    # process DC branch data from a JuliaPowerCase and convert it to JPC format
     nbr = length(case.branchesDC)
     branch = zeros(nbr, 14)
     dclines = case.branchesDC
 
     for (i, dcline) in enumerate(dclines)
-        # 获取起始和终止母线编号
+        # obtain the from and to bus indices
         from_bus_idx = dcline.from_bus
         to_bus_idx = dcline.to_bus
         
-        # 获取起始母线的基准电压(kV)
+        # obtain the base voltage for the from bus
         basekv = jpc.busDC[from_bus_idx, BASE_KV]
         
-        # 计算基准阻抗
+        # calculate the base impedance
         baseR = (basekv^2) / case.baseMVA
         
-        # 计算标幺值阻抗
+        # calculate the per unit resistance and reactance
         r_pu = 2 * dcline.length_km * dcline.r_ohm_per_km / baseR
         x_pu = 0
         
-        # 填充branchAC矩阵
+        # fill the branch matrix
         branch[i, F_BUS] = from_bus_idx
         branch[i, T_BUS] = to_bus_idx
         branch[i, BR_R] = r_pu
         branch[i, BR_X] = x_pu
         
-        # 设置额定容量
+        # setting the branch parameters
         if hasfield(typeof(dcline), :max_i_ka)
-            branch[i, RATE_A] = dcline.max_i_ka * basekv * sqrt(3)  # 额定容量(MVA)
+            branch[i, RATE_A] = dcline.max_i_ka * basekv * sqrt(3)  # based capacity in MVA
         else
-            branch[i, RATE_A] = 100.0  # 默认值
+            branch[i, RATE_A] = 100.0  # default value if not specified
         end
         
-        # 设置支路状态
+        # setting the branch status
         branch[i, BR_STATUS] = dcline.in_service ? 1.0 : 0.0
         
-        # 设置相角限制
+        # setting the branch angle limits
         branch[i, ANGMIN] = -360.0
         branch[i, ANGMAX] = 360.0
     end
-    # 将直流线路数据添加到JPC结构体
+    # add the processed branch data to the jpc structure
     if isempty(jpc.branchDC)
         jpc.branchDC = branch
     else
         jpc.branchDC = [jpc.branchDC; branch]
     end
     
-    # 处理储能虚拟连接
+    # process battery branches
     jpc = JPC_battery_branch_process(case, jpc)
 
     return jpc
 end
 
+"""
+    JPC_battery_branch_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes battery storage branches from a JuliaPowerCase and converts them to JPC format.
+
+This function creates DC branch connections between virtual battery buses and their 
+corresponding actual buses in the power system. Each battery is represented as a DC branch
+with the following characteristics:
+
+1. From bus: Virtual battery bus (created in JPC_battery_bus_process)
+2. To bus: Actual bus where the battery is physically connected
+3. Branch resistance: Calculated from battery internal resistance in per unit
+4. Branch reactance: Set to 0 (DC branches have no reactance)
+5. Branch rating: Based on battery package size and open-circuit voltage
+6. Branch status: 1.0 if in service, 0.0 if not
+7. Angle limits: Set to -360° and 360°
+
+The function performs the following steps:
+1. Creates a deep copy of the battery storage data
+2. If no batteries exist, returns the JPC object unchanged
+3. Initializes a matrix to store battery branch data
+4. For each battery:
+   - Identifies the actual bus where the battery is connected
+   - Calculates the virtual bus ID for the battery
+   - Retrieves the base voltage from the actual bus
+   - Calculates the per unit resistance using the base impedance
+   - Sets all branch parameters including status and ratings
+5. Appends the processed battery branch data to the JPC object's branchDC field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing battery storage data
+- `jpc::JPC`: The JPC object where the battery branch data will be added
+
+# Returns
+The updated JPC object with battery branches added to the branchDC field
+"""
 function JPC_battery_branch_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理电池虚拟连接，创建从电池虚拟节点到实际连接节点的支路
+    # process battery branches from a JuliaPowerCase and convert them to JPC format
     batteries = deepcopy(case.storageetap)
     num_batteries = length(batteries)
     
-    # 如果没有电池，直接返回
+    # if there are no batteries, return the jpc object as is
     if num_batteries == 0
         return jpc
     end
     
-    # 创建电池虚拟支路矩阵，与branchDC结构相同
+    # create a matrix to store battery branch data
     battery_branches = zeros(num_batteries, 14)
     
-    # 获取当前busDC的大小，用于确定虚拟节点的编号
+    # obtain the size of the existing busDC matrix
     busDC_size = size(jpc.busDC, 1) - num_batteries
     
     for (i, battery) in enumerate(batteries)
-        # 获取电池连接的实际节点编号
+        # obtain the actual bus ID where the battery is connected
         actual_bus = battery.bus
         
-        # 计算电池虚拟节点编号（基于之前在JPC_battery_process中的编号规则）
+        # calculate the virtual bus ID for the battery
         virtual_bus = busDC_size + i
         
-        # 获取节点的基准电压(kV)
+        # obtain the base voltage for the actual bus
         basekv = 0.0
         for j in 1:size(jpc.busDC, 1)
             if jpc.busDC[j, 1] == actual_bus
@@ -532,35 +782,35 @@ function JPC_battery_branch_process(case::JuliaPowerCase, jpc::JPC)
             end
         end
         
-        # 计算基准阻抗
+        # calculate the base impedance
         baseR = (basekv^2) / case.baseMVA
         
-        # 计算标幺值阻抗（使用电池的内阻）
+        # calculate the per unit resistance and reactance
         # r_pu = battery.ra / baseR
-        # r_pu = 0.0242/baseR  # 假设电池内阻为0.0242Ω
-        r_pu = 0.0252115/baseR  # 假设电池内阻为0.0249Ω
-        x_pu = 0  # 直流系统无感抗，设置为一个非常小的值
+        # r_pu = 0.0242/baseR  # calculated from battery parameters
+        r_pu = 0.0252115/baseR  # assumed value based on battery parameters
+        x_pu = 0  # dc branches have no reactance
         
-        # 填充虚拟支路矩阵
-        battery_branches[i, F_BUS] = virtual_bus       # 虚拟节点
-        battery_branches[i, T_BUS] = actual_bus        # 实际连接节点
-        battery_branches[i, BR_R] = r_pu               # 标幺值电阻
-        battery_branches[i, BR_X] = x_pu               # 标幺值电抗
+        # fill the battery branch matrix
+        battery_branches[i, F_BUS] = virtual_bus       # virtual bus ID
+        battery_branches[i, T_BUS] = actual_bus        # actual bus ID
+        battery_branches[i, BR_R] = r_pu               # per unit resistance
+        battery_branches[i, BR_X] = x_pu               # per unit reactance
         
-        # 设置额定容量（基于电池参数计算）
-        # 假设电池额定容量可以从电池参数计算得到
-        rated_capacity = battery.package * battery.voc  # 简化计算，实际可能需要更复杂的公式
+        # setting the branch parameters
+        # assumed rated capacity based on battery parameters
+        rated_capacity = battery.package * battery.voc  # simplified calculation
         battery_branches[i, RATE_A] = rated_capacity
         
-        # 设置支路状态
+        # setting the branch status
         battery_branches[i, BR_STATUS] = battery.in_service ? 1.0 : 0.0
         
-        # 设置相角限制（直流系统中通常不受限制）
+        # setting the branch angle limits
         battery_branches[i, ANGMIN] = -360.0
         battery_branches[i, ANGMAX] = 360.0
     end
     
-    # 将电池虚拟支路添加到branchDC中
+    # add the processed battery branch data to the jpc structure
     if isempty(jpc.branchDC)
         jpc.branchDC = battery_branches
     else
@@ -570,38 +820,78 @@ function JPC_battery_branch_process(case::JuliaPowerCase, jpc::JPC)
     return jpc
 end
 
+"""
+    JPC_battery_soc_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes battery state of charge (SOC) data from a JuliaPowerCase and converts it to JPC format.
+
+This function extracts battery storage information from the input case and creates two data structures:
+1. A battery SOC matrix containing parameters related to battery energy storage capabilities
+2. Load entries in the loadDC matrix to represent battery connections to the power system
+
+For each battery, the following SOC parameters are stored:
+1. Bus ID where the battery is connected
+2. Power capacity in MW (maximum charge/discharge rate)
+3. Energy capacity in MWh
+4. Initial state of charge (SOC)
+5. Minimum allowable SOC
+6. Maximum allowable SOC
+7. Round-trip efficiency (0.0-1.0)
+8. Status indicator (1.0 if in service, 0.0 if not)
+
+Additionally, for each battery, the function:
+1. Creates a corresponding load entry in the loadDC matrix
+2. Sets the load ID, bus index, and status parameters
+3. Initializes power values to zero
+
+The function performs the following steps:
+1. Creates a deep copy of the battery storage data
+2. If no batteries exist, returns the JPC object unchanged
+3. Initializes a matrix to store battery SOC data
+4. Populates the SOC matrix with battery parameters
+5. For each battery, creates a corresponding load entry in the loadDC matrix
+6. Adds the processed battery SOC data to the JPC object's storage field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing battery storage data
+- `jpc::JPC`: The JPC object where the battery SOC data will be stored
+
+# Returns
+The updated JPC object with battery SOC data in the storage field and corresponding
+load entries in the loadDC field
+"""
 function JPC_battery_soc_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理电池SOC数据，转换为JPC格式
+    # process battery state of charge (SOC) data from a JuliaPowerCase and convert it to JPC format
     batteries = deepcopy(case.storages)
     num_batteries = length(batteries)
     
-    # 如果没有电池，直接返回
+    # if there are no batteries, return the jpc object as is
     if num_batteries == 0
         return jpc
     end
     
-    # 创建电池SOC矩阵
+    # create a matrix to store battery SOC data
     battery_soc = zeros(num_batteries, 8)  
     
     for (i, battery) in enumerate(batteries)
-        battery_soc[i, 1] = battery.bus  # 电池连接的母线ID
-        battery_soc[i, 2] = battery.power_capacity_mw   # 电池的SOC值（标幺值）
-        battery_soc[i, 3] = battery.energy_capacity_mwh  # 电池的有功功率（MW）
-        battery_soc[i, 4] = battery.soc_init  # 电池的无功功率（MVAR）
-        battery_soc[i, 5] = battery.min_soc  # 电池的最大有功功率（MW）
-        battery_soc[i, 6] = battery.max_soc  # 电池的最小有功功率（MW）
-        battery_soc[i, 7] = battery.efficiency  # 电池的最大无功功率（MVAR）
-        battery_soc[i, 8] = battery.in_service ? 1.0 : 0.0  # 电池是否在服务中（1.0表示在服务，0.0表示不在服务）
+        battery_soc[i, 1] = battery.bus  # battery connected bus ID
+        battery_soc[i, 2] = battery.power_capacity_mw   # battery charge/discharge power maximum (MW)
+        battery_soc[i, 3] = battery.energy_capacity_mwh  # battery energy capacity (MWh)
+        battery_soc[i, 4] = battery.soc_init  # battery initial state of charge (SOC)
+        battery_soc[i, 5] = battery.min_soc  # battery minimum state of charge (SOC)
+        battery_soc[i, 6] = battery.max_soc  # battery maximum state of charge (SOC)
+        battery_soc[i, 7] = battery.efficiency  # battery efficiency (0.0-1.0)
+        battery_soc[i, 8] = battery.in_service ? 1.0 : 0.0  # if battery is in service (1.0) or not (0.0)
     end
     for (i, battery) in enumerate(batteries)
-        # 获取电池连接的实际节点编号
+        # obtain the bus ID where the battery is connected
         bus_id = battery.bus
-        # 在JPC的busDC中查找对应的节点
+        # search for the bus index in the busDC matrix
         bus_index = findfirst(x -> x[1] == bus_id, jpc.busDC[:, 1])
         jpc.busDC[bus_index, PD] -= 0.0
-        loadDC = zeros(1, 8)  # 创建一个空的负荷矩阵
+        loadDC = zeros(1, 8)  # create a matrix for load data
         nd = size(jpc.busDC, 1)
-        loadDC[1, 1] = nd + 1  # 设置负荷对应的母线ID
+        loadDC[1, 1] = nd + 1  # setting the load ID
         loadDC[1, 2] = bus_index
         loadDC[1, 3] = 1 # inservice
         loadDC[1, 4] = 0.0
@@ -609,71 +899,113 @@ function JPC_battery_soc_process(case::JuliaPowerCase, jpc::JPC)
         loadDC[1, 6] = 0.0  
         loadDC[1, 7] = 0.0
         loadDC[1, 8] = 1.0
-        # 将负荷数据添加到JPC的负荷矩阵中
+        # add the load data to the jpc structure
         if isempty(jpc.loadDC)
             jpc.loadDC = loadDC
         else
             jpc.loadDC = [jpc.loadDC; loadDC]
         end
     end
-    # 将电池SOC数据添加到JPC结构体
+    # add the processed battery SOC data to the jpc structure
     jpc.storage = battery_soc
     
     return jpc
 end
 
+"""
+JPC_battery_soc_process(case::JuliaPowerCase, jpc::JPC)
+Processes battery state of charge (SOC) data from a JuliaPowerCase and converts it to JPC format.
+This function extracts battery storage information from the input case and creates two data structures:
 
+A battery SOC matrix containing parameters related to battery energy storage capabilities
+Load entries in the loadDC matrix to represent battery connections to the power system
+
+For each battery, the following SOC parameters are stored:
+
+Bus ID where the battery is connected
+Power capacity in MW (maximum charge/discharge rate)
+Energy capacity in MWh
+Initial state of charge (SOC)
+Minimum allowable SOC
+Maximum allowable SOC
+Round-trip efficiency (0.0-1.0)
+Status indicator (1.0 if in service, 0.0 if not)
+
+Additionally, for each battery, the function:
+
+Creates a corresponding load entry in the loadDC matrix
+Sets the load ID, bus index, and status parameters
+Initializes power values to zero
+
+The function performs the following steps:
+
+Creates a deep copy of the battery storage data
+If no batteries exist, returns the JPC object unchanged
+Initializes a matrix to store battery SOC data
+Populates the SOC matrix with battery parameters
+For each battery, creates a corresponding load entry in the loadDC matrix
+Adds the processed battery SOC data to the JPC object's storage field
+
+Arguments
+
+case::JuliaPowerCase: The original power system case containing battery storage data
+jpc::JPC: The JPC object where the battery SOC data will be stored
+
+Returns
+The updated JPC object with battery SOC data in the storage field and corresponding
+load entries in the loadDC field
+"""
 function calculate_line_parameters(case::JuliaPowerCase, jpc::JPC)
-    # 处理线路数据，转换为JPC格式
+    # Process line data, convert to JPC format
     nbr = length(case.branchesAC)
     branch = zeros(nbr, 14)
     lines = case.branchesAC
 
     for (i, line) in enumerate(lines)
-        # 获取起始和终止母线编号
+        # Get from and to bus numbers
         from_bus_idx = line.from_bus
         to_bus_idx = line.to_bus
         
-        # 获取起始母线的基准电压(kV)
+        # Get base voltage (kV) of the from bus
         basekv = jpc.busAC[from_bus_idx, BASE_KV]
         
-        # 计算基准阻抗
+        # Calculate base impedance
         baseR = (basekv^2) / case.baseMVA
         
-        # 考虑并联线路的情况
+        # Consider parallel lines
         parallel = hasfield(typeof(line), :parallel) ? line.parallel : 1.0
         
-        # 计算标幺值阻抗
+        # Calculate per unit impedance
         r_pu = line.length_km * line.r_ohm_per_km / baseR / parallel
         x_pu = line.length_km * line.x_ohm_per_km / baseR / parallel
         
-        # 计算并联电纳(p.u.)
+        # Calculate shunt susceptance (p.u.)
         b_pu = 2 * π * case.basef * line.length_km * line.c_nf_per_km * 1e-9 * baseR * parallel
         
-        # 计算并联电导(p.u.)
+        # Calculate shunt conductance (p.u.)
         g_pu = 0.0
         if hasfield(typeof(line), :g_us_per_km)
             g_pu = line.g_us_per_km * 1e-6 * baseR * line.length_km * parallel
         end
         
-        # 填充branchAC矩阵
+        # Fill branchAC matrix
         branch[i, F_BUS] = from_bus_idx
         branch[i, T_BUS] = to_bus_idx
         branch[i, BR_R] = r_pu
         branch[i, BR_X] = x_pu
         branch[i, BR_B] = b_pu
         
-        # 设置额定容量
+        # Set rated capacity
         if hasfield(typeof(line), :max_i_ka)
-            branch[i, RATE_A] = line.max_i_ka * basekv * sqrt(3)  # 额定容量(MVA)
+            branch[i, RATE_A] = line.max_i_ka * basekv * sqrt(3)  # Rated capacity (MVA)
         else
-            branch[i, RATE_A] = 100.0  # 默认值
+            branch[i, RATE_A] = 100.0  # Default value
         end
         
-        # 设置支路状态
+        # Set branch status
         branch[i, BR_STATUS] = line.in_service ? 1.0 : 0.0
         
-        # 设置相角限制
+        # Set angle limits
         branch[i, ANGMIN] = -360.0
         branch[i, ANGMAX] = 360.0
     end
@@ -681,68 +1013,104 @@ function calculate_line_parameters(case::JuliaPowerCase, jpc::JPC)
     jpc.branchAC = branch
 end
 
+
+"""
+    calculate_transformer2w_parameters(case::JuliaPowerCase, jpc::JPC)
+
+Processes two-winding transformer data from a JuliaPowerCase and converts it to JPC format.
+
+This function extracts two-winding transformer information from the input case and creates branch entries
+in the JPC object to represent transformers in the power system model.
+
+For each transformer, the following parameters are calculated and stored:
+1. From bus (high voltage side) and to bus (low voltage side) indices
+2. Per-unit resistance and reactance values, adjusted to system base
+3. Shunt susceptance (typically zero for transformers)
+4. Tap ratio and phase shift angle
+5. Power rating and operational status
+6. Angle limits
+
+The function performs the following steps:
+1. Extracts two-winding transformer data from the input case
+2. If no transformers exist, returns without modification
+3. Creates a branch matrix to store transformer parameters
+4. For each transformer:
+   - Identifies the high and low voltage bus connections
+   - Calculates impedance parameters based on transformer specifications
+   - Adjusts values for the system base power
+   - Accounts for parallel transformers if present
+   - Sets default values for tap ratio, phase shift, and other parameters
+5. Adds the transformer branch data to the JPC object's branchAC field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing transformer data
+- `jpc::JPC`: The JPC object where the transformer branch data will be stored
+
+# Returns
+The updated JPC object with transformer data added to the branchAC field
+"""
 function calculate_transformer2w_parameters(case::JuliaPowerCase, jpc::JPC)
-    # 处理变压器数据，转换为JPC格式
+    # Process transformer data, convert to JPC format
     transformers = case.transformers_2w_etap
     nbr = length(transformers)
     
     if nbr == 0
-        return  # 如果没有变压器，直接返回
+        return  # If no transformers, return directly
     end
     
-    # 创建变压器分支矩阵
+    # Create transformer branch matrix
     branch = zeros(nbr, 14)
     
     for (i, transformer) in enumerate(transformers)
-        # 获取高压侧和低压侧母线编号
+        # Get high voltage and low voltage bus numbers
         hv_bus_idx = transformer.hv_bus
         lv_bus_idx = transformer.lv_bus
         
-        # 获取高压侧母线的基准电压(kV)
+        # Get high voltage bus base voltage (kV)
         hv_basekv = jpc.busAC[hv_bus_idx, BASE_KV]
         
-        # 计算阻抗参数
-        # 变压器阻抗百分比转换为标幺值
+        # Calculate impedance parameters
+        # Convert transformer impedance percentage to per unit value
         z_pu = transformer.z_percent
         x_r_ratio = transformer.x_r
         
-        # 计算电阻和电抗（考虑基准功率转换）
+        # Calculate resistance and reactance (considering base power conversion)
         s_ratio = transformer.sn_mva / case.baseMVA
-        z_pu = z_pu / s_ratio  # 转换到系统基准
+        z_pu = z_pu / s_ratio  # Convert to system base
         
         r_pu = z_pu / sqrt(1 + x_r_ratio^2)
         x_pu = r_pu * x_r_ratio
         
-        # 考虑并联变压器
+        # Consider parallel transformers
         parallel = transformer.parallel
         if parallel > 1
             r_pu = r_pu / parallel
             x_pu = x_pu / parallel
         end
         
-        # 填充分支矩阵
+        # Fill branch matrix
         branch[i, F_BUS] = hv_bus_idx
         branch[i, T_BUS] = lv_bus_idx
         branch[i, BR_R] = r_pu
         branch[i, BR_X] = x_pu
-        branch[i, BR_B] = 0.0  # 变压器通常没有并联电纳
+        branch[i, BR_B] = 0.0  # Transformers typically have no shunt susceptance
         
-        # 设置变比和相移
-        branch[i, TAP] = 1.0  # 默认变比为1.0
-        branch[i, SHIFT] = 0.0  # 默认相移角度为0.0
+        # Set tap ratio and phase shift
+        branch[i, TAP] = 1.0  # Default tap ratio is 1.0
+        branch[i, SHIFT] = 0.0  # Default phase shift angle is 0.0
         
-        # 设置额定容量
+        # Set rated capacity
         branch[i, RATE_A] = case.baseMVA 
         
-        # 设置支路状态
+        # Set branch status
         branch[i, BR_STATUS] = transformer.in_service ? 1.0 : 0.0
         
-        # 设置相角限制
+        # Set angle limits
         branch[i, ANGMIN] = -360.0
         branch[i, ANGMAX] = 360.0
     end
     
-    # 将变压器分支数据添加到JPC结构体
+    # Add transformer branch data to JPC structure
     if isempty(jpc.branchAC)
         jpc.branchAC = branch
     else
@@ -750,23 +1118,55 @@ function calculate_transformer2w_parameters(case::JuliaPowerCase, jpc::JPC)
     end
 end
 
+
+"""
+    JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
+
+Process generator data from a JuliaPowerCase and convert it to JPC format.
+
+This function processes three types of generation devices:
+1. External grids (typically serving as slack/reference nodes)
+2. Conventional generators (typically serving as PV nodes)
+3. Static generators (typically serving as PQ nodes, but can be PV nodes if controllable)
+
+For each generation device, the function:
+- Extracts its parameters from the input case
+- Converts them to the format required by JPC
+- Assigns appropriate bus types based on generator characteristics
+- Ensures proper handling of power outputs, limits, and ramp rates
+
+The function performs the following steps:
+1. Counts the number of each type of generation device
+2. Creates a matrix to store generator data with 26 columns
+3. Processes each type of generator and populates the matrix
+4. Updates bus types in the JPC structure based on generator connections
+5. Removes entries for out-of-service generators
+6. Ensures at least one slack node exists in the system
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing generator data
+- `jpc::JPC`: The JPC object where the processed generator data will be stored
+
+# Returns
+None. The JPC object is modified in-place.
+"""
 function JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
-    # 统计各类发电设备数量
+    # Count different types of generation devices
     n_gen = length(case.gensAC)
     n_sgen = length(case.sgensAC)
     n_ext = length(case.ext_grids)
     
-    # 计算总发电设备数量
+    # Calculate total number of generation devices
     total_gens = n_gen + n_sgen + n_ext
     
     if total_gens == 0
-        return  # 如果没有发电设备，直接返回
+        return  # If no generation devices, return directly
     end
     
-    # 创建发电机矩阵，行数为发电设备数量，列数为26
+    # Create generator matrix with rows equal to number of generation devices and 26 columns
     gen_data = zeros(total_gens, 26)
     
-    # 处理外部电网(通常作为平衡节点/参考节点)
+    # Process external grids (usually serving as slack/reference nodes)
     for (i, ext) in enumerate(case.ext_grids)
         if !ext.in_service
             continue
@@ -774,41 +1174,41 @@ function JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
         
         bus_idx = ext.bus
         
-        # 填充发电机数据
+        # Fill generator data
         gen_data[i, :] = [
-            bus_idx,        # 发电机连接的母线编号
-            0.0,            # 有功功率输出(MW)
-            0.0,            # 无功功率输出(MVAr)
-            9999.0,         # 最大无功功率输出(MVAr)
-            -9999.0,        # 最小无功功率输出(MVAr)
-            ext.vm_pu,      # 电压幅值设定值(p.u.)
-            case.baseMVA,   # 发电机基准容量(MVA)
-            1.0,            # 发电机状态(1=运行, 0=停运)
-            9999.0,         # 最大有功功率输出(MW)
-            -9999.0,        # 最小有功功率输出(MW)
-            0.0,            # PQ能力曲线低端有功功率输出(MW)
-            0.0,            # PQ能力曲线高端有功功率输出(MW)
-            0.0,            # PC1处最小无功功率输出(MVAr)
-            0.0,            # PC1处最大无功功率输出(MVAr)
-            0.0,            # PC2处最小无功功率输出(MVAr)
-            0.0,            # PC2处最大无功功率输出(MVAr)
-            0.0,            # AGC调节速率(MW/min)
-            0.0,            # 10分钟备用调节速率(MW)
-            0.0,            # 30分钟备用调节速率(MW)
-            0.0,            # 无功功率调节速率(MVAr/min)
-            1.0,            # 区域参与因子
-            2.0,            # 发电机模型(2=多项式成本模型)
-            0.0,            # 启动成本(美元)
-            0.0,            # 关机成本(美元)
-            3.0,            # 多项式成本函数系数数量
-            0.0             # 成本函数参数(后续需要扩展)
+            bus_idx,        # Generator connection bus number
+            0.0,            # Active power output (MW)
+            0.0,            # Reactive power output (MVAr)
+            9999.0,         # Maximum reactive power output (MVAr)
+            -9999.0,        # Minimum reactive power output (MVAr)
+            ext.vm_pu,      # Voltage magnitude setpoint (p.u.)
+            case.baseMVA,   # Generator base capacity (MVA)
+            1.0,            # Generator status (1=in service, 0=out of service)
+            9999.0,         # Maximum active power output (MW)
+            -9999.0,        # Minimum active power output (MW)
+            0.0,            # PQ capability curve lower end active power output (MW)
+            0.0,            # PQ capability curve upper end active power output (MW)
+            0.0,            # Minimum reactive power output at PC1 (MVAr)
+            0.0,            # Maximum reactive power output at PC1 (MVAr)
+            0.0,            # Minimum reactive power output at PC2 (MVAr)
+            0.0,            # Maximum reactive power output at PC2 (MVAr)
+            0.0,            # AGC ramp rate (MW/min)
+            0.0,            # 10-minute reserve ramp rate (MW)
+            0.0,            # 30-minute reserve ramp rate (MW)
+            0.0,            # Reactive power ramp rate (MVAr/min)
+            1.0,            # Area participation factor
+            2.0,            # Generator model (2=polynomial cost model)
+            0.0,            # Startup cost (dollars)
+            0.0,            # Shutdown cost (dollars)
+            3.0,            # Number of polynomial cost function coefficients
+            0.0             # Cost function parameters (to be expanded later)
         ]
         
-        # 更新母线类型为参考节点(REF/平衡节点)
-        jpc.busAC[bus_idx, 2] = 3  # 3表示REF节点
+        # Update bus type to reference node (REF/slack node)
+        jpc.busAC[bus_idx, 2] = 3  # 3 indicates REF node
     end
     
-    # 处理常规发电机(通常作为PV节点)
+    # Process conventional generators (usually serving as PV nodes)
     offset = n_ext
     for (i, gen) in enumerate(case.gensAC)
         if !gen.in_service
@@ -818,22 +1218,22 @@ function JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
         idx = i + offset
         bus_idx = gen.bus
         
-        # 计算无功功率(如果没有直接给出)
+        # Calculate reactive power (if not directly provided)
         q_mvar = 0.0
         if hasfield(typeof(gen), :q_mvar)
             q_mvar = gen.q_mvar
         else
-            # 根据功率因数计算无功功率
+            # Calculate reactive power based on power factor
             p_mw = gen.p_mw * gen.scaling
             if gen.cos_phi > 0 && p_mw > 0
                 q_mvar = p_mw * tan(acos(gen.cos_phi))
             end
         end
         
-        # 基准容量
+        # Base capacity
         mbase = gen.sn_mva > 0 ? gen.sn_mva : case.baseMVA
         
-        # 爬坡率参数
+        # Ramp rate parameters
         ramp_agc = hasfield(typeof(gen), :ramp_up_rate_mw_per_min) ? 
                    gen.ramp_up_rate_mw_per_min : 
                    (gen.max_p_mw - gen.min_p_mw) / 10
@@ -844,43 +1244,43 @@ function JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
                   gen.ramp_up_rate_mw_per_min * 30 : 
                   gen.max_p_mw - gen.min_p_mw
         
-        # 填充发电机数据
+        # Fill generator data
         gen_data[idx, :] = [
-            bus_idx,                               # 发电机连接的母线编号
-            gen.p_mw * gen.scaling,                # 有功功率输出(MW)
-            q_mvar,                                # 无功功率输出(MVAr)
-            gen.max_q_mvar,                        # 最大无功功率输出(MVAr)
-            gen.min_q_mvar,                        # 最小无功功率输出(MVAr)
-            gen.vm_pu,                             # 电压幅值设定值(p.u.)
-            mbase,                                 # 发电机基准容量(MVA)
-            1.0,                                   # 发电机状态(1=运行, 0=停运)
-            gen.max_p_mw,                          # 最大有功功率输出(MW)
-            gen.min_p_mw,                          # 最小有功功率输出(MW)
-            gen.min_p_mw,                          # PQ能力曲线低端有功功率输出(MW)
-            gen.max_p_mw,                          # PQ能力曲线高端有功功率输出(MW)
-            gen.min_q_mvar,                        # PC1处最小无功功率输出(MVAr)
-            gen.max_q_mvar,                        # PC1处最大无功功率输出(MVAr)
-            gen.min_q_mvar,                        # PC2处最小无功功率输出(MVAr)
-            gen.max_q_mvar,                        # PC2处最大无功功率输出(MVAr)
-            ramp_agc,                              # AGC调节速率(MW/min)
-            ramp_10,                               # 10分钟备用调节速率(MW)
-            ramp_30,                               # 30分钟备用调节速率(MW)
-            (gen.max_q_mvar - gen.min_q_mvar)/10,  # 无功功率调节速率(MVAr/min)
-            1.0,                                   # 区域参与因子
-            2.0,                                   # 发电机模型(2=多项式成本模型)
-            0.0,                                   # 启动成本(美元)
-            0.0,                                   # 关机成本(美元)
-            3.0,                                   # 多项式成本函数系数数量
-            0.0                                    # 成本函数参数(后续需要扩展)
+            bus_idx,                               # Generator connection bus number
+            gen.p_mw * gen.scaling,                # Active power output (MW)
+            q_mvar,                                # Reactive power output (MVAr)
+            gen.max_q_mvar,                        # Maximum reactive power output (MVAr)
+            gen.min_q_mvar,                        # Minimum reactive power output (MVAr)
+            gen.vm_pu,                             # Voltage magnitude setpoint (p.u.)
+            mbase,                                 # Generator base capacity (MVA)
+            1.0,                                   # Generator status (1=in service, 0=out of service)
+            gen.max_p_mw,                          # Maximum active power output (MW)
+            gen.min_p_mw,                          # Minimum active power output (MW)
+            gen.min_p_mw,                          # PQ capability curve lower end active power output (MW)
+            gen.max_p_mw,                          # PQ capability curve upper end active power output (MW)
+            gen.min_q_mvar,                        # Minimum reactive power output at PC1 (MVAr)
+            gen.max_q_mvar,                        # Maximum reactive power output at PC1 (MVAr)
+            gen.min_q_mvar,                        # Minimum reactive power output at PC2 (MVAr)
+            gen.max_q_mvar,                        # Maximum reactive power output at PC2 (MVAr)
+            ramp_agc,                              # AGC ramp rate (MW/min)
+            ramp_10,                               # 10-minute reserve ramp rate (MW)
+            ramp_30,                               # 30-minute reserve ramp rate (MW)
+            (gen.max_q_mvar - gen.min_q_mvar)/10,  # Reactive power ramp rate (MVAr/min)
+            1.0,                                   # Area participation factor
+            2.0,                                   # Generator model (2=polynomial cost model)
+            0.0,                                   # Startup cost (dollars)
+            0.0,                                   # Shutdown cost (dollars)
+            3.0,                                   # Number of polynomial cost function coefficients
+            0.0                                    # Cost function parameters (to be expanded later)
         ]
         
-        # 如果母线尚未设置为参考节点，则设置为PV节点
-        if jpc.busAC[bus_idx, 2] != 3  # 3表示REF节点
-            jpc.busAC[bus_idx, 2] = 2  # 2表示PV节点
+        # If the bus is not already set as a reference node, set it as a PV node
+        if jpc.busAC[bus_idx, 2] != 3  # 3 indicates REF node
+            jpc.busAC[bus_idx, 2] = 2  # 2 indicates PV node
         end
     end
     
-    # 处理静态发电机(通常作为PQ节点，但如果有电压控制能力，也可以是PV节点)
+    # Process static generators (usually serving as PQ nodes, but can be PV nodes if they have voltage control capability)
     offset = n_ext + n_gen
     for (i, sgen) in enumerate(case.sgensAC)
         if !sgen.in_service
@@ -890,136 +1290,166 @@ function JPC_gens_process(case::JuliaPowerCase, jpc::JPC)
         idx = i + offset
         bus_idx = sgen.bus
         
-        # 填充发电机数据
+        # Fill generator data
         gen_data[idx, :] = [
-            bus_idx,                                # 发电机连接的母线编号
-            sgen.p_mw * sgen.scaling,               # 有功功率输出(MW)
-            sgen.q_mvar * sgen.scaling,             # 无功功率输出(MVAr)
-            sgen.max_q_mvar,                        # 最大无功功率输出(MVAr)
-            sgen.min_q_mvar,                        # 最小无功功率输出(MVAr)
-            1.0,                                    # 电压幅值设定值(p.u.)
-            case.baseMVA,                           # 发电机基准容量(MVA)
-            1.0,                                    # 发电机状态(1=运行, 0=停运)
-            sgen.max_p_mw,                          # 最大有功功率输出(MW)
-            sgen.min_p_mw,                          # 最小有功功率输出(MW)
-            sgen.min_p_mw,                          # PQ能力曲线低端有功功率输出(MW)
-            sgen.max_p_mw,                          # PQ能力曲线高端有功功率输出(MW)
-            sgen.min_q_mvar,                        # PC1处最小无功功率输出(MVAr)
-            sgen.max_q_mvar,                        # PC1处最大无功功率输出(MVAr)
-            sgen.min_q_mvar,                        # PC2处最小无功功率输出(MVAr)
-            sgen.max_q_mvar,                        # PC2处最大无功功率输出(MVAr)
-            (sgen.max_p_mw - sgen.min_p_mw) / 10,   # AGC调节速率(MW/min)
-            sgen.max_p_mw - sgen.min_p_mw,          # 10分钟备用调节速率(MW)
-            sgen.max_p_mw - sgen.min_p_mw,          # 30分钟备用调节速率(MW)
-            (sgen.max_q_mvar - sgen.min_q_mvar)/10, # 无功功率调节速率(MVAr/min)
-            1.0,                                    # 区域参与因子
-            2.0,                                    # 发电机模型(2=多项式成本模型)
-            0.0,                                    # 启动成本(美元)
-            0.0,                                    # 关机成本(美元)
-            3.0,                                    # 多项式成本函数系数数量
-            0.0                                     # 成本函数参数(后续需要扩展)
+            bus_idx,                                # Generator connection bus number
+            sgen.p_mw * sgen.scaling,               # Active power output (MW)
+            sgen.q_mvar * sgen.scaling,             # Reactive power output (MVAr)
+            sgen.max_q_mvar,                        # Maximum reactive power output (MVAr)
+            sgen.min_q_mvar,                        # Minimum reactive power output (MVAr)
+            1.0,                                    # Voltage magnitude setpoint (p.u.)
+            case.baseMVA,                           # Generator base capacity (MVA)
+            1.0,                                    # Generator status (1=in service, 0=out of service)
+            sgen.max_p_mw,                          # Maximum active power output (MW)
+            sgen.min_p_mw,                          # Minimum active power output (MW)
+            sgen.min_p_mw,                          # PQ capability curve lower end active power output (MW)
+            sgen.max_p_mw,                          # PQ capability curve upper end active power output (MW)
+            sgen.min_q_mvar,                        # Minimum reactive power output at PC1 (MVAr)
+            sgen.max_q_mvar,                        # Maximum reactive power output at PC1 (MVAr)
+            sgen.min_q_mvar,                        # Minimum reactive power output at PC2 (MVAr)
+            sgen.max_q_mvar,                        # Maximum reactive power output at PC2 (MVAr)
+            (sgen.max_p_mw - sgen.min_p_mw) / 10,   # AGC ramp rate (MW/min)
+            sgen.max_p_mw - sgen.min_p_mw,          # 10-minute reserve ramp rate (MW)
+            sgen.max_p_mw - sgen.min_p_mw,          # 30-minute reserve ramp rate (MW)
+            (sgen.max_q_mvar - sgen.min_q_mvar)/10, # Reactive power ramp rate (MVAr/min)
+            1.0,                                    # Area participation factor
+            2.0,                                    # Generator model (2=polynomial cost model)
+            0.0,                                    # Startup cost (dollars)
+            0.0,                                    # Shutdown cost (dollars)
+            3.0,                                    # Number of polynomial cost function coefficients
+            0.0                                     # Cost function parameters (to be expanded later)
         ]
         
-        # 如果静态发电机可控且母线尚未设置为REF或PV节点，则可能设置为PV节点
-        if sgen.controllable && jpc.busAC[bus_idx, 2] == 1  # 1表示PQ节点
-            jpc.busAC[bus_idx, 2] = 2  # 2表示PV节点
+        # If the static generator is controllable and the bus is not already set as REF or PV node, it may be set as PV node
+        if sgen.controllable && jpc.busAC[bus_idx, 2] == 1  # 1 indicates PQ node
+            jpc.busAC[bus_idx, 2] = 2  # 2 indicates PV node
         end
     end
     
-    # 移除未使用的行(对应未投运的发电设备)
-    active_rows = findall(x -> x > 0, gen_data[:, 8])  # 第8列是GEN_STATUS
+    # Remove unused rows (corresponding to out-of-service generation devices)
+    active_rows = findall(x -> x > 0, gen_data[:, 8])  # Column 8 is GEN_STATUS
     gen_data = gen_data[active_rows, :]
     
-    # 将发电机数据存储到JPC结构体
+    # Store generator data in JPC structure
     jpc.genAC = gen_data
     
-    # 确保至少有一个平衡节点
-    if !any(jpc.busAC[:, 2] .== 3) && size(gen_data, 1) > 0  # 3表示REF节点
-        # 如果没有平衡节点，选择第一个发电机所在母线作为平衡节点
+    # Ensure at least one slack node exists
+    if !any(jpc.busAC[:, 2] .== 3) && size(gen_data, 1) > 0  # 3 indicates REF node
+        # If no slack node, select the first generator's bus as the slack node
         first_gen_bus = Int(gen_data[1, 1])
-        jpc.busAC[first_gen_bus, 2] = 3  # 3表示REF节点
+        jpc.busAC[first_gen_bus, 2] = 3  # 3 indicates REF node
     end
 end
 
+
+"""
+    JPC_battery_gens_process(case::JuliaPowerCase, jpc::JPC)
+
+Process battery storage devices and create virtual generators for them in the JPC structure.
+
+This function creates virtual generators to represent battery storage devices in the power system model.
+Each battery is assigned a virtual bus and corresponding generator parameters based on its characteristics.
+
+The function performs the following steps:
+1. Makes a deep copy of the storage devices from the input case
+2. If no batteries exist, returns without modifications
+3. Determines virtual node numbers based on the current busDC matrix size
+4. Creates matrices for battery generators and storage information
+5. For each battery:
+   - Assigns a virtual bus number
+   - Calculates power capacity based on battery parameters
+   - Sets generator parameters (power limits, voltage setpoint, status, etc.)
+   - Configures storage-specific parameters
+6. Adds the battery generators to the JPC's genDC field
+7. Adds the storage information to the JPC's storageetap field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing battery storage data
+- `jpc::JPC`: The JPC object where the virtual generators will be added
+
+# Returns
+The updated JPC object with battery virtual generators added to genDC and storage information
+added to storageetap
+"""
 function JPC_battery_gens_process(case::JuliaPowerCase, jpc::JPC)
-    # 为电池虚拟节点创建虚拟发电机
+    # Create virtual generators for battery virtual nodes
     batteries = deepcopy(case.storageetap)
     num_batteries = length(batteries)
     
-    # 如果没有电池，直接返回
+    # If no batteries, return directly
     if num_batteries == 0
         return jpc
     end
     
-    # 获取当前busDC的大小，用于确定虚拟节点的编号
+    # Get current busDC size to determine virtual node numbers
     busDC_size = size(jpc.busDC, 1) - num_batteries
     
-    # 创建电池虚拟发电机矩阵
-    # genDC矩阵通常包含以下列：
+    # Create battery virtual generator matrix
+    # genDC matrix typically includes the following columns:
     # [GEN_BUS, PG, QG, QMAX, QMIN, VG, MBASE, GEN_STATUS, PMAX, PMIN, ...]
-    # 具体列数应与你的genDC结构一致
+    # The specific number of columns should match your genDC structure
     num_gen_cols = size(jpc.genAC, 2)
-    if num_gen_cols == 0  # 如果genDC为空，设置一个默认列数
+    if num_gen_cols == 0  # If genDC is empty, set a default number of columns
         num_gen_cols = 10
     end
     
     battery_gens = zeros(num_batteries, num_gen_cols)
-     # 创建storage矩阵
-    num_storage_cols = 5  # 根据idx_ess函数定义的列数
+     # Create storage matrix
+    num_storage_cols = 5  # Based on the number of columns defined by idx_ess function
     storage_matrix = zeros(num_batteries, num_storage_cols)
     
     for (i, battery) in enumerate(batteries)
-        # 计算电池虚拟节点编号
+        # Calculate battery virtual node number
         virtual_bus = busDC_size + i
         
-        # 计算电池的功率容量（基于电池参数）
-        # 这里使用简化计算，实际应根据电池特性进行更准确的计算
+        # Calculate battery power capacity (based on battery parameters)
+        # This is a simplified calculation; actual calculation should be based on battery characteristics
         power_capacity = battery.package * battery.voc
         
-        # 填充虚拟发电机矩阵
-        battery_gens[i, 1] = virtual_bus       # GEN_BUS: 发电机连接的节点编号
-        battery_gens[i, 2] = 0.0               # PG: 初始有功功率输出(MW)，初始设为0
-        battery_gens[i, 3] = 0.0               # QG: 初始无功功率输出(MVAR)，直流系统通常为0
+        # Fill virtual generator matrix
+        battery_gens[i, 1] = virtual_bus       # GEN_BUS: Generator connection node number
+        battery_gens[i, 2] = 0.0               # PG: Initial active power output(MW), initially set to 0
+        battery_gens[i, 3] = 0.0               # QG: Initial reactive power output(MVAR), usually 0 for DC systems
         
-        # 设置无功功率限制（直流系统通常不考虑）
-        battery_gens[i, 4] = 0.0               # QMAX: 最大无功功率输出
-        battery_gens[i, 5] = 0.0               # QMIN: 最小无功功率输出
+        # Set reactive power limits (usually not considered for DC systems)
+        battery_gens[i, 4] = 0.0               # QMAX: Maximum reactive power output
+        battery_gens[i, 5] = 0.0               # QMIN: Minimum reactive power output
         
-        # 设置电压和基准功率
-        battery_gens[i, 6] = 1.0               # VG: 电压设定值(p.u.)
-        battery_gens[i, 7] = case.baseMVA      # MBASE: 发电机基准功率(MVA)
+        # Set voltage and base power
+        battery_gens[i, 6] = 1.0               # VG: Voltage setpoint(p.u.)
+        battery_gens[i, 7] = case.baseMVA      # MBASE: Generator base power(MVA)
         
-        # 设置发电机状态
-        battery_gens[i, 8] = battery.in_service ? 1.0 : 0.0  # GEN_STATUS: 发电机状态
+        # Set generator status
+        battery_gens[i, 8] = battery.in_service ? 1.0 : 0.0  # GEN_STATUS: Generator status
         
-        # 设置有功功率限制（充电为负，放电为正）
-        battery_gens[i, 9] = power_capacity    # PMAX: 最大有功功率输出(MW)，放电功率
-        battery_gens[i, 10] = -power_capacity  # PMIN: 最小有功功率输出(MW)，充电功率
+        # Set active power limits (charging is negative, discharging is positive)
+        battery_gens[i, 9] = power_capacity    # PMAX: Maximum active power output(MW), discharging power
+        battery_gens[i, 10] = -power_capacity  # PMIN: Minimum active power output(MW), charging power
 
-         # 填充storage矩阵
-        storage_matrix[i, ESS_BUS] = virtual_bus               # ESS_BUS: 连接的节点编号
-        # storage_matrix[i, ESS_POWER_CAPACITY] = power_capacity # ESS_POWER_CAPACITY: 功率容量(MW)
+         # Fill storage matrix
+        storage_matrix[i, ESS_BUS] = virtual_bus               # ESS_BUS: Connected node number
+        # storage_matrix[i, ESS_POWER_CAPACITY] = power_capacity # ESS_POWER_CAPACITY: Power capacity(MW)
         # storage_matrix[i, ESS_ENERGY_CAPACITY] = 0
-        # storage_matrix[i, ESS_AREA] = 1                        # ESS_AREA: 区域编号，默认为1
+        # storage_matrix[i, ESS_AREA] = 1                        # ESS_AREA: Area number, default is 1
         
-        # 如果genDC有更多列，根据需要设置其他参数
+        # If genDC has more columns, set other parameters as needed
         if num_gen_cols > 10
-            # 例如，设置爬坡率限制、成本系数等
-            # 这里需要根据你的系统具体需求进行设置
+            # For example, set ramp rate limits, cost coefficients, etc.
+            # This should be set according to your system's specific requirements
             for j in 11:num_gen_cols
-                battery_gens[i, j] = 0.0  # 默认设为0
+                battery_gens[i, j] = 0.0  # Default to 0
             end
         end
     end
     
-    # 将电池虚拟发电机添加到genDC中
+    # Add battery virtual generators to genDC
     if isempty(jpc.genDC)
         jpc.genDC = battery_gens
     else
         jpc.genDC = [jpc.genDC; battery_gens]
     end
     
-    # 将存储设备信息添加到storage中
+    # Add storage device information to storage
     if !isdefined(jpc, :storageetap) || isempty(jpc.storageetap)
         jpc.storageetap = storage_matrix
     else
@@ -1030,26 +1460,59 @@ function JPC_battery_gens_process(case::JuliaPowerCase, jpc::JPC)
 end
 
 
+"""
+    JPC_loads_process(case::JuliaPowerCase, jpc::JPC)
+
+Process AC load data from a JuliaPowerCase and convert it to JPC format.
+
+This function extracts information about AC loads from the input case, applies scaling factors,
+and stores the processed data in the JPC structure. It also updates the power demand values
+in the corresponding AC bus data.
+
+For each AC load, the function:
+1. Records its basic properties (index, bus connection)
+2. Calculates active and reactive power demand with scaling applied
+3. Stores load model composition (ZIP model percentages)
+4. Accumulates loads connected to the same bus
+
+The function performs the following steps:
+1. Filters the input case to identify in-service AC loads
+2. If no in-service loads exist, returns without modifications
+3. Creates a matrix to store AC load data with 8 columns
+4. For each AC load:
+   - Calculates actual power demand with scaling applied
+   - Populates the matrix with all required parameters
+   - Accumulates loads by bus connection
+5. Adds the processed AC load data to the JPC object's loadAC field
+6. Updates the busAC matrix with the accumulated load values for each bus
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing AC load data
+- `jpc::JPC`: The JPC object where the processed AC load data will be stored
+
+# Returns
+None. The JPC object is modified in-place.
+"""
 function JPC_loads_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理负荷数据，转换为JPC格式并更新busAC的PD和QD
+    # Process load data, convert to JPC format and update busAC's PD and QD
     
-    # 过滤出投运的负荷
+    # Filter out in-service loads
     in_service_loads = filter(load -> load.in_service == true, case.loadsAC)
     
-    # 如果没有投运的负荷，直接返回
+    # If no in-service loads, return directly
     if isempty(in_service_loads)
         return
     end
     
-    # 创建一个空矩阵，行数为负荷数，列数为8
+    # Create an empty matrix, with rows equal to number of loads and 8 columns
     num_loads = length(in_service_loads)
     load_matrix = zeros(num_loads, 8)
     
-    # 创建一个字典，用于累加连接到同一母线的负荷
+    # Create a dictionary to accumulate loads connected to the same bus
     bus_load_sum = Dict{Int, Vector{Float64}}()
     
     for (i, load) in enumerate(in_service_loads)
-        # 计算实际的有功和无功负荷（考虑缩放因子）
+        # Calculate actual active and reactive loads (considering scaling factor)
         # if mode =="1_ph_pf"
             actual_p_mw = load.p_mw * load.scaling
             actual_q_mvar = load.q_mvar * load.scaling
@@ -1058,19 +1521,19 @@ function JPC_loads_process(case::JuliaPowerCase, jpc::JPC)
         #     actual_q_mvar = load.q_mvar * load.scaling / 3.0
         # end
         
-        # 填充负荷矩阵的每一行
+        # Fill each row of the load matrix
         load_matrix[i, :] = [
-            i,              # 负荷连接的母线编号
-            load.bus,                     # 负荷编号
-            1.0,                   # 负荷状态(1=投运)
-            actual_p_mw,           # 有功负荷(MW)
-            actual_q_mvar,         # 无功负荷(MVAr)
-            load.const_z_percent/100,  # 恒阻抗负荷百分比
-            load.const_i_percent/100,  # 恒电流负荷百分比
-            load.const_p_percent/100   # 恒功率负荷百分比
+            i,                      # Load number
+            load.bus,               # Bus number where load is connected
+            1.0,                    # Load status (1=in service)
+            actual_p_mw,            # Active load (MW)
+            actual_q_mvar,          # Reactive load (MVAr)
+            load.const_z_percent/100,  # Constant impedance load percentage
+            load.const_i_percent/100,  # Constant current load percentage
+            load.const_p_percent/100   # Constant power load percentage
         ]
         
-        # 累加连接到同一母线的负荷
+        # Accumulate loads connected to the same bus
         bus_idx = load.bus
         if haskey(bus_load_sum, bus_idx)
             bus_load_sum[bus_idx][1] += actual_p_mw
@@ -1080,77 +1543,143 @@ function JPC_loads_process(case::JuliaPowerCase, jpc::JPC)
         end
     end
     
-    # 将负荷数据存储到JPC结构体
+    # Store load data in JPC structure
     jpc.loadAC = load_matrix
     
-    # 更新busAC矩阵中的PD和QD字段
+    # Update PD and QD fields in busAC matrix
     for (bus_idx, load_values) in bus_load_sum
-        # 找到对应的母线行
+        # Find the corresponding bus row
         bus_row = findfirst(x -> x == bus_idx, jpc.busAC[:, 1])
         
         if !isnothing(bus_row)
-            # 更新PD(第3列)和QD(第4列)
-            jpc.busAC[bus_row, PD] = load_values[1]  # PD - 有功负荷(MW)
-            jpc.busAC[bus_row, QD] = load_values[2]  # QD - 无功负荷(MVAr)
+            # Update PD (column 3) and QD (column 4)
+            jpc.busAC[bus_row, PD] = load_values[1]  # PD - Active load (MW)
+            jpc.busAC[bus_row, QD] = load_values[2]  # QD - Reactive load (MVAr)
         end
     end
 end
 
+
+"""
+    JPC_dcloads_process(case::JuliaPowerCase, jpc::JPC)
+
+Process DC load data from a JuliaPowerCase and convert it to JPC format.
+
+This function extracts information about DC loads from the input case, applies scaling factors,
+and stores the processed data in the JPC structure. It also updates the power demand values
+in the corresponding DC bus data.
+
+For each DC load, the function:
+1. Records its basic properties (index, bus connection)
+2. Calculates active power demand with scaling applied
+3. Stores load model composition (ZIP model percentages)
+4. Updates the connected DC bus with the additional power demand
+
+The function performs the following steps:
+1. Filters the input case to identify in-service DC loads
+2. If no in-service loads exist, returns without modifications
+3. Creates a matrix to store DC load data with 8 columns
+4. For each DC load:
+   - Populates the matrix with all required parameters
+   - Updates the corresponding bus data with the load's power demand
+5. Adds the processed DC load data to the JPC object's loadDC field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing DC load data
+- `jpc::JPC`: The JPC object where the processed DC load data will be stored
+
+# Returns
+The updated JPC object with DC load data in the loadDC field and updated busDC power demands
+"""
 function JPC_dcloads_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理直流负荷数据，转换为JPC格式并更新busDC的PD和QD
+    # Process DC load data, convert to JPC format and update busDC's PD and QD
     
-    # 过滤出投运的直流负荷
+    # Filter out in-service DC loads
     in_service_dcloads = filter(dcload -> dcload.in_service == true, case.loadsDC)
     
-    # 如果没有投运的直流负荷，直接返回
+    # If no in-service DC loads, return directly
     if isempty(in_service_dcloads)
         return
     end
     
-    # 创建一个空矩阵，行数为直流负荷数，列数为8
+    # Create an empty matrix, with rows equal to number of DC loads and 8 columns
     num_dcloads = length(in_service_dcloads)
     dcload_matrix = zeros(num_dcloads, 8)
     
     for (i, dcload) in enumerate(in_service_dcloads)
-        # 填充直流负荷矩阵的每一行
+        # Fill each row of the DC load matrix
         dcload_matrix[i, :] = [
-            dcload.index,              # 直流负荷编号
-            dcload.bus,     # 直流负荷连接的母线编号
-            1.0,            # 直流负荷状态(1=投运)
-            dcload.p_mw * dcload.scaling,  # 有功负荷(MW)
-            0.0,            # 无功负荷(MVAr)
-            dcload.const_z_percent/100,           # 恒阻抗百分比(默认0)
-            dcload.const_i_percent/100,           # 恒电流百分比(默认0)
-            dcload.const_p_percent/100            # 恒功率百分比(默认0)
+            dcload.index,              # DC load number
+            dcload.bus,     # Bus number where DC load is connected
+            1.0,            # DC load status (1=in service)
+            dcload.p_mw * dcload.scaling,  # Active load (MW)
+            0.0,            # Reactive load (MVAr)
+            dcload.const_z_percent/100,    # Constant impedance percentage (default 0)
+            dcload.const_i_percent/100,    # Constant current percentage (default 0)
+            dcload.const_p_percent/100     # Constant power percentage (default 0)
         ]
         
-        # 更新busDC矩阵中的PD和QD字段
+        # Update PD and QD fields in busDC matrix
         bus_row = findfirst(x -> x == dcload.bus, jpc.busDC[:, 1])
         
         if !isnothing(bus_row)
-            jpc.busDC[bus_row, PD] += dcload_matrix[i, 4]  # PD - 有功负荷(MW)
-            jpc.busDC[bus_row, QD] += dcload_matrix[i, 5]  # QD - 无功负荷(MVAr)
+            jpc.busDC[bus_row, PD] += dcload_matrix[i, 4]  # PD - Active load (MW)
+            jpc.busDC[bus_row, QD] += dcload_matrix[i, 5]  # QD - Reactive load (MVAr)
         end
     end
     
-    # 将直流负荷数据存储到JPC结构体
+    # Store DC load data in JPC structure
     jpc.loadDC = dcload_matrix
 
     return jpc
 end
 
+
+"""
+    JPC_pv_process(case::JuliaPowerCase, jpc::JPC)
+
+Process photovoltaic (PV) array data from a JuliaPowerCase and convert it to JPC format.
+
+This function extracts information about PV arrays from the input case, performs necessary
+calculations to determine their electrical characteristics based on environmental conditions,
+and stores the processed data in the JPC structure.
+
+For each PV array, the function:
+1. Calculates key electrical parameters adjusted for environmental conditions:
+   - Open-circuit voltage (Voc) adjusted for temperature and series connections
+   - Maximum power point voltage (Vmpp) adjusted for series-connected panels
+   - Short-circuit current (Isc) adjusted for temperature, irradiance, and parallel connections
+   - Maximum power point current (Impp) adjusted for irradiance and parallel-connected panels
+2. Stores all parameters in a standardized matrix format
+
+The function performs the following steps:
+1. Filters the input case to identify in-service PV arrays
+2. If no in-service arrays exist, returns without modifications
+3. Creates a matrix to store PV array data with 9 columns
+4. For each PV array:
+   - Calculates electrical parameters based on temperature and irradiance conditions
+   - Populates the matrix with all required parameters
+5. Adds the processed PV array data to the JPC object's pv field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing PV array data
+- `jpc::JPC`: The JPC object where the processed PV array data will be stored
+
+# Returns
+The updated JPC object with PV array data in the pv field
+"""
 function JPC_pv_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理光伏发电机数据，转换为JPC格式并更新busAC的PD和QD
+    # Process PV array data, convert to JPC format and update busAC's PD and QD
     
-    # 过滤出投运的光伏发电机
+    # Filter out in-service PV arrays
     in_service_pvs = filter(pv -> pv.in_service == true, case.pvarray)
     
-    # 如果没有投运的光伏发电机，直接返回
+    # If no in-service PV arrays, return directly
     if isempty(in_service_pvs)
         return
     end
     
-    # 创建一个空矩阵，行数为光伏发电机数，列数为8
+    # Create an empty matrix, with rows equal to number of PV arrays and 9 columns
     num_pvs = length(in_service_pvs)
     pv_matrix = zeros(num_pvs, 9)
     
@@ -1164,47 +1693,84 @@ function JPC_pv_process(case::JuliaPowerCase, jpc::JPC)
         # Vmpp = (pv.vmpp + pv.γ_vmpp*log(pv.irradiance/1000.0)) * pv.numpanelseries
         # Isc = (pv.isc + (pv.temperature - 25)*pv.α_isc)*(pv.irradiance/1000.0) * pv.numpanelparallel
         # Impp = pv.impp*(pv.irradiance/1000.0) * pv.numpanelparallel
-        # 填充光伏发电机矩阵的每一行
+        # Fill each row of the PV array matrix
         pv_matrix[i, :] = [
-            i,              # 光伏发电机编号
-            pv.bus,         # 光伏发电机连接的母线编号
-            Voc,         # 光伏发电机额定电压(V)
-            Vmpp,        # 光伏发电机额定电压(V)
-            Isc,         # 光伏发电机短路电流(A)
-            Impp,        # 光伏发电机额定电流(A)
-            pv.irradiance,  # 光伏发电机辐照度(W/m²)
+            i,              # PV array number
+            pv.bus,         # Bus number where PV array is connected
+            Voc,            # Open circuit voltage (V)
+            Vmpp,           # Maximum power point voltage (V)
+            Isc,            # Short circuit current (A)
+            Impp,           # Maximum power point current (A)
+            pv.irradiance,  # Solar irradiance (W/m²)
             1.0,            # area
-            1.0,            # 光伏发电机状态(1=投运)
+            1.0,            # PV array status (1=in service)
         ]
         
-        # # 更新busAC矩阵中的PD和QD字段
+        # # Update PD and QD fields in busAC matrix
         # bus_row = findfirst(x -> x == pv.bus, jpc.busAC[:, 1])
         
         # if !isnothing(bus_row)
-        #     jpc.busAC[bus_row, PD] += pv_matrix[i, 4]  # PD - 有功负荷(MW)
-        #     jpc.busAC[bus_row, QD] += pv_matrix[i, 5]  # QD - 无功负荷(MVAr)
+        #     jpc.busAC[bus_row, PD] += pv_matrix[i, 4]  # PD - Active load (MW)
+        #     jpc.busAC[bus_row, QD] += pv_matrix[i, 5]  # QD - Reactive load (MVAr)
         # end
     end
     
-    # 将光伏发电机数据存储到JPC结构体
+    # Store PV array data in JPC structure
     jpc.pv = pv_matrix
 
     return jpc
     
 end
 
+
+"""
+    JPC_ac_pv_system_process(case::JuliaPowerCase, jpc::JPC)
+
+Processes AC-side photovoltaic (PV) systems from a JuliaPowerCase and converts them to JPC format.
+
+This function extracts information about AC-connected PV systems from the input case,
+performs necessary calculations to determine their electrical characteristics, and stores
+the processed data in the JPC structure.
+
+For each AC-side PV system, the function:
+1. Calculates operating voltages and currents based on panel configuration and conditions:
+   - Maximum power point voltage (Vmpp) adjusted for series-connected panels
+   - Open-circuit voltage (Voc) adjusted for temperature and series connections
+   - Short-circuit current (Isc) adjusted for temperature, irradiance, and parallel connections
+   - Maximum power point current (Impp) adjusted for parallel-connected panels
+2. Calculates maximum power output accounting for system losses
+3. Determines the control mode (Voltage Control or MVar Control)
+4. Stores all parameters in a standardized matrix format
+
+The function performs the following steps:
+1. Filters the input case to identify in-service AC-side PV systems
+2. If no in-service systems exist, returns the JPC object unchanged
+3. Creates a matrix to store PV system data
+4. For each PV system:
+   - Calculates electrical parameters based on environmental conditions
+   - Sets control mode flags
+   - Populates the matrix with all required parameters
+5. Adds the processed PV system data to the JPC object's pv_acsystem field
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing AC-side PV system data
+- `jpc::JPC`: The JPC object where the processed PV system data will be stored
+
+# Returns
+The updated JPC object with AC-side PV system data in the pv_acsystem field
+"""
 function JPC_ac_pv_system_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理交流侧光伏系统数据，根据控制模式转换为发电机或负荷
+    # process AC side PV systems, converting to JPC format and updating busAC
     
-    # 过滤出投运的交流侧光伏系统
+    # filter out in-service AC side PV systems
     in_service_ac_pvs = filter(ac_pv -> ac_pv.in_service == true, case.ACPVSystems)
     
-    # 如果没有投运的交流侧光伏系统，直接返回
+    # if no in-service AC side PV systems, return
     if isempty(in_service_ac_pvs)
         return jpc
     end
     
-    # 创建一个空矩阵，行数为交流侧光伏系统数，列数为13
+    # create an empty matrix, number of rows = number of AC side PV systems, columns = 15
     num_ac_pvs = length(in_service_ac_pvs)
     ac_pv_matrix = zeros(num_ac_pvs, 15)
     for (i, ac_pv) in enumerate(in_service_ac_pvs)
@@ -1213,7 +1779,7 @@ function JPC_ac_pv_system_process(case::JuliaPowerCase, jpc::JPC)
         Isc = (ac_pv.isc + (ac_pv.temperature - 25) * ac_pv.α_isc) * (ac_pv.irradiance / 1000.0) * ac_pv.numpanelparallel
         Impp = ac_pv.impp * ac_pv.numpanelparallel
 
-        p_max = Vmpp * Impp / 1000000.0 * (1-ac_pv.loss_percent)# 最大有功输出(MW)
+        p_max = Vmpp * Impp / 1000000.0 * (1-ac_pv.loss_percent)# maximum active power output (MW)
 
         if ac_pv.control_mode == "Voltage Control"
             mode = 1
@@ -1221,223 +1787,135 @@ function JPC_ac_pv_system_process(case::JuliaPowerCase, jpc::JPC)
             mode = 0 
         end
         
-        # 填充交流侧光伏系统矩阵的每一行
+        # fill the AC side PV system matrix for each row
         ac_pv_matrix[i, :] = [
-            i,                # 交流光伏系统编号
-            ac_pv.bus,            # 连接母线编号
-            Voc,               # 光伏系统额定电压(V)
-            Vmpp,              # 光伏系统额定电压(V)
-            Isc,               # 光伏系统短路电流(A)
-            Impp,              # 光伏系统额定电流(A)
-            ac_pv.irradiance,  # 光伏系统辐照度(W/m²)
-            ac_pv.loss_percent,
-            mode,              # 控制模式(0=无功控制, 1=电压控制)
-            ac_pv.p_mw,           # 有功出力(MW)
-            ac_pv.q_mvar,         # 无功出力(MVAr)
-            ac_pv.max_q_mvar,     # 无功上限(MVAr)
-            ac_pv.min_q_mvar,     # 无功下限(MVAr)
-            1,            # 区域编号
-            ac_pv.in_service ? 1.0 : 0.0  # 光伏系统状态(1=投运, 0=停运)
+            i,                # ac side PV system index
+            ac_pv.bus,            # connected bus index
+            Voc,               # ac side PV system rated voltage(V)
+            Vmpp,              # base voltage(V)
+            Isc,               # short-circuit current(A)
+            Impp,              # base current(A)
+            ac_pv.irradiance,  # irradiance(W/m²)
+            ac_pv.loss_percent,# loss percentage
+            mode,              # control mode (0=MVar Control, 1=Voltage Control)
+            ac_pv.p_mw,           # active power output(MW)
+            ac_pv.q_mvar,         # reactive power output(MVAr)
+            ac_pv.max_q_mvar,     # reactive power upper limit(MVAr)
+            ac_pv.min_q_mvar,     # reactive power lower limit(MVAr)
+            1,            # area (default 1)
+            ac_pv.in_service ? 1.0 : 0.0  # pv system status (1=operational, 0=out of service)
         ]
     end
-    # 将交流侧光伏系统数据存储到JPC结构体
+    # store the AC side PV system data in the JPC structure
     jpc.pv_acsystem = ac_pv_matrix
-
-
-    # # 分离不同控制模式的光伏系统
-    # voltage_control_pvs = filter(ac_pv -> ac_pv.control_mode == "Voltage Control", in_service_ac_pvs)
-    # mvar_control_pvs = filter(ac_pv -> ac_pv.control_mode == "Mvar Control", in_service_ac_pvs)
-    
-    # # 处理电压控制模式的光伏系统（创建发电机，修改母线类型为PV）
-    # if !isempty(voltage_control_pvs)
-    #     num_voltage_pvs = length(voltage_control_pvs)
-    #     voltage_pv_matrix = zeros(num_voltage_pvs, 26)  # 发电机矩阵列数
-        
-    #     for (i, ac_pv) in enumerate(voltage_control_pvs)
-    #         # 获取当前最大发电机编号
-    #         max_gen_id = isempty(jpc.genAC) ? 0 : maximum(jpc.genAC[:, 1])
-    #         gen_id = max_gen_id + i
-
-    #         Vmpp = ac_pv.vmpp * ac_pv.numpanelseries
-    #         Voc = (ac_pv.voc + (ac_pv.temperature - 25) * ac_pv.β_voc) * ac_pv.numpanelseries
-    #         Isc = (ac_pv.isc + (ac_pv.temperature - 25) * ac_pv.α_isc) * (ac_pv.irradiance / 1000.0) * ac_pv.numpanelparallel
-    #         Impp = ac_pv.impp * ac_pv.numpanelparallel
-
-    #         p_max = Vmpp * Impp / 1000000.0 * (1-ac_pv.loss_percent)# 最大有功输出(MW)
-    #         findfirst_bus = findfirst(x -> x == ac_pv.bus, jpc.busAC[:, 1])
-    #         jpc.busAC[findfirst_bus, BUS_TYPE] = 2 # 设置母线类型为PV节点
-            
-    #         voltage_pv_matrix[i, :] = [
-    #             ac_pv.bus,                # 连接母线编号
-    #             ac_pv.p_mw,              # 有功出力(MW)
-    #             ac_pv.q_mvar,            # 无功出力(MVAr)
-    #             ac_pv.max_q_mvar,        # 无功上限(MVAr)
-    #             ac_pv.min_q_mvar,        # 无功下限(MVAr)
-    #             hasfield(typeof(ac_pv), :vm_ac_pu) ? ac_pv.vm_ac_pu : 1.0, # 电压设定值(p.u.)
-    #             case.baseMVA,            # 发电机基准容量(MVA)
-    #             1.0,                     # 发电机状态(1=投运)
-    #             p_max,                   # 有功上限(MW)
-    #             0.0,                     # 有功下限(MW)
-    #             0.0,                     # PQ能力曲线低端有功输出(MW)
-    #             0.0,                     # PQ能力曲线高端有功输出(MW)
-    #             0.0,                     # PC1处最小无功输出(MVAr)
-    #             0.0,                     # PC1处最大无功输出(MVAr)
-    #             0.0,                     # PC2处最小无功输出(MVAr)
-    #             0.0,                     # PC2处最大无功输出(MVAr)
-    #             0.0,                     # AGC调节速率(MW/min)
-    #             0.0,                     # 10分钟备用调节速率(MW)
-    #             0.0,                     # 30分钟备用调节速率(MW)
-    #             0.0,                     # 无功功率调节速率(MVAr/min)
-    #             0.0,                     # 区域参与因子
-    #             0.0,                     # 发电机模型(0=无模型)
-    #             0.0,                     # 启动成本(美元)
-    #             0.0,                     # 关机成本(美元)
-    #             0.0,                     # 多项式成本函数系数数量
-    #             0.0                      # 成本函数参数(后续需要扩展)
-    #         ]
-    #     end
-        
-    #     # 将电压控制光伏系统添加到发电机矩阵
-    #     if isempty(jpc.genAC)
-    #         jpc.genAC = voltage_pv_matrix
-    #     else
-    #         jpc.genAC = vcat(jpc.genAC, voltage_pv_matrix)
-    #     end
-    # end
-    
-    # # 处理无功控制模式的光伏系统（创建发电机，但不修改母线类型）
-    # if !isempty(mvar_control_pvs)
-    #     num_mvar_pvs = length(mvar_control_pvs)
-    #     mvar_pv_matrix = zeros(num_mvar_pvs, 26)  # 发电机矩阵列数
-        
-    #     for (i, ac_pv) in enumerate(mvar_control_pvs)
-    #         # 获取当前最大发电机编号
-    #         current_max_gen_id = isempty(jpc.genAC) ? 0 : maximum(jpc.genAC[:, 1])
-    #         # 如果已经有voltage control的发电机，需要在其基础上继续编号
-    #         gen_id = current_max_gen_id + length(voltage_control_pvs) + i
-
-    #         Vmpp = ac_pv.vmpp * ac_pv.numpanelseries
-    #         Voc = (ac_pv.voc + (ac_pv.temperature - 25) * ac_pv.β_voc) * ac_pv.numpanelseries
-    #         Isc = (ac_pv.isc + (ac_pv.temperature - 25) * ac_pv.α_isc) * (ac_pv.irradiance / 1000.0) * ac_pv.numpanelparallel
-    #         Impp = ac_pv.impp * ac_pv.numpanelparallel
-
-    #         p_max = Vmpp * Impp / 1000000.0 * (1-ac_pv.loss_percent)# 最大有功输出(MW)
-            
-    #         # 注意：MVar Control模式不修改母线类型，保持原有类型（通常为PQ节点）
-            
-    #         mvar_pv_matrix[i, :] = [
-    #             ac_pv.bus,                # 连接母线编号
-    #             ac_pv.p_mw,              # 有功出力(MW) - MPPT功率
-    #             ac_pv.q_mvar,            # 无功出力(MVAr) - 固定无功
-    #             ac_pv.max_q_mvar,        # 无功上限(MVAr)
-    #             ac_pv.min_q_mvar,        # 无功下限(MVAr)
-    #             1.0,                     # 电压设定值(p.u.) - MVar控制不控制电压
-    #             case.baseMVA,            # 发电机基准容量(MVA)
-    #             1.0,                     # 发电机状态(1=投运)
-    #             p_max,                   # 有功上限(MW)
-    #             0.0,                     # 有功下限(MW)
-    #             0.0,                     # PQ能力曲线低端有功输出(MW)
-    #             0.0,                     # PQ能力曲线高端有功输出(MW)
-    #             0.0,                     # PC1处最小无功输出(MVAr)
-    #             0.0,                     # PC1处最大无功输出(MVAr)
-    #             0.0,                     # PC2处最小无功输出(MVAr)
-    #             0.0,                     # PC2处最大无功输出(MVAr)
-    #             0.0,                     # AGC调节速率(MW/min)
-    #             0.0,                     # 10分钟备用调节速率(MW)
-    #             0.0,                     # 30分钟备用调节速率(MW)
-    #             0.0,                     # 无功功率调节速率(MVAr/min)
-    #             0.0,                     # 区域参与因子
-    #             0.0,                     # 发电机模型(0=无模型)
-    #             0.0,                     # 启动成本(美元)
-    #             0.0,                     # 关机成本(美元)
-    #             0.0,                     # 多项式成本函数系数数量
-    #             0.0                      # 成本函数参数(后续需要扩展)
-    #         ]
-    #     end
-        
-    #     # 将无功控制光伏系统添加到发电机矩阵
-    #     if isempty(jpc.genAC)
-    #         jpc.genAC = mvar_pv_matrix
-    #     else
-    #         jpc.genAC = vcat(jpc.genAC, mvar_pv_matrix)
-    #     end
-    # end
     
     return jpc
 end
 
 
+"""
+    JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
 
+Process converters/inverters from a JuliaPowerCase and integrate them into the JPC format.
+
+This function handles the conversion of power electronic converters (inverters) from the 
+JuliaPowerCase format to the JPC format, updating the relevant bus types and power flow parameters
+according to each inverter's control mode.
+
+For each in-service inverter, the function:
+1. Determines the control mode and sets appropriate flags
+2. Calculates AC and DC side power flows considering efficiency losses
+3. Updates bus types for both AC and DC sides based on control mode
+4. Creates generator entries when needed for voltage control
+5. Updates load records for power injection/consumption
+6. Handles ZIP load model parameters through weighted averaging
+
+The function supports the following control modes:
+- δs_Us: Slack bus on AC side, P node on DC side
+- Ps_Qs: PQ node on AC side, P node on DC side
+- Ps_Us: PV node on AC side, P node on DC side
+- Udc_Qs: PQ node on AC side, slack node on DC side
+- Udc_Us: PV node on AC side, slack node on DC side
+- Droop_Udc_Qs: PQ node on AC side with droop control, slack node on DC side
+- Droop_Udc_Us: PV node on AC side with droop control, slack node on DC side
+
+# Arguments
+- `case::JuliaPowerCase`: The original power system case containing converter data
+- `jpc::JPC`: The JPC object where the processed converter data will be stored
+
+# Returns
+The updated JPC object with converter data integrated into the appropriate fields
+"""
 function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
-    # 处理逆变器数据，转换为JPC格式并更新busAC和busDC的负荷
+    # process inverters, converting to JPC format and updating busAC
     
-    # 过滤出投运的逆变器
+    # filter out in-service inverters
     in_service_inverters = filter(inverter -> inverter.in_service == true, case.converters)
     
-    # 如果没有投运的逆变器，直接返回
+    # if no in-service inverters, return
     if isempty(in_service_inverters)
         return jpc
     end
     
-    # 获取当前负荷数量，用于新增负荷的编号
-    nld_ac = size(jpc.loadAC, 1)  # 交流侧负荷数量
-    nld_dc = size(jpc.loadDC, 1)  # 直流侧负荷数量
+    # obtain the number of external buses and existing generators
+    nld_ac = size(jpc.loadAC, 1)  # ac side load count
+    nld_dc = size(jpc.loadDC, 1)  # dc side load count
     
-    # 创建用于存储需要新增的负荷记录
-    # 使用矩阵而不是数组来存储新负荷
+    # create an empty matrix for inverters, number of rows = number of in-service inverters, columns = 18
+    # use the same number of columns as jpc.loadAC and jpc.loadDC
     num_cols_ac = size(jpc.loadAC, 2)
     num_cols_dc = size(jpc.loadDC, 2)
     
-    # 计算需要添加的最大可能负荷数（每个逆变器最多添加一个负荷）
+    # calculate the maximum number of new loads
     max_new_loads = length(in_service_inverters)
-    new_loads_ac = zeros(0, num_cols_ac)  # 创建一个空矩阵，行数为0，列数与loadAC相同
-    new_loads_dc = zeros(0, num_cols_dc)  # 创建一个空矩阵，行数为0，列数与loadDC相同
+    new_loads_ac = zeros(0, num_cols_ac)  # create an empty matrix, rows = 0, columns = same as loadAC
+    new_loads_dc = zeros(0, num_cols_dc)  # create an empty matrix, rows = 0, columns = same as loadDC
 
-    #创建converter空矩阵
+    # create an empty matrix for converters, number of rows = 0, columns = 18
     converters = zeros(0, 18)
     
-    # 跟踪新增负荷的数量
+    # follow the same column order as jpc.loadAC and jpc.loadDC
     new_ac_load_count = 0
     new_dc_load_count = 0
 
     
     
    for (i, inverter) in enumerate(in_service_inverters)
-        #为converter矩阵添加连接关系
-        converter = zeros(1, 18)  # 创建一行
+        # add a new row for each inverter
+        converter = zeros(1, 18)  # create a new row with 18 columns
         
-        # 逆变器的工作模式
+        # control mode
         mode = inverter.control_mode
         if mode == "δs_Us"
-            converter[1, CONV_MODE] = 1.0  # δs_Us模式的逆变器不需要设置
+            converter[1, CONV_MODE] = 1.0  # δs_Us mode inverter
         elseif mode == "Ps_Qs"
-            converter[1, CONV_MODE] = 0.0  # Ps_Qs模式的逆变器
+            converter[1, CONV_MODE] = 0.0  # Ps_Qs mode inverter
         elseif mode == "Ps_Us"
-            converter[1, CONV_MODE] = 3.0  # Ps_Us模式的逆变器
+            converter[1, CONV_MODE] = 3.0  # Ps_Us mode inverter
         elseif mode == "Udc_Qs"
-            converter[1, CONV_MODE] = 4.0  # Udc_Qs模式的逆变器
+            converter[1, CONV_MODE] = 4.0  # Udc_Qs mode inverter
         elseif mode == "Udc_Us"
-            converter[1, CONV_MODE] = 5.0  # Udc_Us模式的逆变器
+            converter[1, CONV_MODE] = 5.0  # Udc_Us mode inverter
         elseif mode == "Droop_Udc_Qs"
-            converter[1, CONV_MODE] = 6.0  # Droop_Udc_Qs模式的逆变器
+            converter[1, CONV_MODE] = 6.0  # Droop_Udc_Qs mode inverter
         elseif mode == "Droop_Udc_Us"
-            converter[1, CONV_MODE] = 7.0  # Droop_Udc_Us模式的逆变器
+            converter[1, CONV_MODE] = 7.0  # Droop_Udc_Us mode inverter
         else
-            @warn "逆变器 $i 的控制模式 $mode 未知或不支持，默认启用 Ps_Qs"
-            converter[1, CONV_MODE] = 0.0  # 设置为默认值
+            @warn "Control mode $mode of inverter $i is unknown or not supported, Ps_Qs is enabled by default"
+            converter[1, CONV_MODE] = 0.0  # setting default to Ps_Qs mode
         end
 
-        # 计算交流侧功率
+        # calculate AC and DC side power
         p_ac = -inverter.p_mw 
         q_ac = -inverter.q_mvar 
         
-        # 计算直流侧功率（考虑效率）
-        efficiency = 1.0 - inverter.loss_percent   # 转换为小数
+        # calculate DC side power based on AC side power and efficiency
+        efficiency = 1.0 - inverter.loss_percent   # transform loss percentage to efficiency
         
-        if p_ac <= 0  # 交流侧输出功率，直流侧输入功率
-            p_dc = -p_ac / efficiency  # 负值，表示直流侧消耗的功率
-        else  # 交流侧输入功率，直流侧输出功率
-            p_dc = -p_ac * efficiency  # 正值，表示直流侧输出的功率
+        if p_ac <= 0  # output power on AC side, input power on DC side
+            p_dc = -p_ac / efficiency  # negative value, indicating input power on DC side
+        else  # output power on DC side, input power on AC side
+            p_dc = -p_ac * efficiency  # positive value, indicating output power on DC side
         end
 
         converter[1,CONV_ACBUS] = inverter.bus_ac
@@ -1450,90 +1928,90 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
         converter[1,CONV_DROOP_KP] = inverter.droop_kv
         converters = vcat(converters, converter)
         
-        # 获取交流和直流母线行索引
+        # obtain the bus indices for AC and DC sides
         ac_bus_row = findfirst(x -> x == inverter.bus_ac, jpc.busAC[:, 1])
         dc_bus_row = findfirst(x -> x == inverter.bus_dc, jpc.busDC[:, 1])
         
-        # 根据控制模式决定是否修改负荷信息
+        # decide how to handle the inverter based on its control mode
         if mode =="δs_Us"
-            # δs_Us模式：不做任何修改
+            # δs_Us mode : without any operations
         elseif mode == "Ps_Qs"
-            # Ps_Qs模式：既修改交流侧的有功和无功，也修改直流侧的有功
+            # Ps_Qs mode : update the AC side bus PD and QD
             if !isnothing(ac_bus_row)
-                jpc.busAC[ac_bus_row, PD] += p_ac  # PD - 有功负荷(MW)
-                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - 无功负荷(MVAr)
+                jpc.busAC[ac_bus_row, PD] += p_ac  # PD - ac side active power (MW)
+                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - reactive power (MVAr)
             end
             
             if !isnothing(dc_bus_row)
-                jpc.busDC[dc_bus_row, PD] += p_dc  # PD - 有功负荷(MW)
+                jpc.busDC[dc_bus_row, PD] += p_dc  # PD - active power (MW)
             end
             
-            # 处理交流侧负荷
+            # process AC side loads
             existing_load_indices_ac = findall(x -> x == inverter.bus_ac, jpc.loadAC[:, 2])
             
             if isempty(existing_load_indices_ac)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same AC bus, create a new load record
                 new_ac_load_count += 1
-                new_load_ac = zeros(1, num_cols_ac)  # 创建一行
-                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # 负荷编号
-                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # 母线编号
-                new_load_ac[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_ac[1, LOAD_PD] = p_ac                        # 有功功率(MW)
-                new_load_ac[1, LOAD_QD] = q_ac                        # 无功功率(MVAr)
-                # 逆变器默认为恒功率负荷
-                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_ac[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_ac[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_ac = zeros(1, num_cols_ac)  # create a new row
+                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # laod index
+                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # node index
+                new_load_ac[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_ac[1, LOAD_PD] = p_ac                        # active power (MW)
+                new_load_ac[1, LOAD_QD] = q_ac                        # reactive power (MVAr)
+                # default to ZIP load with no reactive power
+                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_ac[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_ac[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_ac = vcat(new_loads_ac, new_load_ac)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same AC bus, update these loads
                 for idx in existing_load_indices_ac
-                    # 获取原始负荷的功率和ZIP比例
+                    # obtain the original load's power and ZIP percentages
                     orig_p = jpc.loadAC[idx, LOAD_PD]
                     orig_q = jpc.loadAC[idx, LOAD_QD]
                     orig_z_percent = jpc.loadAC[idx, LOADZ_PERCENT]
                     orig_i_percent = jpc.loadAC[idx, LOADI_PERCENT]
                     orig_p_percent = jpc.loadAC[idx, LOADP_PERCENT]
                     
-                    # 计算新的总功率
+                    # calculate the new total power
                     new_p = orig_p + p_ac
                     new_q = orig_q + q_ac
                     
-                    # 重新计算ZIP比例（加权平均）
-                    # 避免除以零的情况
+                    # re calculate the ZIP percentages (weighted average)
+                    # avoid division by zero
                     if new_p != 0
-                        # 原始负荷的权重
+                        # weight of the original load
                         w_orig = abs(orig_p) / abs(new_p)
-                        # 逆变器负荷的权重（默认为恒功率）
+                        # weight of the inverter load (default to constant power)
                         w_inv = abs(p_ac) / abs(new_p)
                         
-                        # 计算新的ZIP比例
+                        # re calculate the new ZIP percentages
                         new_z_percent = orig_z_percent * w_orig + 0.0 * w_inv
                         new_i_percent = orig_i_percent * w_orig + 0.0 * w_inv
                         new_p_percent = orig_p_percent * w_orig + 1.0 * w_inv
                         
-                        # 确保比例总和为1
+                        # assure the percentages sum to 1
                         sum_percent = new_z_percent + new_i_percent + new_p_percent
                         if sum_percent != 0
                             new_z_percent /= sum_percent
                             new_i_percent /= sum_percent
                             new_p_percent /= sum_percent
                         else
-                            # 如果总和为0，设置为默认值
+                            # if the sum is 0, set to default values
                             new_z_percent = 0.0
                             new_i_percent = 0.0
                             new_p_percent = 1.0
                         end
                     else
-                        # 如果新的总功率为0，保持原始ZIP比例
+                        # if the new total power is 0, keep the original ZIP percentages
                         new_z_percent = orig_z_percent
                         new_i_percent = orig_i_percent
                         new_p_percent = orig_p_percent
                     end
                     
-                    # 更新负荷矩阵
+                    # update the load matrix
                     jpc.loadAC[idx, LOAD_PD] = new_p
                     jpc.loadAC[idx, LOAD_QD] = new_q
                     jpc.loadAC[idx, LOADZ_PERCENT] = new_z_percent
@@ -1542,71 +2020,71 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
                 end
             end
             
-            # 处理直流侧负荷
+            # process DC side loads
             existing_load_indices_dc = findall(x -> x == inverter.bus_dc, jpc.loadDC[:, 2])
             
             if isempty(existing_load_indices_dc)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same DC bus, create a new load record
                 new_dc_load_count += 1
-                new_load_dc = zeros(1, num_cols_dc)  # 创建一行
-                new_load_dc[1, LOAD_I] = nld_dc + new_dc_load_count  # 负荷编号
-                new_load_dc[1, LOAD_CND] = inverter.bus_dc             # 母线编号
-                new_load_dc[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_dc[1, LOAD_PD] = p_dc                        # 有功功率(MW)
-                new_load_dc[1, LOAD_QD] = 0.0                         # 无功功率(MVAr)
-                # 直流系统无无功
-                # 直流侧默认为恒功率负荷
-                new_load_dc[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_dc[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_dc[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_dc = zeros(1, num_cols_dc)  # create a new row
+                new_load_dc[1, LOAD_I] = nld_dc + new_dc_load_count  # load index
+                new_load_dc[1, LOAD_CND] = inverter.bus_dc             # node index
+                new_load_dc[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_dc[1, LOAD_PD] = p_dc                        # active power (MW)
+                new_load_dc[1, LOAD_QD] = 0.0                         # reactive power (MVAr)
+                # reactive power is not considered in DC side
+                # constant impedance, current, and power percentages
+                new_load_dc[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_dc[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_dc[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_dc = vcat(new_loads_dc, new_load_dc)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same DC bus, update these loads
                 for idx in existing_load_indices_dc
-                    # 获取原始负荷的功率和ZIP比例
+                    # obtain the original load's power and ZIP percentages
                     orig_p = jpc.loadDC[idx, 4]
                     orig_z_percent = jpc.loadDC[idx, LOADZ_PERCENT]
                     orig_i_percent = jpc.loadDC[idx, LOADI_PERCENT]
                     orig_p_percent = jpc.loadDC[idx, LOADP_PERCENT]
                     
-                    # 计算新的总功率
+                    # calculate the new total power
                     new_p = orig_p + p_dc
                     
-                    # 重新计算ZIP比例（加权平均）
-                    # 避免除以零的情况
+                    # update the ZIP percentages (weighted average)
+                    # avoid division by zero
                     if new_p != 0
-                        # 原始负荷的权重
+                        # weight of the original load
                         w_orig = abs(orig_p) / abs(new_p)
-                        # 逆变器负荷的权重（默认为恒功率）
+                        # weight of the inverter load (default to constant power)
                         w_inv = abs(p_dc) / abs(new_p)
                         
-                        # 计算新的ZIP比例
+                        # calculate the new ZIP percentages
                         new_z_percent = orig_z_percent * w_orig + 0.0 * w_inv
                         new_i_percent = orig_i_percent * w_orig + 0.0 * w_inv
                         new_p_percent = orig_p_percent * w_orig + 1.0 * w_inv
                         
-                        # 确保比例总和为1
+                        # assure the percentages sum to 1
                         sum_percent = new_z_percent + new_i_percent + new_p_percent
                         if sum_percent != 0
                             new_z_percent /= sum_percent
                             new_i_percent /= sum_percent
                             new_p_percent /= sum_percent
                         else
-                            # 如果总和为0，设置为默认值
+                            # if the sum is 0, set to default values
                             new_z_percent = 0.0
                             new_i_percent = 0.0
                             new_p_percent = 1.0
                         end
                     else
-                        # 如果新的总功率为0，保持原始ZIP比例
+                        # if the new total power is 0, keep the original ZIP percentages
                         new_z_percent = orig_z_percent
                         new_i_percent = orig_i_percent
                         new_p_percent = orig_p_percent
                     end
                     
-                    # 更新负荷矩阵
+                    # update the load matrix
                     jpc.loadDC[idx, LOAD_PD] = new_p
                     jpc.loadDC[idx, LOADZ_PERCENT] = new_z_percent
                     jpc.loadDC[idx, LOADI_PERCENT] = new_i_percent
@@ -1614,171 +2092,169 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
                 end
             end
         elseif mode == "Ps_Us"
-            # Ps_Us模式：不做任何修改
+            # Ps_Us mode : without any operations
            
         elseif mode == "Udc_Qs"
-            # Udc_Qs模式：只修改交流侧的无功
+            # Udc_Qs mode : only update the AC side bus QD
             if !isnothing(ac_bus_row)
-                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - 无功负荷(MVAr)
-                # 不修改有功
+                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - reactive power (MVAr)
+                # do not modify PD
             end
             
-            # 处理交流侧负荷 - 只修改无功
+            # process AC side loads - only modify reactive power
             existing_load_indices_ac = findall(x -> x == inverter.bus_ac, jpc.loadAC[:, 2])
             
             if isempty(existing_load_indices_ac)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same AC bus, create a new load record
                 new_ac_load_count += 1
-                new_load_ac = zeros(1, num_cols_ac)  # 创建一行
-                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # 负荷编号
-                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # 母线编号
-                new_load_ac[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_ac[1, LOAD_PD] = 0.0                         # 有功功率(MW) - 不修改
-                new_load_ac[1, LOAD_QD] = q_ac                        # 无功功率(MVAr)
-                # 逆变器默认为恒功率负荷
-                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_ac[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_ac[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_ac = zeros(1, num_cols_ac)  # create a new row
+                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # load index
+                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # bus index
+                new_load_ac[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_ac[1, LOAD_PD] = 0.0                         # active power (MW) - do not modify
+                new_load_ac[1, LOAD_QD] = q_ac                        # reactive power (MVAr)
+                # default to ZIP load with no active power
+                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_ac[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_ac[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_ac = vcat(new_loads_ac, new_load_ac)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same AC bus, update these loads
                 for idx in existing_load_indices_ac
-                    # 获取原始负荷的功率
+                    # obtain the original load's power
                     orig_q = jpc.loadAC[idx, LOAD_QD]
                     
-                    # 计算新的总功率
+                    # calculate the new total reactive power
                     new_q = orig_q + q_ac
                     
-                    # 更新负荷矩阵 - 只修改无功
+                    # update the load matrix - only modify reactive power
                     jpc.loadAC[idx, LOAD_QD] = new_q
-                    # 不修改ZIP比例，因为它们主要与有功相关
+                    # do not modify active power or ZIP percentages
                 end
             end
         elseif mode == "Udc_Us"
-            # Udc_Us模式：不修改交流侧和直流侧负荷
-            # 不做任何修改
+            # Udc_Us mode : without any operations
         elseif mode == "Droop_Udc_Qs"
-             # Udc_Qs模式：只修改交流侧的无功
+             # Udc_Qs mode : update the AC side bus QD and DC side bus PD
             if !isnothing(ac_bus_row)
-                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - 无功负荷(MVAr)
-                # 不修改有功
+                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - reactive power (MVAr)
+                # do not modify PD
             end
             
-            # 处理交流侧负荷 - 只修改无功
+            # process AC side loads - only modify reactive power
             existing_load_indices_ac = findall(x -> x == inverter.bus_ac, jpc.loadAC[:, 2])
             
             if isempty(existing_load_indices_ac)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same AC bus, create a new load record
                 new_ac_load_count += 1
-                new_load_ac = zeros(1, num_cols_ac)  # 创建一行
-                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # 负荷编号
-                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # 母线编号
-                new_load_ac[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_ac[1, LOAD_PD] = 0.0                         # 有功功率(MW) - 不修改
-                new_load_ac[1, LOAD_QD] = q_ac                        # 无功功率(MVAr)
-                # 逆变器默认为恒功率负荷
-                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_ac[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_ac[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_ac = zeros(1, num_cols_ac)  
+                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # load index
+                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # bus index
+                new_load_ac[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_ac[1, LOAD_PD] = 0.0                         # active power (MW) - do not modify
+                new_load_ac[1, LOAD_QD] = q_ac                        # reactive power (MVAr)
+                # default to ZIP load with no active power
+                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_ac[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_ac[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_ac = vcat(new_loads_ac, new_load_ac)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same AC bus, update these loads
                 for idx in existing_load_indices_ac
-                    # 获取原始负荷的功率
+                    # obtain the original load's power
                     orig_q = jpc.loadAC[idx, LOAD_QD]
                     
-                    # 计算新的总功率
+                    # calculate the new total reactive power
                     new_q = orig_q + q_ac
                     
-                    # 更新负荷矩阵 - 只修改无功
+                    # update the load matrix - only modify reactive power
                     jpc.loadAC[idx, LOAD_QD] = new_q
-                    # 不修改ZIP比例，因为它们主要与有功相关
+                    # do not modify active power or ZIP percentages
                 end
             end
         elseif mode == "Droop_Udc_Us"
-            # Droop_Udc_Us模式：不修改交流侧和直流侧负荷
-            # 不做任何修改
+            # Droop_Udc_Us mode : update the AC side bus PD and QD, and DC side bus PD
         else
-            # 未知模式：同时修改交流侧和直流侧负荷
+            # unknown control mode, default to Ps_Qs
             if !isnothing(ac_bus_row)
-                jpc.busAC[ac_bus_row, PD] += p_ac  # PD - 有功负荷(MW)
-                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - 无功负荷(MVAr)
+                jpc.busAC[ac_bus_row, PD] += p_ac  # PD - active power (MW)
+                jpc.busAC[ac_bus_row, QD] += q_ac  # QD - reactive power (MVAr)
             end
             
             if !isnothing(dc_bus_row)
-                jpc.busDC[dc_bus_row, PD] += p_dc  # PD - 有功负荷(MW)
+                jpc.busDC[dc_bus_row, PD] += p_dc  # PD - active power (MW)
             end
             
-            # 处理交流侧负荷
+            # process AC side loads
             existing_load_indices_ac = findall(x -> x == inverter.bus_ac, jpc.loadAC[:, 2])
             
             if isempty(existing_load_indices_ac)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same AC bus, create a new load record
                 new_ac_load_count += 1
-                new_load_ac = zeros(1, num_cols_ac)  # 创建一行
-                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # 负荷编号
-                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # 母线编号
-                new_load_ac[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_ac[1, LOAD_PD] = p_ac                        # 有功功率(MW)
-                new_load_ac[1, LOAD_QD] = q_ac                        # 无功功率(MVAr)
-                # 逆变器默认为恒功率负荷
-                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_ac[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_ac[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_ac = zeros(1, num_cols_ac)  # create a new row
+                new_load_ac[1, LOAD_I] = nld_ac + new_ac_load_count  # load index
+                new_load_ac[1, LOAD_CND] = inverter.bus_ac             # bus index
+                new_load_ac[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_ac[1, LOAD_PD] = p_ac                        # active power (MW)
+                new_load_ac[1, LOAD_QD] = q_ac                        # reactive power (MVAr)
+                # default to ZIP load with no reactive power
+                new_load_ac[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_ac[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_ac[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_ac = vcat(new_loads_ac, new_load_ac)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same AC bus, update these loads
                 for idx in existing_load_indices_ac
-                    # 获取原始负荷的功率和ZIP比例
+                    # obtain the original load's power and ZIP percentages
                     orig_p = jpc.loadAC[idx, LOAD_PD]
                     orig_q = jpc.loadAC[idx, LOAD_QD]
                     orig_z_percent = jpc.loadAC[idx, LOADZ_PERCENT]
                     orig_i_percent = jpc.loadAC[idx, LOADI_PERCENT]
                     orig_p_percent = jpc.loadAC[idx, LOADP_PERCENT]
                     
-                    # 计算新的总功率
+                    # calculate the new total power
                     new_p = orig_p + p_ac
                     new_q = orig_q + q_ac
                     
-                    # 重新计算ZIP比例（加权平均）
-                    # 避免除以零的情况
+                    # re calculate the ZIP percentages (weighted average)
+                    # avoid division by zero
                     if new_p != 0
-                        # 原始负荷的权重
+                        # weight of the original load
                         w_orig = abs(orig_p) / abs(new_p)
-                        # 逆变器负荷的权重（默认为恒功率）
+                        # weight of the inverter load (default to constant power)
                         w_inv = abs(p_ac) / abs(new_p)
                         
-                        # 计算新的ZIP比例
+                        # calculate the new ZIP percentages
                         new_z_percent = orig_z_percent * w_orig + 0.0 * w_inv
                         new_i_percent = orig_i_percent * w_orig + 0.0 * w_inv
                         new_p_percent = orig_p_percent * w_orig + 1.0 * w_inv
                         
-                        # 确保比例总和为1
+                        # assure the percentages sum to 1
                         sum_percent = new_z_percent + new_i_percent + new_p_percent
                         if sum_percent != 0
                             new_z_percent /= sum_percent
                             new_i_percent /= sum_percent
                             new_p_percent /= sum_percent
                         else
-                            # 如果总和为0，设置为默认值
+                            # if the sum is 0, set to default values
                             new_z_percent = 0.0
                             new_i_percent = 0.0
                             new_p_percent = 1.0
                         end
                     else
-                        # 如果新的总功率为0，保持原始ZIP比例
+                        # if the new total power is 0, keep the original ZIP percentages
                         new_z_percent = orig_z_percent
                         new_i_percent = orig_i_percent
                         new_p_percent = orig_p_percent
                     end
                     
-                    # 更新负荷矩阵
+                    # update the load matrix
                     jpc.loadAC[idx, LOAD_PD] = new_p
                     jpc.loadAC[idx, LOAD_QD] = new_q
                     jpc.loadAC[idx, LOADZ_PERCENT] = new_z_percent
@@ -1787,71 +2263,71 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
                 end
             end
             
-            # 处理直流侧负荷
+            # process DC side loads
             existing_load_indices_dc = findall(x -> x == inverter.bus_dc, jpc.loadDC[:, 2])
             
             if isempty(existing_load_indices_dc)
-                # 如果不存在连接到相同节点的负荷，创建新的负荷记录
+                # if no loads connected to the same DC bus, create a new load record
                 new_dc_load_count += 1
-                new_load_dc = zeros(1, num_cols_dc)  # 创建一行
-                new_load_dc[1, LOAD_I] = nld_dc + new_dc_load_count  # 负荷编号
-                new_load_dc[1, LOAD_CND] = inverter.bus_dc             # 母线编号
-                new_load_dc[1, LOAD_STATUS] = 1.0                         # 状态(1=投运)
-                new_load_dc[1, LOAD_PD] = p_dc                        # 有功功率(MW)
-                new_load_dc[1, LOAD_QD] = 0.0                         # 无功功率(MVAr)
-                # 直流系统无无功
-                # 直流侧默认为恒功率负荷
-                new_load_dc[1, LOADZ_PERCENT] = 0.0                         # 恒阻抗比例
-                new_load_dc[1, LOADI_PERCENT] = 0.0                         # 恒电流比例
-                new_load_dc[1, LOADP_PERCENT] = 1.0                         # 恒功率比例
+                new_load_dc = zeros(1, num_cols_dc)  # create a new row
+                new_load_dc[1, LOAD_I] = nld_dc + new_dc_load_count  # laod index
+                new_load_dc[1, LOAD_CND] = inverter.bus_dc             # bus index
+                new_load_dc[1, LOAD_STATUS] = 1.0                         # status(1=on)
+                new_load_dc[1, LOAD_PD] = p_dc                        # active power (MW)
+                new_load_dc[1, LOAD_QD] = 0.0                         # reactive power (MVAr)
+                # dc side does not consider reactive power
+                # dc side constant impedance, current, and power percentages
+                new_load_dc[1, LOADZ_PERCENT] = 0.0                         # constant impedance percentage
+                new_load_dc[1, LOADI_PERCENT] = 0.0                         # constant current percentage
+                new_load_dc[1, LOADP_PERCENT] = 1.0                         # constant power percentage
                 
-                # 添加到新负荷矩阵
+                # add to new loads matrix
                 new_loads_dc = vcat(new_loads_dc, new_load_dc)
             else
-                # 如果存在连接到相同节点的负荷，更新这些负荷
+                # if loads connected to the same DC bus, update these loads
                 for idx in existing_load_indices_dc
-                    # 获取原始负荷的功率和ZIP比例
+                    # obtain the original load's power and ZIP percentages
                     orig_p = jpc.loadDC[idx, 4]
                     orig_z_percent = jpc.loadDC[idx, LOADZ_PERCENT]
                     orig_i_percent = jpc.loadDC[idx, LOADI_PERCENT]
                     orig_p_percent = jpc.loadDC[idx, LOADP_PERCENT]
                     
-                    # 计算新的总功率
+                    # calculate the new total power
                     new_p = orig_p + p_dc
                     
-                    # 重新计算ZIP比例（加权平均）
-                    # 避免除以零的情况
+                    # re calculate the ZIP percentages (weighted average)
+                    # avoid division by zero
                     if new_p != 0
                         # 原始负荷的权重
                         w_orig = abs(orig_p) / abs(new_p)
-                        # 逆变器负荷的权重（默认为恒功率）
+                        # weight of the inverter load (default to constant power)
                         w_inv = abs(p_dc) / abs(new_p)
                         
-                        # 计算新的ZIP比例
+                        # calculate the new ZIP percentages
                         new_z_percent = orig_z_percent * w_orig + 0.0 * w_inv
                         new_i_percent = orig_i_percent * w_orig + 0.0 * w_inv
                         new_p_percent = orig_p_percent * w_orig + 1.0 * w_inv
                         
-                        # 确保比例总和为1
+                        # assure the percentages sum to 1
                         sum_percent = new_z_percent + new_i_percent + new_p_percent
                         if sum_percent != 0
                             new_z_percent /= sum_percent
                             new_i_percent /= sum_percent
                             new_p_percent /= sum_percent
                         else
-                            # 如果总和为0，设置为默认值
+                            # if the sum is 0, set to default values
                             new_z_percent = 0.0
                             new_i_percent = 0.0
                             new_p_percent = 1.0
                         end
                     else
-                        # 如果新的总功率为0，保持原始ZIP比例
+                        # if the new total power is 0, keep the original ZIP percentages
                         new_z_percent = orig_z_percent
                         new_i_percent = orig_i_percent
                         new_p_percent = orig_p_percent
                     end
                     
-                    # 更新负荷矩阵
+                    # update the load matrix
                     jpc.loadDC[idx, LOAD_PD] = new_p
                     jpc.loadDC[idx, LOADZ_PERCENT] = new_z_percent
                     jpc.loadDC[idx, LOADI_PERCENT] = new_i_percent
@@ -1860,137 +2336,138 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
             end
         end
 
-        # 根据inverter的控制模式，对JPC进行相应的处理
+        # Process JPC according to inverter control mode
         if mode == "δs_Us"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 3.0  # 设置为平衡节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # 设置为P节点
-            inverter_gens_ac = zeros(1, 32)  # 假设发电机信息有26列
-            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens_ac[1, 2] = -p_ac  # PG: 初始有功功率输出(MW)
-            inverter_gens_ac[1, 3] = -q_ac  # QG: 初始无功功率输出(MVAR)
-            inverter_gens_ac[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens_ac[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: 电压设定值(p.u.)
-            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens_ac[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens_ac[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # 添加到genAC
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 3.0  # Set as slack bus
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # Set as P node
+            inverter_gens_ac = zeros(1, 32)  # Assume generator info has 26 columns
+            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: Bus number generator is connected to
+            inverter_gens_ac[1, 2] = -p_ac  # PG: Initial active power output (MW)
+            inverter_gens_ac[1, 3] = -q_ac  # QG: Initial reactive power output (MVAR)
+            inverter_gens_ac[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens_ac[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: Voltage setpoint (p.u.)
+            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens_ac[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens_ac[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # Add to genAC
         elseif mode == "Ps_Qs"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # 设置为PQ节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # 设置为P节点
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # Set as PQ node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # Set as P node
         elseif mode == "Ps_Us"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # 设置为PV节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # 设置为P节点
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # Set as PV node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 1.0  # Set as P node
 
-            inverter_gens_ac = zeros(1, 26)  # 假设发电机信息有32列
-            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens_ac[1, 2] = -p_ac  # PG: 初始有功功率输出(MW)
-            inverter_gens_ac[1, 3] = -q_ac  # QG: 初始无功功率输出(MVAR)
-            inverter_gens_ac[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens_ac[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: 电压设定值(p.u.)
-            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens_ac[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens_ac[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # 添加到genAC
+            inverter_gens_ac = zeros(1, 26)  # Assume generator info has 32 columns
+            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: Bus number generator is connected to
+            inverter_gens_ac[1, 2] = -p_ac  # PG: Initial active power output (MW)
+            inverter_gens_ac[1, 3] = -q_ac  # QG: Initial reactive power output (MVAR)
+            inverter_gens_ac[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens_ac[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: Voltage setpoint (p.u.)
+            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens_ac[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens_ac[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # Add to genAC
         elseif mode == "Udc_Qs"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # 设置为PQ节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # 设置为平衡节点
-            # 创建inverter 发电机信息
-            inverter_gens = zeros(1, 32)  # 假设发电机信息有32列
-            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens[1, 2] = p_dc  # PG: 初始有功功率输出(MW)
-            inverter_gens[1, 3] = 0.0  # QG: 初始无功功率输出(MVAR)，直流系统通常为0
-            inverter_gens[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens[1, 6] = inverter.vm_dc_pu  # VG: 电压设定值(p.u.)
-            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # 添加到genDC
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # Set as PQ node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # Set as slack node
+            # Create inverter generator information
+            inverter_gens = zeros(1, 32)  # Assume generator info has 32 columns
+            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: Bus number generator is connected to
+            inverter_gens[1, 2] = p_dc  # PG: Initial active power output (MW)
+            inverter_gens[1, 3] = 0.0  # QG: Initial reactive power output (MVAR), usually 0 for DC systems
+            inverter_gens[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens[1, 6] = inverter.vm_dc_pu  # VG: Voltage setpoint (p.u.)
+            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # Add to genDC
         elseif mode == "Udc_Us"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # 设置为PV节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # 设置为平衡节点
-            # 创建inverter 发电机信息
-            inverter_gens = zeros(1, 32)  # 假设发电机信息有32列
-            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens[1, 2] = -p_dc  # PG: 初始有功功率输出(MW)
-            inverter_gens[1, 3] = 0.0  # QG: 初始无功功率输出(MVAR)，直流系统通常为0
-            inverter_gens[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens[1, 6] = inverter.vm_dc_pu  # VG: 电压设定值(p.u.)
-            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # 添加到genDC
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # Set as PV node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # Set as slack node
+            # Create inverter generator information
+            inverter_gens = zeros(1, 32)  # Assume generator info has 32 columns
+            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: Bus number generator is connected to
+            inverter_gens[1, 2] = -p_dc  # PG: Initial active power output (MW)
+            inverter_gens[1, 3] = 0.0  # QG: Initial reactive power output (MVAR), usually 0 for DC systems
+            inverter_gens[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens[1, 6] = inverter.vm_dc_pu  # VG: Voltage setpoint (p.u.)
+            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # Add to genDC
 
-            inverter_gens_ac = zeros(1, 26)  # 假设发电机信息有32列
-            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens_ac[1, 2] = -p_ac  # PG: 初始有功功率输出(MW)
-            inverter_gens_ac[1, 3] = -q_ac  # QG: 初始无功功率输出(MVAR)
-            inverter_gens_ac[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens_ac[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: 电压设定值(p.u.)
-            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens_ac[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens_ac[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # 添加到genAC
+            inverter_gens_ac = zeros(1, 26)  # Assume generator info has 32 columns
+            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: Bus number generator is connected to
+            inverter_gens_ac[1, 2] = -p_ac  # PG: Initial active power output (MW)
+            inverter_gens_ac[1, 3] = -q_ac  # QG: Initial reactive power output (MVAR)
+            inverter_gens_ac[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens_ac[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens_ac[1, 6] = inverter.vm_ac_pu  # VG: Voltage setpoint (p.u.)
+            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens_ac[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens_ac[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # Add to genAC
         elseif mode == "Droop_Udc_Qs"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # 设置为PQ节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # 设置为平衡节点
-            # 创建inverter 发电机信息
-            inverter_gens = zeros(1, 32)  # 假设发电机信息有32列
-            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens[1, 2] = p_dc  # PG: 初始有功功率输出(MW)
-            inverter_gens[1, 3] = 0.0  # QG: 初始无功功率输出(MVAR)，直流系统通常为0
-            inverter_gens[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens[1, 6] = 1.0  # VG: 电压设定值(p.u.)
-            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # 添加到genDC
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 1.0  # Set as PQ node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # Set as slack node
+            # Create inverter generator information
+            inverter_gens = zeros(1, 32)  # Assume generator info has 32 columns
+            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: Bus number generator is connected to
+            inverter_gens[1, 2] = p_dc  # PG: Initial active power output (MW)
+            inverter_gens[1, 3] = 0.0  # QG: Initial reactive power output (MVAR), usually 0 for DC systems
+            inverter_gens[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens[1, 6] = 1.0  # VG: Voltage setpoint (p.u.)
+            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # Add to genDC
         elseif mode == "Droop_Udc_Us"
-            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # 设置为PV节点
-            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # 设置为平衡节点
-            # 创建inverter 发电机信息
-            inverter_gens = zeros(1, 32)  # 假设发电机信息有32列
-            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens[1, 2] = -p_dc  # PG: 初始有功功率输出(MW)
-            inverter_gens[1, 3] = 0.0  # QG: 初始无功功率输出(MVAR)，直流系统通常为0
-            inverter_gens[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens[1, 6] = 1.0  # VG: 电压设定值(p.u.)
-            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # 添加到genDC
+            jpc.busAC[ac_bus_row, BUS_TYPE] = 2.0  # Set as PV node
+            jpc.busDC[dc_bus_row, BUS_TYPE] = 2.0  # Set as slack node
+            # Create inverter generator information
+            inverter_gens = zeros(1, 32)  # Assume generator info has 32 columns
+            inverter_gens[1, 1] = inverter.bus_dc  # GEN_BUS: Bus number generator is connected to
+            inverter_gens[1, 2] = -p_dc  # PG: Initial active power output (MW)
+            inverter_gens[1, 3] = 0.0  # QG: Initial reactive power output (MVAR), usually 0 for DC systems
+            inverter_gens[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens[1, 6] = 1.0  # VG: Voltage setpoint (p.u.)
+            inverter_gens[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genDC = vcat(jpc.genDC, inverter_gens)  # Add to genDC
 
-            inverter_gens_ac = zeros(1, 26)  # 假设发电机信息有32列
-            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: 发电机连接的节点编号
-            inverter_gens_ac[1, 2] = -p_ac  # PG: 初始有功功率输出(MW)
-            inverter_gens_ac[1, 3] = -q_ac  # QG: 初始无功功率输出(MVAR)
-            inverter_gens_ac[1, 4] = 0.0  # QMAX: 最大无功功率输出
-            inverter_gens_ac[1, 5] = 0.0  # QMIN: 最小无功功率输出
-            inverter_gens_ac[1, 6] = 1.0  # VG: 电压设定值(p.u.)
-            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: 发电机基准功率(MVA)
-            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: 发电机状态(1=投运)
-            inverter_gens_ac[1, 9] = 0.0  # PMAX: 最大有功功率输出(MW)，放电功率
-            inverter_gens_ac[1, 10] = 0.0  # PMIN: 最小有功功率输出(MW)，充电功率
-            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # 添加到genAC
+            inverter_gens_ac = zeros(1, 26)  # Assume generator info has 32 columns
+            inverter_gens_ac[1, 1] = inverter.bus_ac  # GEN_BUS: Bus number generator is connected to
+            inverter_gens_ac[1, 2] = -p_ac  # PG: Initial active power output (MW)
+            inverter_gens_ac[1, 3] = -q_ac  # QG: Initial reactive power output (MVAR)
+            inverter_gens_ac[1, 4] = 0.0  # QMAX: Maximum reactive power output
+            inverter_gens_ac[1, 5] = 0.0  # QMIN: Minimum reactive power output
+            inverter_gens_ac[1, 6] = 1.0  # VG: Voltage setpoint (p.u.)
+            inverter_gens_ac[1, 7] = jpc.baseMVA  # MBASE: Generator base power (MVA)
+            inverter_gens_ac[1, 8] = 1.0  # GEN_STATUS: Generator status (1=in service)
+            inverter_gens_ac[1, 9] = 0.0  # PMAX: Maximum active power output (MW), discharge power
+            inverter_gens_ac[1, 10] = 0.0  # PMIN: Minimum active power output (MW), charge power
+            jpc.genAC = vcat(jpc.genAC, inverter_gens_ac)  # Add to genAC
         end
+
     end
 
 
     
-    # 将新的负荷添加到现有负荷矩阵中
+    # add new loads to the JPC structure
     if size(new_loads_ac, 1) > 0
         if !isempty(jpc.loadAC)
             jpc.loadAC = vcat(jpc.loadAC, new_loads_ac)
@@ -2011,59 +2488,3 @@ function JPC_inverters_process(case::JuliaPowerCase, jpc::JPC)
 
     return jpc
 end
-
-
-# function JPC_add_grid_external_sc_impedance(case::JuliaPowerCase, jpc::JPC)    
-#     # 如果没有外部电网，返回空数组
-#     if isempty(case.ext_grids)
-#         return Float64[], Float64[]
-#     end
-    
-#     # 收集所有外部电网的数据
-#     external_buses = Int[]
-#     Y_grid_real = Float64[]
-#     Y_grid_imag = Float64[]
-    
-#     # 遍历所有外部电网
-#     for ext_grid in case.ext_grids
-#         # 获取外部电网连接的母线ID
-#         external_bus = ext_grid.bus
-        
-#         # 计算外部电网的短路阻抗
-#         c = 1.1
-#         s_sc = ext_grid.s_sc_max_mva / jpc.baseMVA
-#         rx = ext_grid.rx_max
-#         z_grid = c / (s_sc / 3)
-#         x_grid = z_grid / sqrt(1 + rx^2)
-#         r_grid = x_grid * rx
-        
-#         # 计算导纳
-#         Y_grid = 1 / (r_grid + 1im * x_grid)
-        
-#         push!(external_buses, external_bus)
-#         push!(Y_grid_real, real(Y_grid))
-#         push!(Y_grid_imag, imag(Y_grid))
-#     end
-    
-#     # 对相同母线的导纳值进行汇总
-#     buses, gs, bs = PowerFlow.sum_by_group(external_buses, Y_grid_real, Y_grid_imag)
-    
-#     # 更新jpc中的母线数据
-#     for (i, bus_id) in enumerate(buses)
-#         # 找到对应母线在jpc.busAC中的索引
-#         bus_idx = findfirst(row -> row[1] == bus_id, jpc.busAC[:, 1])
-        
-#         if !isnothing(bus_idx)
-#             # 更新母线的电导和电纳值
-#             jpc.busAC[bus_idx, GS] = gs[i] * jpc.baseMVA
-#             jpc.busAC[bus_idx, BS] = bs[i] * jpc.baseMVA
-#         end
-#     end
-    
-#     # 返回计算出的电导和电纳值（乘以基准功率）
-#     return gs .* jpc.baseMVA, bs .* jpc.baseMVA, jpc
-# end
-
-
-
-

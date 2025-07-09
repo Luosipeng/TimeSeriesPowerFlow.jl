@@ -1,3 +1,35 @@
+"""
+    plot_voltage_time_series(results, bus_name, case, time_day, bus_type = "AC"; save_path = nothing, save_format = "pdf")
+
+Plot voltage time series for a specified bus in a power system.
+
+# Arguments
+- `results`: Simulation results containing bus voltage data
+- `bus_name`: Name of the bus to plot voltage for
+- `case`: Power system case data
+- `time_day`: Number of days in the simulation
+- `bus_type`: Type of bus to plot:
+  - "AC": AC bus (plots both voltage magnitude and angle)
+  - "DC": DC bus (plots only voltage magnitude)
+- `save_path`: Optional path to save the plot
+- `save_format`: Format to save the plot (default: "pdf")
+
+# Returns
+- `plot_result`: The generated plot showing voltage time series
+
+# Description
+This function extracts and visualizes voltage data for a specified bus over time. For AC buses,
+it creates two subplots showing both voltage magnitude (in per unit) and voltage angle (in degrees).
+For DC buses, it creates a single plot showing only voltage magnitude.
+
+The function automatically adjusts the time axis labels based on the simulation duration to ensure
+readability. For short time periods, it shows detailed hour labels, while for longer periods,
+it shows day labels at appropriate intervals.
+
+The plot includes grid lines and time span information for easy reference, and can be saved
+to a file if a save path is provided.
+"""
+
 function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = "AC"; save_path = nothing, save_format = "pdf")
     default(fontfamily="Microsoft YaHei")
     # Create a time series voltage matrix, the first column represents the node number

@@ -1,4 +1,46 @@
-# Define the newtonpf function
+"""
+    newtonpf_gpu(baseMVA, bus, gen, load, Ybus, V0, ref, pv, pq, tol0, max_it0, alg="gpuLU")
+
+Solve AC power flow using Newton's method with GPU acceleration.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix
+- `gen`: Generator data matrix
+- `load`: Load data matrix
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference bus index
+- `pv`: Vector of PV bus indices
+- `pq`: Vector of PQ bus indices
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Algorithm specification for linear solver (default: "gpuLU")
+
+# Returns
+- `V`: Final voltage vector solution
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+
+# Description
+This function implements the Newton-Raphson method to solve AC power flow equations
+using GPU acceleration. It iteratively updates voltage magnitudes and angles until
+the power mismatch falls below the specified tolerance or the maximum number of
+iterations is reached.
+
+The algorithm:
+1. Initializes voltage values and transfers data to GPU
+2. Calculates initial power mismatches
+3. Constructs the Jacobian matrix for each iteration
+4. Updates voltage values using Newton's method
+5. Checks convergence based on power mismatch norm
+
+# Notes
+- This implementation uses GPU acceleration for improved performance
+- The Jacobian matrix is constructed in block form with partial derivatives
+- The function handles both real and reactive power balance constraints
+- Data is transferred between CPU and GPU as needed for computation
+"""
 function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0, alg="gpuLU")
     tol = tol0
     max_it = max_it0

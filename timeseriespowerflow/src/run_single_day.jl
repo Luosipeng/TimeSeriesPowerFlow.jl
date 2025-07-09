@@ -1,3 +1,41 @@
+"""
+    run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line)
+
+Run a day-ahead simulation for a hybrid AC-DC power system with renewable generation and energy storage.
+
+# Arguments
+- `old_jpc`: Original power system data structure
+- `opt`: Power flow options
+- `day_load_matrix`: Matrix containing hourly load data (hour, bus_id, active_power, reactive_power)
+- `day_price_line`: Vector containing hourly electricity prices
+- `day_irradiance_line`: Matrix containing hourly solar irradiance data (hour, irradiance)
+
+# Returns
+- `results_pf`: Array of power flow results for each hour of the day
+
+# Description
+This function performs a day-ahead economic dispatch and power flow analysis for a hybrid AC-DC power system
+with renewable generation and energy storage. The process involves:
+
+1. Preprocessing the power system data:
+   - Adjusting bus loads to account for converter power flows
+   - Renumbering the hybrid system for consistent indexing
+   - Extracting load, generator, converter, PV system, and energy storage parameters
+
+2. Running the dynamic economic dispatch optimization:
+   - Minimizing generation costs while satisfying system constraints
+   - Determining optimal converter operation, generator outputs, and storage charging/discharging
+
+3. Performing hourly power flow calculations:
+   - Updating loads, generators, converters, and PV outputs based on optimization results
+   - Running hybrid power flow for each hour of the day
+   - Handling special converter control modes (e.g., droop control)
+
+The function handles various components including AC and DC loads, generators, converters between AC and DC
+subsystems, PV systems (both AC-connected and DC-connected), and energy storage systems. It accounts for
+time-varying load profiles, electricity prices, and solar irradiance patterns throughout the day.
+"""
+
 function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line)
 
     jpc = deepcopy(old_jpc)

@@ -1,5 +1,10 @@
 """
     Define the Utils module with different functions
+    
+    This module provides utility functions for power system analysis, including
+    data conversion, topology analysis, and various helper functions for working
+    with power system models. It integrates with the ComponentModel module and
+    provides access to various numerical methods through external libraries.
 """
 module Utils
 
@@ -96,9 +101,6 @@ module Utils
     # Export JPC_3ph indices
     const RES_3PH_BUS, RES_3PH_VM_A, RES_3PH_VM_B, RES_3PH_VM_C, RES_3PH_VA_A, RES_3PH_VA_B, RES_3PH_VA_C, RES_3PH_UNBALANCED, RES_3PH_PA_MW, RES_3PH_PB_MW, RES_3PH_PC_MW, RES_3PH_QA_MVAR, RES_3PH_QB_MVAR, RES_3PH_QC_MVAR = idx_jpc_3ph()
     export RES_3PH_BUS, RES_3PH_VM_A, RES_3PH_VM_B, RES_3PH_VM_C, RES_3PH_VA_A, RES_3PH_VA_B, RES_3PH_VA_C, RES_3PH_UNBALANCED, RES_3PH_PA_MW, RES_3PH_PB_MW, RES_3PH_PC_MW, RES_3PH_QA_MVAR, RES_3PH_QB_MVAR, RES_3PH_QC_MVAR
-
-    const _JPC_INTERNAL_STORAGE = Dict{UInt64, Dict{Symbol, Any}}()
-    export _JPC_INTERNAL_STORAGE
   
     # Export EV indices
     const EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA = idx_ev()

@@ -2,18 +2,19 @@ using SparseArrays
 
 """
    Definition of the Microgrid Planning Problem structure.
+   This structure contains all parameters and variables for microgrid planning optimization.
 """
 mutable struct MicrogridPlanningProblem
-    # 常数
+    # Constants
     bigM::Float64
     
-    # 规划参数
+    # Planning parameters
     nPV::Int
     nBESS::Int
     DeltaPV::Float64
     DeltaBESS::Float64
     
-    # 技术参数
+    # Technical parameters
     soc0::Float64
     soc_max::Float64
     soc_min::Float64
@@ -21,7 +22,7 @@ mutable struct MicrogridPlanningProblem
     eff_ch::Float64
     eff_dc::Float64
     
-    # 经济参数
+    # Economic parameters
     pv_unit_cost::Float64
     ess_unit_cost_e::Float64
     ess_unit_cost_p::Float64
@@ -30,7 +31,7 @@ mutable struct MicrogridPlanningProblem
     carbon_emission_coeff::Float64
     npv::Float64
 
-    # 可靠性参数
+    # Reliability parameters
     ug_prob::Float64
     mg_prob::Float64
     power_requirements::Float64
@@ -38,9 +39,9 @@ mutable struct MicrogridPlanningProblem
     pv_power_factor::Float64
     pv_energy_factor::Float64
     
-    # 碳排放限制
+    # Carbon emission limit
     carbon_limit::Float64
-    # 不确定性参数
+    # Uncertainty parameters
     ns::Int
     ws::Vector{Float64}
     T::Int
@@ -54,7 +55,7 @@ mutable struct MicrogridPlanningProblem
     nu::Int
     NU::Int
     
-    # 索引
+    # Indices
     IPV::Int
     IESS::Int
     IPESS::Int
@@ -63,7 +64,7 @@ mutable struct MicrogridPlanningProblem
     CARBON::Int
     NX::Int
     
-    # 第一阶段约束
+    # First stage constraints
     lx::Vector{Float64}
     ux::Vector{Float64}
     vtypex::Vector{Char}
@@ -72,10 +73,10 @@ mutable struct MicrogridPlanningProblem
     A::SparseMatrixCSC{Float64, Int}
     b::Vector{Float64}
     
-    # 目标函数
+    # Objective function
     c::Vector{Float64}
 
-    # 第二阶段索引
+    # Second stage indices
     pug::Int
     pug_sold::Int
     ppv::Int
@@ -91,50 +92,58 @@ mutable struct MicrogridPlanningProblem
     pf::Int
     ny::Int
     NY::Int
-    # 构造函数
+    
+    """
+    Constructor for MicrogridPlanningProblem.
+    
+    # Arguments
+    - `data`: Dictionary containing planning parameters, technical parameters, economic parameters, and reliability parameters
+    
+    # Returns
+    - A new instance of MicrogridPlanningProblem with initialized fields
+    """
     function MicrogridPlanningProblem(data::Dict{Symbol, Any})
-        # 创建实例
+        # Create instance
         self = new()
     
-        # 初始化常数
+        # Initialize constants
         self.bigM = 1e6
 
-        # 读取规划参数
+        # Read planning parameters
         planning_params = data[:planning_params]
-        self.nPV = planning_params[1, "光伏单元数"]
-        self.nBESS = planning_params[1, "储能单元数"]
-        self.DeltaPV = planning_params[1, "光伏单元容量"]
-        self.DeltaBESS = planning_params[1, "储能单元容量"]
+        self.nPV = planning_params[1, "PV units"]
+        self.nBESS = planning_params[1, "Storage units"]
+        self.DeltaPV = planning_params[1, "PV unit capacity"]
+        self.DeltaBESS = planning_params[1, "Storage unit capacity"]
     
-        # 读取技术参数
+        # Read technical parameters
         tech_params = data[:tech_params]
-        self.soc0 = tech_params[1, "储能单元初始SOC"]
-        self.soc_max = tech_params[1, "储能单元最大SOC"]
-        self.soc_min = tech_params[1, "储能单元最小SOC"]
-        self.eta_ug = tech_params[1, "电网效率"]
-        self.eff_ch = tech_params[1, "储能单元充电效率"]
-        self.eff_dc = tech_params[1, "储能单元放电效率"]
+        self.soc0 = tech_params[1, "Initial SOC"]
+        self.soc_max = tech_params[1, "Maximum SOC"]
+        self.soc_min = tech_params[1, "Minimum SOC"]
+        self.eta_ug = tech_params[1, "Grid efficiency"]
+        self.eff_ch = tech_params[1, "Charging efficiency"]
+        self.eff_dc = tech_params[1, "Discharging efficiency"]
     
-        # 读取经济参数
+        # Read economic parameters
         econ_params = data[:econ_params]
-        self.pv_unit_cost = econ_params[1, "光伏单元成本(元/kW)"]
-        self.ess_unit_cost_e = econ_params[1, "储能单元能量部分成本(元/kWh)"]
-        self.ess_unit_cost_p = econ_params[1, "储能单元功率部分成本(元/kW)"]
-        self.ug_unit_cost = econ_params[1, "容量成本(元/年/kW)"]
-        self.carbon_permit_price = econ_params[1, "碳排放权单价(元/kWh)"]
-        self.carbon_emission_coeff = econ_params[1, "碳排放系数（kg/kWh）"]
-        self.npv = capital_recovery_factor(econ_params[1, "贴现率"], econ_params[1, "总规划年数"])
+        self.pv_unit_cost = econ_params[1, "PV unit cost (\$/kW)"]
+        self.ess_unit_cost_e = econ_params[1, "Storage energy cost (\$/kWh)"]
+        self.ess_unit_cost_p = econ_params[1, "Storage power cost (\$/kW)"]
+        self.ug_unit_cost = econ_params[1, "Capacity cost (\$/year/kW)"]
+        self.carbon_permit_price = econ_params[1, "Carbon permit price (\$/kWh)"]
+        self.carbon_emission_coeff = econ_params[1, "Carbon emission coefficient (kg/kWh)"]
+        self.npv = capital_recovery_factor(econ_params[1, "Discount rate"], econ_params[1, "Planning years"])
 
-        # 读取可靠性参数
+        # Read reliability parameters
         reliability_params = data[:reliability_params]
-        self.ug_prob = reliability_params[1, "供电可靠率"]
-        self.mg_prob = reliability_params[1, "微网可靠率"]
+        self.ug_prob = reliability_params[1, "Grid reliability"]
+        self.mg_prob = reliability_params[1, "Microgrid reliability"]
     
-        # 定义不确定性参数（这部分需要从场景生成函数获取）
-        # 暂时使用占位符
+        # Define uncertainty parameters (placeholders to be filled from scenario generation)
         self.ns = 0
         self.ws = Float64[]
-        self.T = planning_params[1, "时段数"]
+        self.T = planning_params[1, "Time periods"]
         self.ppv_un = 0  # PV output in per unit
         self.pl = self.ppv_un + 1  # Active load consumption
         self.fl = self.pl + 1  # Flexible load consumption
@@ -145,7 +154,7 @@ mutable struct MicrogridPlanningProblem
         self.nu = self.carbon_emission_ug + 1 # Uncertainties of loads
         self.NU = self.nu * self.T  # Total uncertainties
     
-        # 返回实例
+        # Return instance
         return self
     end
 end
@@ -204,7 +213,17 @@ mutable struct JuliaPowerCase
     zone_to_id::Dict{String, Int}
     area_to_id::Dict{String, Int}
     
-    # Constructor
+    """
+    Constructor for JuliaPowerCase.
+    
+    # Arguments
+    - `version`: Version string (default: "2.0")
+    - `baseMVA`: Base MVA for the system (default: 100.0)
+    - `basef`: Base frequency in Hz (default: 50.0)
+    
+    # Returns
+    - A new instance of JuliaPowerCase with empty component vectors
+    """
     function JuliaPowerCase(version::String = "2.0", baseMVA::Float32 = 100.0f0, basef::Float32 = 50.0f0)
         return new(
             version, baseMVA, basef,
@@ -267,7 +286,19 @@ mutable struct JPC
     hvcb::Array{Float64,2}          # High voltage circuit breaker data (indexed by idx_hvcb(), dimensions: n_hvcb × N_HVCB_ATTR)
     microgrid::Array{Float64,2}     # Microgrid data (indexed by idx_microgrid(), dimensions: n_mg × N_MG_ATTR)
     
-    # Constructor with default empty arrays
+    """
+    Constructor for JPC with default empty arrays.
+    
+    # Arguments
+    - `version`: Version string (default: "2.0")
+    - `baseMVA`: Base MVA for the system (default: 100.0)
+    - `success`: Boolean indicating if power flow converged (default: false)
+    - `iterationsAC`: Number of AC power flow iterations (default: 0)
+    - `iterationsDC`: Number of DC power flow iterations (default: 0)
+    
+    # Returns
+    - A new instance of JPC with empty component arrays
+    """
     function JPC(version::String = "2.0", baseMVA::Float64 = 100.0, success::Bool = false, iterationsAC::Int = 0, iterationsDC::Int = 0)
         # Initialize with empty arrays - they will be properly sized when data is loaded
         new(version, baseMVA, success, iterationsAC, iterationsDC,
@@ -298,8 +329,20 @@ end
 
 import Base: getindex, setindex!
 
+"""
+    getindex(jpc::JPC, key::String)
+
+Access JPC components by string key.
+
+# Arguments
+- `jpc`: JPC structure
+- `key`: String key representing the component to access
+
+# Returns
+- The requested component data
+"""
 function getindex(jpc::JPC, key::String)
-    # 根据字符串键返回对应的字段
+    # Return the field corresponding to the string key
     if key == "version"
         return jpc.version
     elseif key == "baseMVA"
@@ -353,12 +396,22 @@ function getindex(jpc::JPC, key::String)
     elseif key == "microgrid"
         return jpc.microgrid
     else
-        error("JPC 结构体中不存在键: $key")
+        error("Key does not exist in JPC structure: $key")
     end
 end
 
+"""
+    setindex!(jpc::JPC, value, key::String)
+
+Set JPC components by string key.
+
+# Arguments
+- `jpc`: JPC structure
+- `value`: Value to assign
+- `key`: String key representing the component to modify
+"""
 function setindex!(jpc::JPC, value, key::String)
-    # 根据字符串键设置对应的字段
+    # Set the field corresponding to the string key
     if key == "version"
         jpc.version = value
     elseif key == "baseMVA"
@@ -412,66 +465,82 @@ function setindex!(jpc::JPC, value, key::String)
     elseif key == "microgrid"
         jpc.microgrid = value
     else
-        error("JPC 结构体中不存在键: $key")
+        error("Key does not exist in JPC structure: $key")
     end
 end
 
+"""
+    Definition of the JPC_3ph structure for three-phase power flow analysis.
+    This structure extends the JPC format to support three-phase power flow calculations.
+"""
 mutable struct JPC_3ph
     version::String
     baseMVA::Float32
     basef::Float32
     mode::String
-    success::Bool  # 三项潮流是否成功
-    iterations::Int  # 三项潮流迭代次数
-
+    success::Bool  # Flag indicating if three-phase power flow converged
+    iterations::Int  # Number of iterations for three-phase power flow
     
-    # AC Network Components - 矩阵版本的JuliaPowerCase组件
-    busAC_0::Array{Float64,2}  # 对应case.bus的矩阵表示
-    busAC_1::Array{Float64,2}  # 对应case.bus的矩阵表示
-    busAC_2::Array{Float64,2}  # 对应case.bus的矩阵表示
+    # AC Network Components - Matrix representations of JuliaPowerCase components
+    busAC_0::Array{Float64,2}  # Phase A bus data
+    busAC_1::Array{Float64,2}  # Phase B bus data
+    busAC_2::Array{Float64,2}  # Phase C bus data
 
-    branchAC_0::Array{Float64,2}  # 对应case.line的矩阵表示
-    branchAC_1::Array{Float64,2}  # 对应case.line的矩阵表示
-    branchAC_2::Array{Float64,2}  # 对应case.line的矩阵表示
+    branchAC_0::Array{Float64,2}  # Phase A branch data
+    branchAC_1::Array{Float64,2}  # Phase B branch data
+    branchAC_2::Array{Float64,2}  # Phase C branch data
 
-    loadAC_0::Array{Float64,2}  # 对应case.load的矩阵表示
-    loadAC_1::Array{Float64,2}  # 对应case.load的矩阵表示
-    loadAC_2::Array{Float64,2}  # 对应case.load的矩阵表示
+    loadAC_0::Array{Float64,2}  # Phase A load data
+    loadAC_1::Array{Float64,2}  # Phase B load data
+    loadAC_2::Array{Float64,2}  # Phase C load data
 
-    genAC_0::Array{Float64,2}  # 对应case.gen的矩阵表示
-    genAC_1::Array{Float64,2}  # 对应case.gen的矩阵表示
-    genAC_2::Array{Float64,2}  # 对应case.gen的矩阵表示
+    genAC_0::Array{Float64,2}  # Phase A generator data
+    genAC_1::Array{Float64,2}  # Phase B generator data
+    genAC_2::Array{Float64,2}  # Phase C generator data
 
-    storageAC::Array{Float64,2}  # 对应case.storage的矩阵表示
+    storageAC::Array{Float64,2}  # Storage data
     
     # DC Network Components
-    busDC::Array{Float64,2}  # 对应case.bus_dc的矩阵表示
-    branchDC::Array{Float64,2}  # 对应case.line_dc的矩阵表示
-    loadDC::Array{Float64,2}  # 对应case.load_dc的矩阵表示
-    genDC::Array{Float64,2}  # 对应case.gen_dc的矩阵表示
-    storageDC::Array{Float64,2}  # 对应case.storage_dc的矩阵表示
+    busDC::Array{Float64,2}  # DC bus data
+    branchDC::Array{Float64,2}  # DC branch data
+    loadDC::Array{Float64,2}  # DC load data
+    genDC::Array{Float64,2}  # DC generator data
+    storageDC::Array{Float64,2}  # DC storage data
     
     # Special Components
-    ext_grid::Array{Float64,2}  # 对应case.ext_grid的矩阵表示
-    switche::Array{Float64,2}  # 对应case.switch的矩阵表示
+    ext_grid::Array{Float64,2}  # External grid data
+    switche::Array{Float64,2}  # Switch data
 
-    # three phase power flow results
-    res_bus_3ph::Array{Float64,2}  # 三相潮流结果的总线数据
-    res_loadsAC_3ph::Array{Float64,2}  # 三相潮流结果的负荷数据
-    res_ext_grid_3ph::Array{Float64,2}  # 三相潮流结果的外部电网数据
+    # Three-phase power flow results
+    res_bus_3ph::Array{Float64,2}  # Bus results from three-phase power flow
+    res_loadsAC_3ph::Array{Float64,2}  # Load results from three-phase power flow
+    res_ext_grid_3ph::Array{Float64,2}  # External grid results from three-phase power flow
     
-    # Lookup dictionaries - 保持不变
+    # Lookup dictionaries
     bus_name_to_id::Dict{String, Int}
     zone_to_id::Dict{String, Int}
     area_to_id::Dict{String, Int}
     
-    # Constructor
+    """
+    Constructor for JPC_3ph.
+    
+    # Arguments
+    - `version`: Version string (default: "2.0")
+    - `baseMVA`: Base MVA for the system (default: 100.0)
+    - `basef`: Base frequency in Hz (default: 50.0)
+    - `mode`: Mode of operation (default: "etap")
+    - `success`: Boolean indicating if power flow converged (default: false)
+    - `iterations`: Number of power flow iterations (default: 0)
+    
+    # Returns
+    - A new instance of JPC_3ph with empty component arrays
+    """
     function JPC_3ph(version::String = "2.0", baseMVA::Float32 = 100.0f0, basef::Float32 = 50.0f0, mode::String = "etap",
                      success::Bool = false, iterations::Int = 0)
-        # 初始化矩阵 - 这里使用空矩阵，实际数据加载时会填充
+        # Initialize with empty matrices - they will be properly sized when data is loaded
         return new(
-            version, baseMVA, basef, mode,success, iterations,
-            # 初始化空矩阵 - 列数对应原始结构的字段数
+            version, baseMVA, basef, mode, success, iterations,
+            # Initialize empty matrices - column counts match attribute counts
             Array{Float64}(undef, 0, 22),  # busAC_0 (N_BUS_ATTR = 22)
             Array{Float64}(undef, 0, 22),  # busAC_1 (N_BUS_ATTR = 22)
             Array{Float64}(undef, 0, 22),  # busAC_2 (N_BUS_ATTR = 22)
@@ -498,7 +567,7 @@ mutable struct JPC_3ph
             Array{Float64}(undef, 0, 13),  # ext_grid (N_EXT_GRID_ATTR = 13)
             Array{Float64}(undef, 0, 5),   # hvcb (N_HVCB_ATTR = 5)
 
-            Array{Float64}(undef, 0, 15),   # res_bus_3ph (N_RES_BUS_3PH_ATTR = 8)
+                        Array{Float64}(undef, 0, 15),   # res_bus_3ph (N_RES_BUS_3PH_ATTR = 15)
             Array{Float64}(undef, 0, 18),  # res_loadsAC_3ph (N_RES_LOADS_AC_3PH_ATTR = 18)
             Array{Float64}(undef, 0, 13),  # res_ext_grid_3ph (N_RES_EXT_GRID_3PH_ATTR = 13)
 
@@ -509,8 +578,20 @@ mutable struct JPC_3ph
     end
 end
 
+"""
+    getindex(jpc::JPC_3ph, key::String)
+
+Access JPC_3ph components by string key.
+
+# Arguments
+- `jpc`: JPC_3ph structure
+- `key`: String key representing the component to access
+
+# Returns
+- The requested component data
+"""
 function getindex(jpc::JPC_3ph, key::String)
-    # 根据字符串键返回对应的字段
+    # Return the field corresponding to the string key
     if key == "version"
         return jpc.version
     elseif key == "baseMVA"
@@ -570,12 +651,22 @@ function getindex(jpc::JPC_3ph, key::String)
     elseif key == "res_ext_grid_3ph"
         return jpc.res_ext_grid_3ph
     else
-        error("JPC 3ph 结构体中不存在键: $key")
+        error("Key does not exist in JPC_3ph structure: $key")
     end
 end
 
+"""
+    setindex!(jpc::JPC_3ph, value, key::String)
+
+Set JPC_3ph components by string key.
+
+# Arguments
+- `jpc`: JPC_3ph structure
+- `value`: Value to assign
+- `key`: String key representing the component to modify
+"""
 function setindex!(jpc::JPC_3ph, value, key::String)
-    # 根据字符串键设置对应的字段
+    # Set the field corresponding to the string key
     if key == "version"
         jpc.version = value
     elseif key == "baseMVA"
@@ -635,13 +726,7 @@ function setindex!(jpc::JPC_3ph, value, key::String)
     elseif key == "res_ext_grid_3ph"
         jpc.res_ext_grid_3ph = value
     else
-        error("JPC 3ph 结构体中不存在键: $key")
+        error("Key does not exist in JPC_3ph structure: $key")
     end
 end
 
-"""
-    Definition of the JPC_3ph structure as one matrix format.
-    This structure represents a three-phase power system case in a one matrix format,
-    including buses, generators, branches, loads, and other power system components.
-    Each matrix is sized according to the number of attributes defined in idx.jl.
-"""

@@ -1,11 +1,49 @@
+"""
+    makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu; dc=false, Sg=nothing, return_derivative=false)
+
+Build the vector of complex bus power injections using GPU acceleration.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus_gpu`: Bus data matrix on GPU with columns representing bus parameters
+- `gen_gpu`: Generator data matrix on GPU with columns representing generator parameters
+- `gen`: Generator data matrix on CPU with columns representing generator parameters
+- `Vm_gpu`: Vector of bus voltage magnitudes on GPU
+- `load_gpu`: Load data matrix on GPU with columns representing load parameters
+
+# Keyword Arguments
+- `dc`: Boolean indicating whether to use DC power flow assumptions (default: false)
+- `Sg`: Optional pre-computed generator complex power injections (default: nothing)
+- `return_derivative`: Boolean indicating whether to return derivative of Sbus with respect to Vm (default: false)
+
+# Returns
+- If `return_derivative=false`: Vector of complex bus power injections (Sbus)
+- If `return_derivative=true`: Sparse matrix of partial derivatives of power injections with respect to voltage magnitude (dSbus_dVm)
+
+# Description
+This function computes the vector of complex bus power injections (Sbus) for power flow analysis using GPU acceleration.
+It accounts for ZIP load models (constant power, constant current, and constant impedance components) and generator injections.
+
+When `return_derivative=true`, it returns the partial derivatives of the power injections with respect to voltage magnitude,
+which is useful for power flow Jacobian calculations.
+
+# Notes
+- All power values are converted to per-unit on system MVA base
+- The function handles ZIP load models with percentages specified in load_gpu
+- Generator status is considered when computing injections
+- When dc=true, voltage magnitudes are set to 1.0 p.u.
+
+# Constants Used (assumed to be defined elsewhere)
+- LOAD_CND: Column index for load bus number in load_gpu matrix
+- LOADP_PERCENT: Column index for constant power percentage in load_gpu matrix
+- LOADI_PERCENT: Column index for constant current percentage in load_gpu matrix
+- LOADZ_PERCENT: Column index for constant impedance percentage in load_gpu matrix
+- GEN_STATUS: Column index for generator status in gen matrix
+- GEN_BUS: Column index for generator bus number in gen matrix
+- PG: Column index for real power output in gen_gpu matrix
+- QG: Column index for reactive power output in gen_gpu matrix
+"""
 function makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu; dc=false, Sg=nothing, return_derivative=false)
-    # Define named indices into bus, gen matrices
-    (GEN_BUS, PG, QG, QMAX, QMIN, VG, MBASE, GEN_STATUS, PMAX, PMIN, PC1,
-        PC2, QC1MIN, QC1MAX, QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, 
-        RAMP_Q, APF, PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST,
-         COST, MU_PMAX, MU_PMIN, MU_QMAX, MU_QMIN,GEN_AREA) = PowerFlow.idx_gen();
-    (LOAD_I,LOAD_CND,LOAD_STATUS,LOAD_PD,LOAD_QD,LOADZ_PERCENT,LOADI_PERCENT,
-    LOADP_PERCENT)=PowerFlow.idx_ld()
 
     nb = size(bus_gpu, 1)
     pw_1=PowerFlow.CUDA.zeros(size(bus_gpu,1),1)
@@ -36,17 +74,17 @@ function makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu; dc=false
         if Sg !== nothing
             Sbusg = Cg * Sg[on]
         else
-            # 步骤1: 创建发电机复功率向量
+            # Step 1: Create generator complex power vector
             Sg = gen_gpu[on, PG] .+ 1im * gen_gpu[on, QG]
 
-            # 步骤2: 创建结果向量 (母线注入功率)
+            # Step 2: Create result vector (bus injection power)
             Sbusg = CUDA.zeros(ComplexF64, size(Cg, 1))
 
-            # 步骤3: 使用 CUSPARSE.mv! 函数执行矩阵-向量乘法
-            # 添加额外的字符参数 'O' 表示操作类型
+            # Step 3: Use CUSPARSE.mv! function to perform matrix-vector multiplication
+            # Add extra character parameter 'O' to indicate operation type
             CUDA.CUSPARSE.mv!('N', one(ComplexF64), Cg, Sg, zero(ComplexF64), Sbusg, 'O')
 
-            # 步骤4: 除以基准功率 baseMVA 进行标幺化
+            # Step 4: Divide by base power baseMVA for per-unit normalization
             Sbusg = Sbusg ./ baseMVA
         end
 

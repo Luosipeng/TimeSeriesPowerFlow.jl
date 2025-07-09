@@ -4,20 +4,16 @@ using  DataFrames
 using  Base.Threads
 using  PowerFlow
 
-# file_path = joinpath(pwd(), "data", "etap_runpf_acdc.xlsx")
-# file_path = joinpath(pwd(), "data", "control_mode_test.xlsx")
-# file_path = joinpath(pwd(), "data", "石桥F12草河F27交直流.xlsx")
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 
 case = PowerFlow.load_julia_power_data(file_path)
 
-#拓扑处理
-
+# Topology processing
 results, new_case = PowerFlow.topology_analysis(case, output_file="topology_results.xlsx")
 
-# 查看结果
-println("发现了 ", nrow(results["cycles"]), " 个环路")
-println("网络被分为 ", length(unique(results["nodes"].Partition)), " 个分区")
+# View results
+println("Found ", nrow(results["cycles"]), " cycles")
+println("Network is divided into ", length(unique(results["nodes"].Partition)), " partitions")
 
 # empty!(new_case.storageetap)
 # new_case.converters[3].control_mode = "Droop_Udc_Us"
@@ -33,15 +29,15 @@ opt["PF"]["DC_PREPROCESS"] = 1;
 
 jpc_list, isolated = PowerFlow.extract_islands_acdc(jpc)
 n_islands = length(jpc_list)
-println("共提取出 $(n_islands) 个孤岛")
+println("Extracted $(n_islands) islands in total")
 
-# 创建结果数组
+# Create results array
 results_array = Vector{Any}(undef, n_islands)
 
-println("开始多线程计算...")
+println("Starting multi-threaded calculation...")
 t_start = time()
 
-# 使用多线程计算每个孤岛的潮流
+# Use multi-threading to calculate power flow for each island
 @threads for i in 1:n_islands
     results_array[i] = PowerFlow.runhpf(jpc_list[i], opt)
 end
@@ -49,17 +45,16 @@ end
 t_end = time()
 elapsed = t_end - t_start
 
-# 构造类似@timed返回的结果
+# Construct result similar to @timed return
 results = (value=results_array, time=elapsed)
 
-
-# # 获取所有节点的电压结果
+# # Get voltage results for all nodes
 voltage_results = PowerFlow.get_bus_voltage_results_acdc(results, new_case)
 
-# # 比较结果与参考文件
-# result_file = joinpath(pwd(), "data", "石桥F12草河F27交直流result.xlsx")
+# # Compare results with reference file
+# result_file = joinpath(pwd(), "data", "ShiQiao F12 CaoHe F27 AC-DC result.xlsx")
 # result_file = "C:/Users/13733/Desktop/etap-main/result.xlsx"
 # PowerFlow.analyze_voltage_results(results, case, result_file, output_dir="./analysis_results")
 
-# println("计算完成，耗时: $(results.time) 秒")
+# println("Calculation completed, time elapsed: $(results.time) seconds")
 # PowerFlow.process_result(results, isolated, "PowerFlow_report.txt")

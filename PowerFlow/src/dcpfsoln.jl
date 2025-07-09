@@ -1,10 +1,42 @@
 """
-    To do list:
-    (1) Line 71: ig = findall(abs.(Cg * (Qg_min .- Qg_max)) .< 10*eps)
-    (2) Line 84-97:
+    dcpfsoln(baseMVA::Float64, bus0::Matrix{Float64}, gen0::Matrix{Float64}, 
+             branch0::Matrix{Float64}, load0::Matrix{Float64}, Ybus, Yf, Yt, V, ref, p)
+
+Update power system state variables after a DC power flow solution.
+
+# Arguments
+- `baseMVA::Float64`: Base MVA value for the system
+- `bus0::Matrix{Float64}`: Initial bus data matrix
+- `gen0::Matrix{Float64}`: Initial generator data matrix
+- `branch0::Matrix{Float64}`: Initial branch data matrix
+- `load0::Matrix{Float64}`: Load data matrix
+- `Ybus`: Bus admittance matrix
+- `Yf`: From-bus branch admittance matrix
+- `Yt`: To-bus branch admittance matrix
+- `V`: Complex bus voltage vector solution
+- `ref`: Reference (slack) bus indices
+- `p`: P bus indices
+
+# Returns
+- `bus`: Updated bus data matrix
+- `gen`: Updated generator data matrix
+- `branch`: Updated branch data matrix with power flows
+
+# Description
+This function updates the power system state variables after a DC power flow solution
+has been obtained. It performs the following operations:
+
+1. Updates bus voltage magnitudes
+2. Updates generator reactive power (Qg) for generators at PV and slack buses
+   - Distributes reactive power proportionally among multiple generators at the same bus
+   - Respects generator reactive power limits
+3. Updates active power (Pg) for generators at slack buses
+4. Calculates branch power flows
+5. Expands the branch matrix if needed to store power flow results
+
+The function handles special cases like multiple generators at the same bus and
+generators with identical reactive power limits.
 """
-
-
 function dcpfsoln(baseMVA::Float64, bus0::Matrix{Float64}, gen0::Matrix{Float64}, branch0::Matrix{Float64},load0::Matrix{Float64}, Ybus, Yf, Yt, V, ref, p)
     
     # Initialize return values

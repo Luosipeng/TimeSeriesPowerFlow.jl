@@ -1,15 +1,15 @@
 """
-写入系统摘要部分
+Write system summary section
 """
 function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
-    # 提取必要的数据
+    # Extract necessary data
     baseMVA = mpc.baseMVA
     
-    # 计算基本统计数据
+    # Calculate basic statistics
     if hasproperty(mpc, :busAC)
         n_buses = size(mpc.busAC, 1)
     else
-        # 从其他数据推断母线数量
+        # Infer number of buses from other data
         bus_ids = Set()
         if hasproperty(mpc, :branchAC)
             for i in 1:size(mpc.branchAC, 1)
@@ -32,16 +32,16 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
     n_isolated = length(isolated)
     n_buses = n_buses + n_isolated
     
-    # 获取发电机数量
+    # Get number of generators
     n_gens = hasproperty(mpc, :genAC) ? size(mpc.genAC, 1) : 0
     
-    # 获取负荷数量
+    # Get number of loads
     n_loads = hasproperty(mpc, :loadAC) ? size(mpc.loadAC, 1) : 0
     
-    # 获取支路数量
+    # Get number of branches
     n_branches = hasproperty(mpc, :branchAC) ? size(mpc.branchAC, 1) : 0
     
-    # 计算变压器数量 (假设branch矩阵中有tap列)
+    # Calculate number of transformers (assuming branch matrix has tap column)
     n_transformers = 0
     if hasproperty(mpc, :branchAC) && size(mpc.branchAC, 2) >= 9
         for i in 1:size(mpc.branchAC, 1)
@@ -51,11 +51,11 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
         end
     end
     
-    # 计算发电总量和负荷总量
+    # Calculate total generation and load
     total_gen_p = 0.0
     total_gen_q = 0.0
     if hasproperty(mpc, :genAC)
-        # 假设gen矩阵的第2列是有功功率，第3列是无功功率
+        # Assuming gen matrix column 2 is active power, column 3 is reactive power
         total_gen_p = sum(mpc.genAC[:, 2]) 
         total_gen_q = sum(mpc.genAC[:, 3]) 
     end
@@ -63,20 +63,20 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
     total_load_p = 0.0
     total_load_q = 0.0
     if hasproperty(mpc, :busAC)
-        # 假设busAC矩阵的第3列是有功负荷，第4列是无功负荷
+        # Assuming busAC matrix column 3 is active load, column 4 is reactive load
         if size(mpc.busAC, 2) >= 4
             total_load_p = sum(mpc.busAC[:, 3]) 
             total_load_q = sum(mpc.busAC[:, 4]) 
         end
     elseif hasproperty(mpc, :loadAC)
-        # 从loadAC中获取负荷数据
+        # Get load data from loadAC
         if size(mpc.loadAC, 2) >= 4
             total_load_p = sum(mpc.loadAC[:, 3])
             total_load_q = sum(mpc.loadAC[:, 4])
         end
     end
     
-    # 计算损耗
+    # Calculate losses
     total_p_loss = total_gen_p - total_load_p
     total_q_loss = 0.0
     charging_q = 0.0
@@ -87,41 +87,41 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
             from_bus = Int(mpc.branchAC[i, 1])
             to_bus = Int(mpc.branchAC[i, 2])
                 
-            # 获取线路参数
+            # Get line parameters
             r = mpc.branchAC[i, 3] 
             x = mpc.branchAC[i, 4]
-            b = mpc.branchAC[i, 5]  # 线路半充电电纳
+            b = mpc.branchAC[i, 5]  # Line half charging susceptance
                 
-            # 获取实际的母线电压值和相角
-            v_from = 1.0  # 默认值，如果找不到实际电压
-            v_to = 1.0    # 默认值，如果找不到实际电压
+            # Get actual bus voltage values and angles
+            v_from = 1.0  # Default value if actual voltage not found
+            v_to = 1.0    # Default value if actual voltage not found
             ang_from = 0.0
             ang_to = 0.0
                 
-            # 从母线数据中查找实际电压值和相角
+            # Look up actual voltage values and angles from bus data
             if hasproperty(mpc, :busAC)
                 for j in 1:size(mpc.busAC, 1)
                     if Int(mpc.busAC[j, 1]) == from_bus
-                        v_from = mpc.busAC[j, 8]  # 使用实际电压幅值
-                        ang_from = mpc.busAC[j, 9] * pi/180  # 转换为弧度
+                        v_from = mpc.busAC[j, 8]  # Use actual voltage magnitude
+                        ang_from = mpc.busAC[j, 9] * pi/180  # Convert to radians
                     elseif Int(mpc.busAC[j, 1]) == to_bus
-                        v_to = mpc.busAC[j, 8]    # 使用实际电压幅值
-                        ang_to = mpc.busAC[j, 9] * pi/180  # 转换为弧度
+                        v_to = mpc.busAC[j, 8]    # Use actual voltage magnitude
+                        ang_to = mpc.busAC[j, 9] * pi/180  # Convert to radians
                     end
                 end
             end
                 
-            # 相角差
+            # Angle difference
             angle_diff = ang_from - ang_to
                 
-            # 计算线路导纳
+            # Calculate line admittance
             y = 1 / complex(r, x)
             y_abs = abs(y)
                 
-            # 直接计算线路电流幅值平方
+            # Directly calculate line current magnitude squared
             i_mag_squared = (v_from^2 + v_to^2 - 2*v_from*v_to*cos(angle_diff)) * y_abs^2
                 
-            # 计算无功损耗 - 使用电抗和电流平方
+            # Calculate reactive losses - using reactance and current squared
             q_loss = x * i_mag_squared * baseMVA
 
             charging_from = 0.5 * b * v_from^2 * baseMVA
@@ -131,7 +131,7 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
         end
     end
     
-    # 计算发电机容量
+    # Calculate generator capacity
     total_gen_pmax = 0.0
     total_gen_qmin = 0.0
     total_gen_qmax = 0.0
@@ -141,7 +141,7 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
         total_gen_qmax = sum(mpc.genAC[:, 4])
     end
     
-    # 写入系统摘要
+    # Write system summary
     write(f, "================================================================================\n")
     write(f, "|     System Summary                                                           |\n")
     write(f, "================================================================================\n\n")
@@ -161,17 +161,18 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
     @printf(f, "  Dispatchable    %2d       Dispatchable          %4.1f of %4.1f      %5.1f\n", 
             0, 0.0, 0.0, 0.0)
     @printf(f, "Shunts           %3d     Shunt (inj)             %5.1f              %5.1f\n", 
-            0, 0.0, 0.0)  # 假设没有分路元件
+            0, 0.0, 0.0)  # Assuming no shunt elements
     @printf(f, "Branches         %3d     Losses (I^2 * Z)       %6.2f            %6.2f\n", 
-            n_branches, total_p_loss, total_q_loss)  # 无功损耗需要计算
+            n_branches, total_p_loss, total_q_loss)  # Reactive losses need to be calculated
     @printf(f, "Transformers     %3d     Branch Charging (inj)     -             %6.1f\n", 
-            n_transformers, charging_q)  # 需要计算实际值
+            n_transformers, charging_q)  # Need to calculate actual values
     @printf(f, "Inter-ties        %2d     Total Inter-tie Flow     %4.1f               %4.1f\n", 
             0, 0.0, 0.0)
     @printf(f, "Areas             %2d\n\n", area)
     
-    # 电压和相角的最大最小值
-    # 这部分需要从bus数据中提取，如果没有完整的bus数据，可以省略或使用估计值
+    # Voltage and angle min/max values
+    # This part needs to be extracted from bus data, if complete bus data is not available,
+    # it can be omitted or estimated values can be used
     if hasproperty(mpc, :busAC) && size(mpc.busAC, 2) >= 9
         min_vm = Inf
         max_vm = -Inf
@@ -213,10 +214,10 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
                 min_va, min_va_bus, max_va, max_va_bus)
     end
     
-    # 线路损耗信息
-    # 如果有详细的支路损耗数据，可以添加这部分
+    # Line loss information
+    # If detailed branch loss data is available, this part can be added
     if hasproperty(mpc, :branchAC) && size(mpc.branchAC, 2) >= 18
-        # 处理支路损耗数据
+        # Process branch loss data
         max_p_loss= -Inf
         max_q_loss = -Inf
         max_p_line = 0
@@ -235,13 +236,13 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
                 max_q_line = i
             end
         end
-        # 使用估计值或省略
+        # Use estimated values or omit
         @printf(f, "P Losses (I^2*R)             -                  %5.2f MW    @ line %s\n", 
         max_p_loss, string(Int(mpc.branchAC[max_p_line, 1]), "-", Int(mpc.branchAC[max_p_line, 2])))
         @printf(f, "Q Losses (I^2*X)             -                 %5.2f MVAr  @ line %s\n", 
         max_q_loss, string(Int(mpc.branchAC[max_q_line, 1]), "-", Int(mpc.branchAC[max_q_line, 2])))
     else
-        # 使用估计值或省略
+        # Use estimated values or omit
         @printf(f, "P Losses (I^2*R)             -                  %5.2f MW    @ line %s\n", 
                 0.0, "X-X")
         @printf(f, "Q Losses (I^2*X)             -                 %5.2f MVAr  @ line %s\n", 
@@ -252,7 +253,7 @@ function write_system_summary(f::IOStream, mpc::JPC, area, isolated)
 end
 
 """
-写入母线数据部分
+Write bus data section
 """
 function write_bus_data(f::IOStream, mpc::JPC, isolated)
     baseMVA = mpc.baseMVA
@@ -264,9 +265,9 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
     write(f, "  #   Mag(pu) Ang(deg)   P (MW)   Q (MVAr)   P (MW)   Q (MVAr)\n")
     write(f, "----- ------- --------  --------  --------  --------  --------\n")
     
-    # 假设我们有完整的bus数据
+    # Assuming we have complete bus data
     if hasproperty(mpc, :busAC) && size(mpc.busAC, 2) >= 9
-        # 创建发电机和负荷查找表
+        # Create generator and load lookup tables
         gen_lookup = Dict{Int, Tuple{Float64, Float64}}()
         if hasproperty(mpc, :genAC)
             for i in 1:size(mpc.genAC, 1)
@@ -296,35 +297,35 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
             end
         end
         
-        # 添加孤岛
+        # Add isolated buses
         bus_data = copy(mpc.busAC)
         for i in eachindex(isolated)
             isolated_bus = zeros(1, size(bus_data, 2))
             isolated_bus[1] = isolated[i]
-            isolated_bus[2] = 1.0  # 类型（PQ节点）
-            isolated_bus[8] = 0.0  # 默认电压幅值
-            isolated_bus[9] = 0.0  # 默认相角
+            isolated_bus[2] = 1.0  # Type (PQ node)
+            isolated_bus[8] = 0.0  # Default voltage magnitude
+            isolated_bus[9] = 0.0  # Default angle
             bus_data = vcat(bus_data, isolated_bus)
         end
         
-        # 根据母线编号对bus_data进行排序
+        # Sort bus_data by bus number
         bus_ids = bus_data[:, 1]
         sorted_indices = sortperm(bus_ids)
         bus_data = bus_data[sorted_indices, :]
 
-        # 总计
+        # Totals
         total_pg = 0.0
         total_qg = 0.0
         total_pd = 0.0
         total_qd = 0.0
         
-        # 遍历所有母线
+        # Iterate through all buses
         for i in 1:size(bus_data, 1)
             bus_id = Int(bus_data[i, 1])
             vm = bus_data[i, 8]
             va = bus_data[i, 9]
             
-            # 获取发电数据
+            # Get generation data
             pg_str = "-"
             qg_str = "-"
             if haskey(gen_lookup, bus_id)
@@ -335,7 +336,7 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
                 total_qg += qg
             end
             
-            # 获取负荷数据
+            # Get load data
             pd = 0.0
             qd = 0.0
             if haskey(load_lookup, bus_id)
@@ -344,20 +345,20 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
                 total_qd += qd
             end
             
-            # 打印母线数据
+            # Print bus data
             @printf(f, "%5d  %5.3f   %6.3f   %8s   %8s   %7.2f   %7.2f \n", 
                     bus_id, vm, va, pg_str, qg_str, pd, qd)
         end
         
-        # 打印总计
+        # Print totals
         @printf(f, "                        --------  --------  --------  --------\n")
         @printf(f, "               Total:   %7.2f   %7.2f   %7.2f   %7.2f\n", 
                 total_pg, total_qg, total_pd, total_qd)
     else
-        # 如果没有完整的bus数据，尝试从其他数据构建
+        # If complete bus data is not available, try to construct from other data
         bus_ids = Set{Int}()
         
-        # 从gen、load和branch数据中收集所有母线ID
+        # Collect all bus IDs from gen, load, and branch data
         if hasproperty(mpc, :genAC)
             for i in 1:size(mpc.genAC, 1)
                 push!(bus_ids, Int(mpc.genAC[i, 1]))
@@ -377,7 +378,7 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
             end
         end
         
-        # 创建发电机和负荷查找表
+        # Create generator and load lookup tables
         gen_lookup = Dict{Int, Tuple{Float64, Float64}}()
         if hasproperty(mpc, :genAC)
             for i in 1:size(mpc.genAC, 1)
@@ -398,19 +399,19 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
             end
         end
         
-        # 总计
+        # Totals
         total_pg = 0.0
         total_qg = 0.0
         total_pd = 0.0
         total_qd = 0.0
         
-        # 遍历所有收集到的母线ID
+        # Iterate through all collected bus IDs
         for bus_id in sort(collect(bus_ids))
-            # 假设电压数据
-            vm = 1.0  # 默认值
-            va = 0.0  # 默认值
+            # Assume voltage data
+            vm = 1.0  # Default value
+            va = 0.0  # Default value
             
-            # 获取发电数据
+            # Get generation data
             pg_str = "-"
             qg_str = "-"
             if haskey(gen_lookup, bus_id)
@@ -421,7 +422,7 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
                 total_qg += qg
             end
             
-            # 获取负荷数据
+            # Get load data
             pd = 0.0
             qd = 0.0
             if haskey(load_lookup, bus_id)
@@ -430,12 +431,12 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
                 total_qd += qd
             end
             
-            # 打印母线数据
+            # Print bus data
             @printf(f, "%5d  %5.3f   %6.3f   %8s   %8s   %7.2f   %7.2f \n", 
                     bus_id, vm, va, pg_str, qg_str, pd, qd)
         end
         
-        # 打印总计
+        # Print totals
         @printf(f, "                        --------  --------  --------  --------\n")
         @printf(f, "               Total:   %7.2f   %7.2f   %7.2f   %7.2f\n", 
                 total_pg, total_qg, total_pd, total_qd)
@@ -445,7 +446,7 @@ function write_bus_data(f::IOStream, mpc::JPC, isolated)
 end
 
 """
-写入支路数据部分
+Write branch data section
 """
 function write_branch_data(f::IOStream, mpc::JPC)
     baseMVA = mpc.baseMVA
@@ -457,13 +458,13 @@ function write_branch_data(f::IOStream, mpc::JPC)
     write(f, "  #     Bus    Bus    P (MW)   Q (MVAr)   P (MW)   Q (MVAr)   P (MW)   Q (MVAr)\n")
     write(f, "-----  -----  -----  --------  --------  --------  --------  --------  --------\n")
     
-    # 检查是否有支路数据
+    # Check if branch data is available
     if !hasproperty(mpc, :branchAC) || size(mpc.branchAC, 1) == 0
         @printf(f, "No branch data available.\n")
         return
     end
     
-    # 检查是否有支路功率流数据
+    # Check if branch power flow data is available
     has_flow_data = false
     if hasproperty(mpc, :branchAC) && size(mpc.branchAC, 2) >= 18
         has_flow_data = true
@@ -478,156 +479,155 @@ function write_branch_data(f::IOStream, mpc::JPC)
             from_bus = Int(mpc.branchAC[i, 1])
             to_bus = Int(mpc.branchAC[i, 2])
             
-            # 获取功率流数据
+            # Get power flow data
             pf = mpc.branchAC[i, 15] 
             qf = mpc.branchAC[i, 16] 
             pt = mpc.branchAC[i, 17] 
             qt = mpc.branchAC[i, 18] 
             
-            # 计算损耗
+            # Calculate losses
             p_loss = pf + pt
             
-            # 获取线路参数
+            # Get line parameters
             r = mpc.branchAC[i, 3] 
             x = mpc.branchAC[i, 4]
             
-            # 获取实际的母线电压值和相角
-            v_from = 1.0  # 默认值，如果找不到实际电压
-            v_to = 1.0    # 默认值，如果找不到实际电压
+            # Get actual bus voltage values and angles
+            v_from = 1.0  # Default value if actual voltage not found
+            v_to = 1.0    # Default value if actual voltage not found
             ang_from = 0.0
             ang_to = 0.0
             
-            # 从母线数据中查找实际电压值和相角
+            # Look up actual voltage values and angles from bus data
             if hasproperty(mpc, :busAC)
                 for j in 1:size(mpc.busAC, 1)
                     if Int(mpc.busAC[j, 1]) == from_bus
-                        v_from = mpc.busAC[j, 8]  # 使用实际电压幅值
-                        ang_from = mpc.busAC[j, 9] * pi/180  # 转换为弧度
+                        v_from = mpc.busAC[j, 8]  # Use actual voltage magnitude
+                        ang_from = mpc.busAC[j, 9] * pi/180  # Convert to radians
                     elseif Int(mpc.busAC[j, 1]) == to_bus
-                        v_to = mpc.busAC[j, 8]    # 使用实际电压幅值
-                        ang_to = mpc.busAC[j, 9] * pi/180  # 转换为弧度
+                        v_to = mpc.busAC[j, 8]    # Use actual voltage magnitude
+                        ang_to = mpc.busAC[j, 9] * pi/180  # Convert to radians
                     end
                 end
             end
             
-            # 相角差
+            # Angle difference
             angle_diff = ang_from - ang_to
             
-            # 计算线路导纳
+            # Calculate line admittance
             y = 1 / complex(r, x)
             y_abs = abs(y)
             
-            # 直接计算线路电流幅值平方
+            # Directly calculate line current magnitude squared
             i_mag_squared = (v_from^2 + v_to^2 - 2*v_from*v_to*cos(angle_diff)) * y_abs^2
             
-            # 计算无功损耗 - 使用电抗和电流平方
+            # Calculate reactive losses - using reactance and current squared
             q_loss = x * i_mag_squared * baseMVA
             
             total_p_loss += p_loss
             total_q_loss += q_loss
             
-            # 打印支路数据
+            # Print branch data
             @printf(f, "%5d  %5d  %5d  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f\n", 
                     branch_id, from_bus, to_bus, pf, qf, pt, qt, p_loss, q_loss)
         end
     else
-        # 如果没有功率流数据，只打印支路拓扑信息
+        # If power flow data is not available, only print branch topology information
         for i in 1:size(mpc.branchAC, 1)
             branch_id = i
             from_bus = Int(mpc.branchAC[i, 1])
             to_bus = Int(mpc.branchAC[i, 2])
             
-            # 打印支路数据（无功率流信息）
-                        # 打印支路数据（无功率流信息）
-                        @printf(f, "%5d  %5d  %5d  %8s  %8s  %8s  %8s  %8s  %8s\n", 
-                        branch_id, from_bus, to_bus, "-", "-", "-", "-", "-", "-")
-            end
+            # Print branch data (without power flow information)
+            @printf(f, "%5d  %5d  %5d  %8s  %8s  %8s  %8s  %8s  %8s\n", 
+                    branch_id, from_bus, to_bus, "-", "-", "-", "-", "-", "-")
         end
-        
-        # 打印总计
-        @printf(f, "                                                             --------  --------\n")
-        @printf(f, "                                                    Total:   %8.2f  %8.2f\n", 
-                total_p_loss, total_q_loss)
-        
-        write(f, "\n")
     end
     
-    """
-    从您的数据结构中提取母线数据
-    """
-    function extract_bus_data(mpc::JPC)
-        # 如果已经有bus数据，直接返回
-        if hasproperty(mpc, :busAC)
-            return mpc.busAC
-        end
-        
-        # 否则，尝试从gen、load和branch数据构建基本的bus数据
-        bus_ids = Set{Int}()
-        
-        # 从gen、load和branch数据中收集所有母线ID
-        if hasproperty(mpc, :genAC)
-            for i in 1:size(mpc.genAC, 1)
-                push!(bus_ids, Int(mpc.genAC[i, 1]))
-            end
-        end
-        
-        if hasproperty(mpc, :loadAC)
-            for i in 1:size(mpc.loadAC, 1)
-                push!(bus_ids, Int(mpc.loadAC[i, 1]))
-            end
-        end
-        
-        if hasproperty(mpc, :branchAC)
-            for i in 1:size(mpc.branchAC, 1)
-                push!(bus_ids, Int(mpc.branchAC[i, 1]))
-                push!(bus_ids, Int(mpc.branchAC[i, 2]))
-            end
-        end
-        
-        # 创建基本的bus数据矩阵
-        # 列：[bus_id, Vm, Va]
-        bus_data = zeros(length(bus_ids), 3)
-        
-        for (i, bus_id) in enumerate(sort(collect(bus_ids)))
-            bus_data[i, 1] = bus_id
-            bus_data[i, 2] = 1.0  # 默认电压幅值
-            bus_data[i, 3] = 0.0  # 默认相角
-        end
-        
-        return bus_data
+    # Print totals
+    @printf(f, "                                                             --------  --------\n")
+    @printf(f, "                                                    Total:   %8.2f  %8.2f\n", 
+            total_p_loss, total_q_loss)
+    
+    write(f, "\n")
+end
+
+"""
+Extract bus data from your data structure
+"""
+function extract_bus_data(mpc::JPC)
+    # If bus data already exists, return it directly
+    if hasproperty(mpc, :busAC)
+        return mpc.busAC
     end
     
-    """
-    将潮流计算结果格式化为MATPOWER风格的报告并保存为文本文件
-    """
-    function generate_matpower_report(mpc::JPC, area, execution_time, isolated, output_file::String="PowerFlow_report.txt")
-        # 打开文件用于写入
-        open(output_file, "w") do f
-            # 写入报告头部
-            write(f, "JUPOWER Version 0.01, $(Dates.format(now(), "dd-u-yyyy"))\n")
-            write(f, "Power Flow -- AC-polar-power formulation\n\n")
-            
-            # 写入收敛信息
-            write(f, "Newton's method converged in $(mpc.iterationsAC) iterations.\n")
-            if mpc.success
-                write(f, "PF successful\n\n")
-            else
-                write(f, "PF NOT successful\n\n")
-            end
-            
-            # 假设计算时间
-            write(f, "Converged in $(execution_time) seconds\n")
-            
-            # 系统摘要
-            write_system_summary(f, mpc, area, isolated)
-            
-            # 母线数据
-            write_bus_data(f, mpc, isolated)
-            
-            # 支路数据
-            write_branch_data(f, mpc)
+    # Otherwise, try to construct basic bus data from gen, load, and branch data
+    bus_ids = Set{Int}()
+    
+    # Collect all bus IDs from gen, load, and branch data
+    if hasproperty(mpc, :genAC)
+        for i in 1:size(mpc.genAC, 1)
+            push!(bus_ids, Int(mpc.genAC[i, 1]))
         end
-        
-        println("报告已保存至 $output_file")
     end
     
+    if hasproperty(mpc, :loadAC)
+        for i in 1:size(mpc.loadAC, 1)
+            push!(bus_ids, Int(mpc.loadAC[i, 1]))
+        end
+    end
+    
+    if hasproperty(mpc, :branchAC)
+        for i in 1:size(mpc.branchAC, 1)
+            push!(bus_ids, Int(mpc.branchAC[i, 1]))
+            push!(bus_ids, Int(mpc.branchAC[i, 2]))
+        end
+    end
+    
+    # Create basic bus data matrix
+    # Columns: [bus_id, Vm, Va]
+    bus_data = zeros(length(bus_ids), 3)
+    
+    for (i, bus_id) in enumerate(sort(collect(bus_ids)))
+        bus_data[i, 1] = bus_id
+        bus_data[i, 2] = 1.0  # Default voltage magnitude
+        bus_data[i, 3] = 0.0  # Default angle
+    end
+    
+    return bus_data
+end
+
+"""
+Format power flow calculation results as MATPOWER-style report and save to a text file
+"""
+function generate_matpower_report(mpc::JPC, area, execution_time, isolated, output_file::String="PowerFlow_report.txt")
+    # Open file for writing
+    open(output_file, "w") do f
+        # Write report header
+        write(f, "JUPOWER Version 0.01, $(Dates.format(now(), "dd-u-yyyy"))\n")
+        write(f, "Power Flow -- AC-polar-power formulation\n\n")
+        
+        # Write convergence information
+        write(f, "Newton's method converged in $(mpc.iterationsAC) iterations.\n")
+        if mpc.success
+            write(f, "PF successful\n\n")
+        else
+            write(f, "PF NOT successful\n\n")
+        end
+        
+        # Assumed calculation time
+        write(f, "Converged in $(execution_time) seconds\n")
+        
+        # System summary
+        write_system_summary(f, mpc, area, isolated)
+        
+        # Bus data
+        write_bus_data(f, mpc, isolated)
+        
+        # Branch data
+        write_branch_data(f, mpc)
+    end
+    
+    println("Report saved to $output_file")
+end
+

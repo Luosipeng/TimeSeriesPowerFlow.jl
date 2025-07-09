@@ -1,12 +1,22 @@
 """
-Read load data file
-Parameters:
-    file_path: Path to the load data Excel file
-Returns:
-    time_column: Time column
-    time_str_column: Time string column
-    load_names: List of load names
-    load_data: DataFrame containing all data
+    read_load_data(file_path)
+
+Read load time series data from an Excel file.
+
+# Arguments
+- `file_path`: Path to the Excel file containing load data
+
+# Returns
+- `time_column`: Vector containing time values from the first column
+- `time_str_column`: Vector containing time string representations from the second column
+- `load_names`: Vector of load names extracted from column headers
+- `data`: DataFrame containing the entire load dataset
+
+# Description
+This function reads load time series data from an Excel file into a DataFrame.
+It extracts the time values (first column), time string representations (second column),
+and the names of the loads from the column headers. The function returns these
+components separately along with the complete DataFrame for further processing.
 """
 function read_load_data(file_path)
     # Read Excel file into DataFrame
@@ -22,6 +32,24 @@ function read_load_data(file_path)
     return time_column, time_str_column, load_names, data
 end
 
+"""
+    read_price_data(file_path)
+
+Read electricity price time series data from an Excel file.
+
+# Arguments
+- `file_path`: Path to the Excel file containing price data
+
+# Returns
+- `time_column`: Vector containing time values from the first column
+- `time_str_column`: Vector containing time string representations from the second column
+- `data`: DataFrame containing the entire price dataset
+
+# Description
+This function reads electricity price time series data from an Excel file into a DataFrame.
+It extracts the time values (first column) and time string representations (second column).
+The function returns these components separately along with the complete DataFrame for further processing.
+"""
 function read_price_data(file_path)
     # Read Excel file into DataFrame
     data = DataFrame(XLSX.readtable(file_path, 1, header=true))
@@ -34,6 +62,24 @@ function read_price_data(file_path)
     return time_column, time_str_column, data
 end
 
+"""
+    read_irradiance_data(file_path)
+
+Read solar irradiance time series data from an Excel file.
+
+# Arguments
+- `file_path`: Path to the Excel file containing irradiance data
+
+# Returns
+- `hour_column`: Vector containing hour values from the first column
+- `time_str_column`: Vector containing time string representations from the second column
+- `data`: DataFrame containing the entire irradiance dataset
+
+# Description
+This function reads solar irradiance time series data from an Excel file into a DataFrame.
+It extracts the hour values (first column) and time string representations (second column).
+The function returns these components separately along with the complete DataFrame for further processing.
+"""
 function read_irradiance_data(file_path)
     # Read Excel file into DataFrame
     data = DataFrame(XLSX.readtable(file_path, 1, header=true))
@@ -46,6 +92,39 @@ function read_irradiance_data(file_path)
     return hour_column, time_str_column, data
 end
 
+"""
+    create_time_series_loads(case::Utils.JuliaPowerCase, data, load_names, num_days)
+
+Create time series load data for power system simulation based on input data.
+
+# Arguments
+- `case`: Power system case data structure
+- `data`: DataFrame containing load time series data
+- `load_names`: Vector of load names
+- `num_days`: Number of days to process
+
+# Returns
+- Dictionary mapping day number to load matrix for that day
+
+# Description
+This function processes time series load data and creates daily load matrices for power system simulation.
+For each day, it creates a matrix where each row represents a specific bus at a specific hour, with columns:
+[hour, bus_id, active_power, reactive_power, const_z_percent, const_i_percent, const_p_percent]
+
+The function performs the following steps:
+1. Validates that the number of time points is divisible by 24 (hours per day)
+2. Filters in-service loads from the power system case
+3. Maps load names to column indices in the input data
+4. For each day and hour:
+   - Accumulates loads connected to the same bus
+   - Calculates actual active and reactive power based on apparent power and power factor
+   - Computes weighted load characteristics (ZIP model parameters)
+   - Ensures load characteristic percentages sum to 1
+5. Returns a dictionary where keys are day numbers and values are the corresponding load matrices
+
+The function handles cases where load names in the data match or don't match those in the power system case,
+maintaining power factor and appropriately scaling loads based on the input data.
+"""
 function create_time_series_loads(case::Utils.JuliaPowerCase, data, load_names, num_days)
     # Get number of time points
     num_timepoints = size(data, 1)
@@ -243,6 +322,34 @@ function create_time_series_loads(case::Utils.JuliaPowerCase, data, load_names, 
     return day_loads
 end
 
+"""
+    create_time_series_prices(price_profiles, num_days=nothing)
+
+Create time series price data for power system economic analysis.
+
+# Arguments
+- `price_profiles`: Matrix containing electricity price data, where rows represent days and columns represent hours
+- `num_days`: Optional parameter specifying the number of days to process (defaults to all available days)
+
+# Returns
+- Dictionary mapping day number to price matrix for that day
+
+# Description
+This function processes electricity price profiles and organizes them into daily price matrices.
+For each day, it creates a matrix where each row represents a specific hour, with columns:
+[hour, price]
+
+The function performs the following steps:
+1. Determines the total number of days available in the price profiles
+2. Limits processing to the specified number of days if provided
+3. For each day and hour:
+   - Extracts the price value from the price profiles
+   - Creates a matrix with hour and price information
+4. Returns a dictionary where keys are day numbers and values are the corresponding price matrices
+
+The price profiles are expected to have a structure where the first column contains date information
+and subsequent columns (2-25) contain hourly price data.
+"""
 function create_time_series_prices(price_profiles, num_days=nothing)
     # Get number of days
     total_days = size(price_profiles, 1)
@@ -287,6 +394,34 @@ function create_time_series_prices(price_profiles, num_days=nothing)
     return day_prices
 end
 
+"""
+    create_time_series_irradiance(irradiance_profiles, num_days=nothing)
+
+Create time series solar irradiance data for renewable energy simulation.
+
+# Arguments
+- `irradiance_profiles`: Matrix containing solar irradiance data, where rows represent days and columns represent hours
+- `num_days`: Optional parameter specifying the number of days to process (defaults to all available days)
+
+# Returns
+- Dictionary mapping day number to irradiance matrix for that day
+
+# Description
+This function processes solar irradiance profiles and organizes them into daily irradiance matrices.
+For each day, it creates a matrix where each row represents a specific hour, with columns:
+[hour, irradiance]
+
+The function performs the following steps:
+1. Determines the total number of days available in the irradiance profiles
+2. Limits processing to the specified number of days if provided
+3. For each day and hour:
+   - Extracts the irradiance value from the irradiance profiles
+   - Creates a matrix with hour and irradiance information
+4. Returns a dictionary where keys are day numbers and values are the corresponding irradiance matrices
+
+The irradiance profiles are expected to have a structure where the first column contains date information
+and subsequent columns (2-25) contain hourly irradiance data.
+"""
 function create_time_series_irradiance(irradiance_profiles, num_days=nothing)
     # Get number of days
     total_days = size(irradiance_profiles, 1)
@@ -333,15 +468,38 @@ end
 
 
 """
-Process load data for all time points and perform power flow calculation
-Parameters:
-    case: powerflow system case
-    data: Load data DataFrame
-    load_names: List of load names
-    price_profiles: Price data
-    opt: Power flow calculation options
-Returns:
-    results: Power flow calculation results for all time points
+    runtdpf(case, data, load_names, price_profiles, irradiance_profiles, opt)
+
+Run time-domain power flow analysis for multiple days with varying loads, prices, and solar irradiance.
+
+# Arguments
+- `case`: Power system case data structure
+- `data`: DataFrame containing load time series data
+- `load_names`: Vector of load names
+- `price_profiles`: Matrix containing electricity price data
+- `irradiance_profiles`: Matrix containing solar irradiance data
+- `opt`: Options for power flow calculation
+
+# Returns
+- 3D array of results where dimensions represent [island, day, hour]
+
+# Description
+This function performs time-domain power flow analysis across multiple days, considering varying loads,
+electricity prices, and solar irradiance. It processes the data day by day and handles multiple grid islands.
+
+The function performs the following steps:
+1. Determines the number of days from the time series data
+2. Validates that the number of time points is divisible by 24 (hours per day)
+3. Generates daily load, price, and irradiance data using helper functions
+4. Converts the power system case to JPC format
+5. Extracts grid islands from the power system
+6. For each day and each island (in parallel):
+   - Extracts the relevant load data for the island
+   - Performs power flow calculations for each hour using the `run_single_day` function
+7. Returns a 3D array of results organized by island, day, and hour
+
+The parallel processing is implemented using Julia's threading capabilities (@threads),
+with the outer loop over days being parallelized for efficiency.
 """
 function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, opt)
     # Get number of time points and days
@@ -399,7 +557,36 @@ function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, op
     return results
 end
 
+"""
+    extract_load_matrix_by_islands(day_load_matrix, jpc_list)
 
+Extract and organize load data by power system islands.
+
+# Arguments
+- `day_load_matrix`: Matrix containing load data for a day, where rows represent loads and columns include time, bus ID, and load values
+- `jpc_list`: List of power system cases representing different islands in the network
+
+# Returns
+- `load_matrix_list`: List of load matrices, one for each island
+- `isolated_load_matrix`: Matrix containing load data for buses not belonging to any island
+
+# Description
+This function distributes load data among different power system islands based on bus IDs.
+It separates the daily load data into distinct matrices for each island in the power system.
+
+The function performs the following steps:
+1. Extracts bus IDs from the load data matrix (assumed to be in the second column)
+2. For each island in the power system:
+   - Identifies the AC buses belonging to the island
+   - Finds load data rows associated with those buses
+   - Creates a load matrix specific to that island
+   - If no loads are found for an island, creates an empty matrix with the same column structure
+3. Identifies loads on buses that don't belong to any valid island (isolated buses)
+4. Returns both the list of island-specific load matrices and the matrix for isolated loads
+
+This function is essential for distributed power flow analysis where each island 
+needs to be processed separately with its corresponding load data.
+"""
 function extract_load_matrix_by_islands(day_load_matrix, jpc_list)
     # Initialize result list to store load matrix for each island
     load_matrix_list = []

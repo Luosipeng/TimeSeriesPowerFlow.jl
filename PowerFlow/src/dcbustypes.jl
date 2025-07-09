@@ -1,3 +1,25 @@
+"""
+    dcbustypes(bus::Matrix{Float64}, gen::Matrix{Float64})
+
+Determine the types of buses in a DC power flow model.
+
+# Arguments
+- `bus`: Matrix containing bus data
+- `gen`: Matrix containing generator data
+
+# Returns
+- `ref`: Index of the reference (slack) bus
+- `p`: Indices of P buses (buses with specified power injection)
+
+# Description
+This function categorizes buses in a DC power flow model into two types:
+1. Reference/slack bus - controls the voltage angle reference
+2. P buses - buses with specified active power injection
+
+Unlike AC power flow which has three bus types (PQ, PV, slack), DC power flow
+only distinguishes between the reference bus and P buses since voltage magnitudes
+are assumed to be 1.0 per unit and reactive power is not modeled.
+"""
 function dcbustypes(bus::Matrix{Float64}, gen::Matrix{Float64})
     # constants
 

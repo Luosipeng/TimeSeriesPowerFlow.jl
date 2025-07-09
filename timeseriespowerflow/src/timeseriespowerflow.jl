@@ -1,3 +1,9 @@
+"""
+TimeSeriesPowerFlow module for power system time-domain analysis
+
+This module provides tools and functions for time-series power flow analysis,
+including dynamic dispatch, voltage profile analysis, and renewable integration.
+"""
 module TimeSeriesPowerFlow
 
     using Printf
@@ -18,7 +24,7 @@ module TimeSeriesPowerFlow
     using Plots
     
     using PowerFlow
-    # ...其他Utils目录下的文件...
+    # ...other files in Utils directory...
     const Utils = PowerFlow.Utils
     const ComponentModel = PowerFlow.Utils.ComponentModel
     using PowerFlow.Utils: load_julia_power_data, JuliaPowerCase,JPC,topology_analysis, extract_islands_acdc,JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph

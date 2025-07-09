@@ -1,3 +1,33 @@
+"""
+    plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_type = "summary", flow_direction = "max"; save_path = nothing, save_format = "pdf")
+
+Plot power flow violations in power system branches.
+
+# Arguments
+- `results`: Simulation results containing branch flow data
+- `case`: Power system case data
+- `time_day`: Number of days in the simulation
+- `flow_limit`: Power flow limit in MW (default: 3.0)
+- `plot_type`: Type of plot to generate:
+  - "summary": Overall statistics of violations
+  - "worst": Shows the worst branches with violations
+  - "all": Shows all branches with violations
+- `flow_direction`: How to evaluate flow violations:
+  - "max": Maximum absolute value of flow in either direction
+  - "both": Same as "max"
+  - "forward": Only check flow from from-bus to to-bus
+  - "reverse": Only check flow from to-bus to from-bus
+- `save_path`: Optional path to save the plot
+- `save_format`: Format to save the plot (default: "pdf")
+
+# Returns
+- `plot_result`: The generated plot
+- `violation_count`: Number of branches with violations at each time point
+- `max_violation_percent`: Maximum violation percentage at each time point
+- `total_violation_severity`: Sum of violation severity at each time point
+- `violation_details`: Detailed information about each violation
+- `branch_violation_stats`: Statistics for each branch with violations
+"""
 function plot_flow_violations(results, case, time_day, flow_limit = 3.0, plot_type = "summary", flow_direction = "max"; save_path = nothing, save_format = "pdf")
     # Ensure flow_limit is a numerical type
     flow_limit = float(flow_limit)  # Add this line to ensure flow_limit is a float

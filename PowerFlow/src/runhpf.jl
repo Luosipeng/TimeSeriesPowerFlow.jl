@@ -1,3 +1,17 @@
+"""
+    runhpf(jpc, opt)
+
+Run hybrid power flow calculation for integrated AC/DC systems.
+Iteratively solves AC and DC power flow while updating converter power exchanges.
+Supports different converter control modes.
+
+Parameters:
+- jpc: JPC object containing both AC and DC system data
+- opt: Options for power flow calculation
+
+Returns:
+- Updated JPC object with power flow results
+"""
 function runhpf(jpc, opt)
     
     # Set iteration parameters
@@ -141,7 +155,18 @@ function runhpf(jpc, opt)
     return result_jpc
 end
 
-# Update converters with mode constant δs, Us (CONV_MODE==1)
+"""
+    update_mode_1_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode constant δs, Us (CONV_MODE==1).
+These converters have fixed AC voltage angle and magnitude, and the power is calculated from AC side.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_1_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_delta_us = filter(row -> row[CONV_MODE] == 1, eachrow(result_jpc.converter))
     if !isempty(converters_delta_us)
@@ -175,7 +200,18 @@ function update_mode_1_converters!(result_jpc, jpc1, jpc2, current_power_values)
     end
 end
 
-# Update converters with mode constant Ps, Us (CONV_MODE==3)
+"""
+    update_mode_3_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode constant Ps, Us (CONV_MODE==3).
+These converters have fixed active power and AC voltage magnitude.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_3_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_ps_us = filter(row -> row[CONV_MODE] == 3, eachrow(result_jpc.converter))
     if !isempty(converters_ps_us)
@@ -209,7 +245,18 @@ function update_mode_3_converters!(result_jpc, jpc1, jpc2, current_power_values)
     end
 end
 
-# Update converters with mode constant Udc, Qs (CONV_MODE==4)
+"""
+    update_mode_4_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode constant Udc, Qs (CONV_MODE==4).
+These converters have fixed DC voltage and reactive power.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_4_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_udc_qs = filter(row -> row[CONV_MODE] == 4, eachrow(result_jpc.converter))
     if !isempty(converters_udc_qs)
@@ -240,7 +287,18 @@ function update_mode_4_converters!(result_jpc, jpc1, jpc2, current_power_values)
     end
 end
 
-# Update converters with mode constant Udc, Us (CONV_MODE==5)
+"""
+    update_mode_5_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode constant Udc, Us (CONV_MODE==5).
+These converters have fixed DC voltage and AC voltage magnitude.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_5_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_udc_us = filter(row -> row[CONV_MODE] == 5, eachrow(result_jpc.converter))
     if !isempty(converters_udc_us)
@@ -276,6 +334,18 @@ function update_mode_5_converters!(result_jpc, jpc1, jpc2, current_power_values)
     end
 end
 
+"""
+    update_mode_6_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode Droop Udc, Constant Qs (CONV_MODE==6).
+These converters use DC voltage droop control and maintain constant reactive power.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_6_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_droop_udc_qs = filter(row -> row[CONV_MODE] == 6, eachrow(result_jpc.converter))
     if !isempty(converters_droop_udc_qs)
@@ -311,6 +381,18 @@ function update_mode_6_converters!(result_jpc, jpc1, jpc2, current_power_values)
 
 end
 
+"""
+    update_mode_7_converters!(result_jpc, jpc1, jpc2, current_power_values)
+
+Update converters with mode Droop Udc, Constant Us (CONV_MODE==7).
+These converters use DC voltage droop control and maintain constant AC voltage magnitude.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- jpc2: JPC object for DC system
+- current_power_values: Dictionary to store current power values for convergence check
+"""
 function update_mode_7_converters!(result_jpc, jpc1, jpc2, current_power_values)
     converters_droop_udc_us = filter(row -> row[CONV_MODE] == 7, eachrow(result_jpc.converter))
     if !isempty(converters_droop_udc_us)
@@ -350,7 +432,18 @@ function update_mode_7_converters!(result_jpc, jpc1, jpc2, current_power_values)
     
 end
 
-# Helper function: Update DC side load
+"""
+    update_dc_load!(result_jpc, jpc2, dc_bus_id, P_dc)
+
+Helper function to update DC side load with power from converter.
+Creates a new load if none exists at the specified bus.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc2: JPC object for DC system
+- dc_bus_id: ID of the DC bus to update
+- P_dc: DC power to add to the load
+"""
 function update_dc_load!(result_jpc, jpc2, dc_bus_id, P_dc)
     dc_bus_id = Int(dc_bus_id)
     
@@ -406,7 +499,18 @@ function update_dc_load!(result_jpc, jpc2, dc_bus_id, P_dc)
     end
 end
 
-# Helper function: Update AC side load
+"""
+    update_ac_load!(result_jpc, jpc1, ac_bus_id, P_ac)
+
+Helper function to update AC side load with power from converter.
+Creates a new load if none exists at the specified bus.
+
+Parameters:
+- result_jpc: Main JPC object containing all system data
+- jpc1: JPC object for AC system
+- ac_bus_id: ID of the AC bus to update
+- P_ac: AC power to add to the load
+"""
 function update_ac_load!(result_jpc, jpc1, ac_bus_id, P_ac)
     ac_bus_id = Int(ac_bus_id)
     
@@ -439,7 +543,7 @@ function update_ac_load!(result_jpc, jpc1, ac_bus_id, P_ac)
         new_load_row[LOAD_PD] = P_ac        # Active power
         new_load_row[LOADP_PERCENT] = 1.0   # Active power percentage
         
-        # Add new load row to result_jpc's loadAC
+                # Add new load row to result_jpc's loadAC
         result_jpc.loadAC = vcat(result_jpc.loadAC, reshape(new_load_row, 1, :))
     end
     if !isempty(ac_load_rows_jpc1)
@@ -463,14 +567,29 @@ function update_ac_load!(result_jpc, jpc1, ac_bus_id, P_ac)
 end
 
 
-# Droop control helper function
+"""
+    calculate_droop_voltage(P_dc, k_p, U_dc_ref=1.0, U_dc_min=0.95, U_dc_max=1.05)
+
+Calculate DC voltage with droop control using the equation: U_dc = U_dc_ref - k_p * P_dc
+Limits the output voltage to be within specified minimum and maximum values.
+
+Parameters:
+- P_dc: DC power
+- k_p: Droop coefficient
+- U_dc_ref: Reference DC voltage (default: 1.0 p.u.)
+- U_dc_min: Minimum allowed DC voltage (default: 0.95 p.u.)
+- U_dc_max: Maximum allowed DC voltage (default: 1.05 p.u.)
+
+Returns:
+- Limited DC voltage value
+"""
 function calculate_droop_voltage(P_dc, k_p, U_dc_ref=1.0, U_dc_min=0.95, U_dc_max=1.05)
-    """
-    Calculate DC voltage with droop control
-    U_dc = U_dc_ref - k_p * P_dc
-    """
+    # Calculate DC voltage with droop control
     U_dc_droop = U_dc_ref - k_p * P_dc
+    
     # Voltage limit
     U_dc_limited = max(U_dc_min, min(U_dc_max, U_dc_droop))
+    
     return U_dc_limited
 end
+

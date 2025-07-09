@@ -1,3 +1,31 @@
+"""
+    adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
+
+Solve power flow using an adaptive damped Newton-Raphson method.
+
+This function implements a Newton-Raphson method with adaptive damping factor
+to improve convergence in difficult cases. The damping factor is automatically
+adjusted based on the mismatch norm during iterations.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix
+- `gen`: Generator data matrix
+- `load`: Load data matrix
+- `pvarray`: PV array data
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference bus index
+- `p`: Vector of bus indices
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Linear solver algorithm (optional)
+
+# Returns
+- `V`: Final voltage solution vector
+- `converged`: Boolean indicating convergence status
+- `i`: Number of iterations performed
+"""
 function adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
     tol = tol0
     max_it = max_it0
@@ -38,13 +66,13 @@ function adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref,
         dx, info = PowerFlow.julinsolve(J, -F, alg)
         # dx = J \ -F
         
-        # 创建电压更新的副本，用于测试不同阻尼因子
+        # Create a copy of voltage update for testing different damping factors
         V_temp = copy(V)
         
-        # 初始阻尼因子
+        # Initial damping factor
         damping = 1.0
         
-        # 应用初始更新并计算新的不平衡量
+        # Apply initial update and calculate new mismatch
         if np > 0
             V_temp[p] .+= damping * dx[j1:j2]
         end
@@ -53,18 +81,18 @@ function adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref,
         F_temp = real(mis_temp[p])
         new_normF = norm(F_temp, Inf)
         
-        # 自适应调整阻尼因子
-        # 如果新的不平衡量更大，则减小阻尼因子
-        min_damping = 0.1  # 最小阻尼因子限制
-        max_attempts = 5   # 最大尝试次数
+        # Adaptively adjust damping factor
+        # If new mismatch is larger, reduce damping factor
+        min_damping = 0.1  # Minimum damping factor limit
+        max_attempts = 5   # Maximum number of attempts
         attempt = 0
         
         while new_normF > normF && damping > min_damping && attempt < max_attempts
-            # 减小阻尼因子
+            # Reduce damping factor
             damping *= 0.5
             attempt += 1
             
-            # 使用新的阻尼因子重新计算
+            # Recalculate with new damping factor
             V_temp = copy(V)
             if np > 0
                 V_temp[p] .+= damping * dx[j1:j2]
@@ -75,22 +103,22 @@ function adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref,
             new_normF = norm(F_temp, Inf)
         end
         
-        # 应用最终确定的阻尼因子更新电压
+        # Apply final determined damping factor to update voltage
         if np > 0
             V[p] .+= damping * dx[j1:j2]
         end
         
-        # 评估新状态下的不平衡量
+        # Evaluate mismatch at new state
         mis = V .* conj.(Ybus * V) - PowerFlow.makeSbus(baseMVA, bus, gen, V, load, pvarray)
         F = real(mis[p])
 
-        # 检查收敛性
+        # Check convergence
         normF = norm(F, Inf)
         
-        # 可选：输出迭代信息，包括阻尼因子
+        # Optional: Output iteration information, including damping factor
         println("Iteration $i: normF = $normF, damping = $damping")
         λ_min, v_min, info = KrylovKit.eigsolve(J, 1, :SR, tol=1e-10)
-        println("最小特征值: ", λ_min[1])
+        println("Minimum eigenvalue: ", λ_min[1])
         
         if normF < tol
             converged = true

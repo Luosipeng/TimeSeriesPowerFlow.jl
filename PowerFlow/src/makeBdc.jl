@@ -1,9 +1,46 @@
+"""
+    makeBdc(baseMVA, bus, branch)
+
+Build the DC power flow matrices Bbus and Bf from bus and branch data.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix with columns representing bus parameters
+- `branch`: Branch data matrix with columns representing branch parameters
+
+# Returns
+- `Bbus`: Nodal susceptance matrix (n×n sparse matrix)
+- `Bf`: Branch susceptance matrix (nl×n sparse matrix) such that Bf*Va gives branch power injections at "from" buses
+- `Pbusinj`: Vector of bus real power injections due to phase shifters
+- `Pfinj`: Vector of branch real power injections at "from" buses due to phase shifters
+
+# Description
+This function builds the matrices necessary for DC power flow analysis:
+- Bbus is the nodal susceptance matrix, where Bbus*Va = P gives the bus power injections
+- Bf is the branch susceptance matrix, where Bf*Va gives the branch power injections at "from" buses
+- Pbusinj is the vector of bus power injections due to phase shifters
+- Pfinj is the vector of branch power injections at "from" buses due to phase shifters
+
+The DC power flow model assumes:
+1. Flat voltage profile (all voltage magnitudes = 1.0 p.u.)
+2. Small angle differences between connected buses
+3. Negligible branch resistance compared to reactance
+
+# Notes
+- Buses must be numbered consecutively starting from 1
+- Branch status, tap ratios, and phase shifters are taken into account
+- Use ext2int() to convert to internal bus numbering if needed
+
+# Constants Used (assumed to be defined elsewhere)
+- BUS_I: Column index for bus number in bus matrix
+- BR_STATUS: Column index for branch status in branch matrix
+- BR_X: Column index for branch reactance in branch matrix
+- TAP: Column index for tap ratio in branch matrix
+- F_BUS: Column index for "from" bus number in branch matrix
+- T_BUS: Column index for "to" bus number in branch matrix
+- SHIFT: Column index for phase shift in branch matrix
+"""
 function makeBdc(baseMVA, bus, branch)
-    # constants
-    (PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM,VA, 
-    BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN, PER_CONSUMER) = idx_bus();
-    (F_BUS, T_BUS, BR_R, BR_X, BR_B, RATE_A, RATE_B, RATE_C, TAP, SHIFT, BR_STATUS, ANGMIN,
-     ANGMAX, DICTKEY, PF, QF, PT, QT, MU_SF, MU_ST, MU_ANGMIN, MU_ANGMAX, LAMBDA, SW_TIME, RP_TIME, BR_TYPE, BR_AREA) = idx_brch()
     
     nb = size(bus, 1)          # number of buses
     nl = size(branch, 1)       # number of lines
@@ -42,3 +79,4 @@ function makeBdc(baseMVA, bus, branch)
 
     return Bbus, Bf, Pbusinj, Pfinj
 end
+    

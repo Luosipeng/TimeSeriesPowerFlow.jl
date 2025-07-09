@@ -1,29 +1,34 @@
 """
-从Excel工作表中提取数据
-    
-参数:
-- sheet_name::String: 工作表名称
-- sheets_data::Dict{String, DataFrame}: 包含所有工作表数据的字典
+    extract_data(sheet_name::String, sheets_data::Dict{String, DataFrame})::DataFrame
 
-返回:
-- DataFrame: 提取的数据子集
+Extract data from an Excel worksheet.
+    
+This function processes a worksheet to find and extract the valid data region,
+determining the effective number of rows and columns that contain data.
+
+# Arguments
+- `sheet_name::String`: Name of the worksheet to extract data from
+- `sheets_data::Dict{String, DataFrame}`: Dictionary containing all worksheet data
+
+# Returns
+- `DataFrame`: Extracted data subset, excluding headers
 """
 function extract_data(sheet_name::String, sheets_data::Dict{String, DataFrame})::DataFrame
 
-    # 检查工作表是否存在
+    # Check if worksheet exists
     if !haskey(sheets_data, sheet_name)
-        # @warn "工作表 '$sheet_name' 不存在"
+        # @warn "Worksheet '$sheet_name' does not exist"
         return DataFrame()
     end
     
-    # 获取当前工作表
+    # Get current worksheet
     current_sheet::DataFrame = sheets_data[sheet_name]
     
-    # 初始化计数器
+    # Initialize counters
     row_count::Int = 0
     col_count::Int = 0
     
-    # 计算有效行数
+    # Calculate effective number of rows
     sheet_rows::Int = size(current_sheet, 1)
     for row_idx in 1:sheet_rows
         if ismissing(current_sheet[row_idx, 1])
@@ -33,7 +38,7 @@ function extract_data(sheet_name::String, sheets_data::Dict{String, DataFrame}):
         row_count = row_idx
     end
     
-    # 计算有效列数
+    # Calculate effective number of columns
     sheet_cols::Int = size(current_sheet, 2)
     for col_idx in 1:sheet_cols
         if ismissing(current_sheet[1, col_idx])
@@ -43,12 +48,12 @@ function extract_data(sheet_name::String, sheets_data::Dict{String, DataFrame}):
         col_count = col_idx
     end
     
-    # 检查是否存在有效数据
+    # Check if valid data exists
     if row_count == 0 || col_count == 0
-        @warn "工作表 '$sheet_name' 中未找到有效数据"
+        @warn "No valid data found in worksheet '$sheet_name'"
         return DataFrame()
     end
     
-    # 返回截取的数据（从第二行开始，跳过表头）
+    # Return the extracted data (starting from second row, skipping headers)
     return current_sheet[2:row_count, 1:col_count]
 end

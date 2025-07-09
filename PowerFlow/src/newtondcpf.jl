@@ -1,4 +1,43 @@
-# Define the newtonpf function
+"""
+    newtondcpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
+
+Solve DC power flow using Newton's method.
+
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix
+- `gen`: Generator data matrix
+- `load`: Load data matrix
+- `pvarray`: PV array data
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference bus index
+- `p`: Vector of indices for buses to be included in the calculation
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Algorithm specification for linear solver (optional)
+
+# Returns
+- `V`: Final voltage vector solution
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+
+# Description
+This function implements the Newton-Raphson method to solve DC power flow equations.
+It iteratively updates voltage values until the power mismatch falls below the specified
+tolerance or the maximum number of iterations is reached.
+
+The algorithm:
+1. Initializes voltage values from the provided starting point
+2. Calculates initial power mismatches
+3. Constructs the Jacobian matrix for each iteration
+4. Updates voltage values using Newton's method
+5. Checks convergence based on power mismatch norm
+
+# Notes
+- The Jacobian matrix represents the partial derivatives of power with respect to voltage
+- This implementation handles both real power balance constraints
+"""
 function newtondcpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
     tol = tol0
     max_it = max_it0

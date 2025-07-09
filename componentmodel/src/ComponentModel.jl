@@ -1,5 +1,8 @@
 """
-微电网系统数据结构定义
+Microgrid System Data Structure Definitions
+
+This module defines the component model structure for microgrid systems,
+including AC/DC components, hybrid elements, and carbon emission models.
 """
 module ComponentModel
 
@@ -27,40 +30,40 @@ include("../Hybrid/Microgrids.jl")
 include("../Carbon/CarbonScenarios.jl")
 include("../Carbon/EmissionModels.jl")
 
-# 导出所有公共接口
+# Export all public interfaces
 export AbstractComponent
 
-# 基础组件
+# Basic components
 export Bus, Line, LineDC, Switch, ThreePhaseBranch, BusDC, HighVoltageCircuitBreaker
 
-# 变压器组件
-export Transformer2W, Transformer3W,Transformer2Wetap
+# Transformer components
+export Transformer2W, Transformer3W, Transformer2Wetap
 
-# 发电组件
+# Generation components
 export StaticGenerator, Generator, StaticGeneratorDC
 
-# 负荷组件
+# Load components
 export Load, AsymmetricLoad, LoadDC
 
-# 储能组件
+# Storage components
 export Storage, MobileStorage, Storageetap, StorageAC
 
-# 电网组件
+# Grid components
 export ExternalGrid, Converter
 
-# 碳排放组件
+# Carbon emission components
 export EquipmentCarbon, CarbonTimeSeries, CarbonScenario
 
-# 虚拟电厂组件
+# Virtual power plant components
 export VirtualPowerPlant, FlexLoad
 
-# 电动汽车组件
+# Electric vehicle components
 export ChargingStation, Charger, EVAggregator, V2GService
 
-# 微电网组件
+# Microgrid components
 export Microgrid
 
-# 光伏组件
+# Photovoltaic components
 export PVArray, ACPVSystem
 
-end # module MicrogridSystem
+end # module ComponentModel

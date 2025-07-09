@@ -1,3 +1,54 @@
+"""
+    record_voltage_violation(results, bus_name, case, time_day, bus_type = "AC"; save_path = nothing, save_format = "pdf")
+
+Analyze and visualize voltage violations for a specified bus in a power system.
+
+# Arguments
+- `results`: Simulation results containing bus voltage data
+- `bus_name`: Name of the bus to analyze voltage violations for
+- `case`: Power system case data
+- `time_day`: Number of days in the simulation
+- `bus_type`: Type of bus to analyze:
+  - "AC": AC bus
+  - "DC": DC bus
+- `save_path`: Optional path to save the plot
+- `save_format`: Format to save the plot (default: "pdf")
+
+# Returns
+- `p`: The generated plot showing voltage violations
+- `stats`: A named tuple containing detailed violation statistics:
+  - `bus_name`: Name of the analyzed bus
+  - `total_violations`: Total number of voltage violations
+  - `under_limit_count`: Number of violations below the lower limit
+  - `over_limit_count`: Number of violations above the upper limit
+  - `worst_under_limit`: Lowest voltage value during violations
+  - `worst_over_limit`: Highest voltage value during violations
+  - `under_limit_indices`: Time indices of under-voltage violations
+  - `over_limit_indices`: Time indices of over-voltage violations
+  - `max_under_continuous`: Maximum duration of continuous under-voltage violations
+  - `max_over_continuous`: Maximum duration of continuous over-voltage violations
+  - `max_any_continuous`: Maximum duration of any continuous violations
+  - `under_continuous_periods`: Details of continuous under-voltage violation periods
+  - `over_continuous_periods`: Details of continuous over-voltage violation periods
+  - `any_continuous_periods`: Details of all continuous violation periods
+
+# Description
+This function analyzes voltage violations for a specified bus by comparing voltage magnitude values against
+defined upper and lower limits. It identifies individual violations, continuous violation periods, and
+calculates statistics such as violation counts, maximum deviations, and longest violation durations.
+
+The function creates a comprehensive visualization showing:
+1. Voltage magnitude time series
+2. Upper and lower voltage limits
+3. Highlighted violation points
+4. Marked most severe violations
+5. Highlighted longest continuous violation periods
+6. Detailed violation statistics
+
+Additionally, the function prints detailed tables of individual violations and continuous violation periods,
+including time information, violation types, voltage values, and deviation percentages.
+"""
+
 function record_voltage_violation(results, bus_name, case, time_day, bus_type = "AC"; save_path = nothing, save_format = "pdf")
     default(fontfamily="Microsoft YaHei")
     # Create a time series voltage magnitude matrix, first column represents the node number

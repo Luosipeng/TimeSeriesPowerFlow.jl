@@ -1,28 +1,44 @@
+"""
+    find_islands(jpc::JPC)
+
+Find electrically isolated islands in an AC power system.
+
+This function identifies connected components in the power network by analyzing
+the branch connections between buses. It also identifies isolated PQ buses and
+islands that contain only PQ buses (no generators or reference buses).
+
+# Arguments
+- `jpc::JPC`: Power system case data structure
+
+# Returns
+- `Vector{Vector{Int}}`: List of islands (each containing bus IDs)
+- `Vector{Int}`: List of isolated buses (PQ buses with no connections)
+"""
 function find_islands(jpc::JPC)
-    # 获取所有母线编号
+    # Get all bus numbers
     bus_ids = jpc.busAC[:, 1]
     n_bus = length(bus_ids)
     
-    # 创建母线编号到索引的映射
+    # Create mapping from bus numbers to indices
     bus_id_to_idx = Dict{Int, Int}()
     for (idx, bus_id) in enumerate(bus_ids)
         bus_id_to_idx[Int(bus_id)] = idx
     end
     
-    # 获取母线类型索引
+    # Get bus type indices
     PQ, PV, REF = idx_bus()[1:3]
     
-    # 创建邻接矩阵
+    # Create adjacency matrix
     adj = zeros(Int, n_bus, n_bus)
     
-    # 只考虑状态为1的支路
+    # Only consider branches with status = 1
     for i in 1:size(jpc.branchAC, 1)
         branch = jpc.branchAC[i, :]
         if branch[11] == 1  # BR_STATUS = 11
             f_bus_id = Int(branch[1])
             t_bus_id = Int(branch[2])
             
-            # 使用映射获取正确的索引
+            # Use mapping to get correct indices
             f_idx = bus_id_to_idx[f_bus_id]
             t_idx = bus_id_to_idx[t_bus_id]
             
@@ -31,11 +47,11 @@ function find_islands(jpc::JPC)
         end
     end
     
-    # 使用DFS找到连通分量
+    # Use DFS to find connected components
     visited = falses(n_bus)
     groups = Vector{Vector{Int}}()
     
-    # 首先找到所有连通分量
+    # First find all connected components
     for i in 1:n_bus
         if !visited[i]
             component = Int[]
@@ -44,10 +60,10 @@ function find_islands(jpc::JPC)
             
             while !isempty(stack)
                 node_idx = pop!(stack)
-                node_id = Int(bus_ids[node_idx])  # 转换回原始母线编号
+                node_id = Int(bus_ids[node_idx])  # Convert back to original bus number
                 push!(component, node_id)
                 
-                # 检查相邻节点
+                # Check adjacent nodes
                 for neighbor_idx in 1:n_bus
                     if adj[node_idx, neighbor_idx] == 1 && !visited[neighbor_idx]
                         push!(stack, neighbor_idx)
@@ -60,32 +76,32 @@ function find_islands(jpc::JPC)
         end
     end
     
-    # 找出孤立节点和全PQ节点组
+    # Find isolated nodes and all-PQ node groups
     isolated = Int[]
     groups_to_remove = Int[]
     
-    # 检查每个组
+    # Check each group
     for (idx, group) in enumerate(groups)
         if length(group) == 1
-            # 处理单节点组
+            # Handle single-node groups
             node_id = group[1]
             node_idx = bus_id_to_idx[node_id]
             connections = sum(adj[node_idx, :])
             
-            # 找到对应的母线在jpc.busAC中的行
+            # Find the corresponding bus row in jpc.busAC
             bus_row = findfirst(x -> Int(x) == node_id, jpc.busAC[:, 1])
             bus_type = Int(jpc.busAC[bus_row, 2])
             
             if connections == 0 && bus_type == PQ
-                # 孤立的PQ节点移到isolated
+                # Isolated PQ nodes move to isolated list
                 push!(isolated, node_id)
                 push!(groups_to_remove, idx)
             end
         else
-            # 检查多节点组是否全是PQ节点
+            # Check if multi-node group consists of only PQ nodes
             all_pq = true
             for node_id in group
-                # 找到对应的母线在jpc.busAC中的行
+                # Find the corresponding bus row in jpc.busAC
                 bus_row = findfirst(x -> Int(x) == node_id, jpc.busAC[:, 1])
                 bus_type = Int(jpc.busAC[bus_row, 2])
                 
@@ -96,26 +112,47 @@ function find_islands(jpc::JPC)
             end
             
             if all_pq
-                # 如果全是PQ节点，将整个组移到isolated
+                # If all are PQ nodes, move the entire group to isolated
                 append!(isolated, group)
                 push!(groups_to_remove, idx)
             end
         end
     end
     
-    # 从后向前删除组，以避免索引变化带来的问题
+    # Delete groups from back to front to avoid index change issues
     sort!(groups_to_remove, rev=true)
     for idx in groups_to_remove
         deleteat!(groups, idx)
     end
       
-    # 返回结果
+    # Return results
     return groups, isolated
 end
 
 
+"""
+    find_islands_acdc(jpc::JPC)
+
+Find electrically isolated islands in a hybrid AC-DC power system.
+
+This function extends the island detection to handle both AC and DC subsystems,
+including converter connections between them. It identifies connected components
+across the entire network and classifies islands based on their generation capabilities.
+
+# Arguments
+- `jpc::JPC`: Power system case data structure containing both AC and DC components
+
+# Returns
+- `Vector{Vector{Int}}`: List of AC islands (each containing bus IDs)
+- `Vector{Int}`: List of isolated AC buses (PQ buses with no viable connections)
+
+# Notes
+- Islands with only PQ buses and no generation capability (either directly or through
+  DC connections) are considered isolated
+- If no DC buses exist, the function falls back to the standard AC island detection
+"""
 function find_islands_acdc(jpc::JPC)
-    # 获取所有AC和DC母线编号
+    # Get all AC and DC bus numbers
     bus_ac_ids = jpc.busAC[:, 1]
     bus_dc_ids = size(jpc.busDC, 1) > 0 ? jpc.busDC[:, 1] : Int[]
     
@@ -123,21 +160,21 @@ function find_islands_acdc(jpc::JPC)
     n_bus_dc = length(bus_dc_ids)
     n_bus_total = n_bus_ac + n_bus_dc
     
-    # 如果没有DC母线，直接使用原始的find_islands函数
+    # If there are no DC buses, use the original find_islands function
     if n_bus_dc == 0
         return find_islands(jpc)
     end
     
-    # 创建统一编号系统
+    # Create unified numbering system
     unified_ids = vcat(bus_ac_ids, bus_dc_ids)
     
-    # 创建母线编号到索引的映射
+    # Create mapping from bus numbers to indices
     bus_id_to_idx = Dict{Int, Int}()
     for (idx, bus_id) in enumerate(unified_ids)
         bus_id_to_idx[Int(bus_id)] = idx
     end
     
-    # 创建索引到原始系统（AC/DC）的映射
+    # Create mapping from indices to original system (AC/DC)
     idx_to_system = Dict{Int, Symbol}()
     for i in 1:n_bus_ac
         idx_to_system[i] = :AC
@@ -146,7 +183,7 @@ function find_islands_acdc(jpc::JPC)
         idx_to_system[i] = :DC
     end
     
-    # 创建原始编号到统一索引的映射
+    # Create mapping from original numbers to unified indices
     ac_id_to_unified_idx = Dict{Int, Int}()
     for (idx, bus_id) in enumerate(bus_ac_ids)
         ac_id_to_unified_idx[Int(bus_id)] = idx
@@ -157,20 +194,20 @@ function find_islands_acdc(jpc::JPC)
         dc_id_to_unified_idx[Int(bus_id)] = n_bus_ac + idx
     end
     
-    # 获取母线类型索引
+    # Get bus type indices
     PQ, PV, REF = idx_bus()[1:3]
     
-    # 创建邻接矩阵
+    # Create adjacency matrix
     adj = zeros(Int, n_bus_total, n_bus_total)
     
-    # 处理AC支路
+    # Process AC branches
     for i in 1:size(jpc.branchAC, 1)
         branch = jpc.branchAC[i, :]
         if branch[11] == 1  # BR_STATUS = 11
             f_bus_id = Int(branch[1])
             t_bus_id = Int(branch[2])
             
-            # 使用映射获取正确的索引
+            # Use mapping to get correct indices
             f_idx = ac_id_to_unified_idx[f_bus_id]
             t_idx = ac_id_to_unified_idx[t_bus_id]
             
@@ -179,15 +216,15 @@ function find_islands_acdc(jpc::JPC)
         end
     end
     
-    # 处理DC支路
+    # Process DC branches
     if size(jpc.branchDC, 1) > 0
         for i in 1:size(jpc.branchDC, 1)
             branch = jpc.branchDC[i, :]
-            if branch[11] == 1  # 假设DC支路也有状态字段，位置与AC相同
+            if branch[11] == 1  # Assume DC branches also have status field at same position as AC
                 f_bus_id = Int(branch[1])
                 t_bus_id = Int(branch[2])
                 
-                # 使用映射获取正确的索引
+                # Use mapping to get correct indices
                 if haskey(dc_id_to_unified_idx, f_bus_id) && haskey(dc_id_to_unified_idx, t_bus_id)
                     f_idx = dc_id_to_unified_idx[f_bus_id]
                     t_idx = dc_id_to_unified_idx[t_bus_id]
@@ -199,11 +236,11 @@ function find_islands_acdc(jpc::JPC)
         end
     end
     
-    # 处理转换器（连接AC和DC系统）
+    # Process converters (connecting AC and DC systems)
     if size(jpc.converter, 1) > 0
         for i in 1:size(jpc.converter, 1)
             converter = jpc.converter[i, :]
-            # 假设转换器默认是投运的，除非明确指定为0
+            # Assume converters are in service by default, unless explicitly set to 0
             is_active = true
             if size(converter, 1) >= 3
                 is_active = converter[3] != 0
@@ -213,7 +250,7 @@ function find_islands_acdc(jpc::JPC)
                 ac_bus_id = Int(converter[1])
                 dc_bus_id = Int(converter[2])
                 
-                # 检查这些母线是否存在
+                # Check if these buses exist
                 if haskey(ac_id_to_unified_idx, ac_bus_id) && haskey(dc_id_to_unified_idx, dc_bus_id)
                     ac_idx = ac_id_to_unified_idx[ac_bus_id]
                     dc_idx = dc_id_to_unified_idx[dc_bus_id]
@@ -225,11 +262,11 @@ function find_islands_acdc(jpc::JPC)
         end
     end
     
-    # 使用DFS找到连通分量
+    # Use DFS to find connected components
     visited = falses(n_bus_total)
     unified_groups = Vector{Vector{Int}}()
     
-    # 首先找到所有连通分量（包括AC和DC节点）
+    # First find all connected components (including AC and DC nodes)
     for i in 1:n_bus_total
         if !visited[i]
             component = Int[]
@@ -238,10 +275,10 @@ function find_islands_acdc(jpc::JPC)
             
             while !isempty(stack)
                 node_idx = pop!(stack)
-                node_id = Int(unified_ids[node_idx])  # 获取原始母线编号
-                push!(component, node_idx)  # 存储索引而不是ID
+                node_id = Int(unified_ids[node_idx])  # Get original bus number
+                push!(component, node_idx)  # Store index rather than ID
                 
-                # 检查相邻节点
+                # Check adjacent nodes
                 for neighbor_idx in 1:n_bus_total
                     if adj[node_idx, neighbor_idx] == 1 && !visited[neighbor_idx]
                         push!(stack, neighbor_idx)
@@ -254,7 +291,7 @@ function find_islands_acdc(jpc::JPC)
         end
     end
     
-    # 将统一索引转换回原始母线编号，并分离AC和DC部分
+    # Convert unified indices back to original bus numbers, and separate AC and DC parts
     groups = Vector{Vector{Int}}()
     
     for group in unified_groups
@@ -272,38 +309,38 @@ function find_islands_acdc(jpc::JPC)
         end
     end
     
-    # 找出孤立节点和全PQ节点组
+    # Find isolated nodes and all-PQ node groups
     isolated = Int[]
     groups_to_remove = Int[]
     
-    # 检查每个组
+    # Check each group
     for (idx, group) in enumerate(groups)
         if length(group) == 1
-            # 处理单节点组
+            # Handle single-node groups
             node_id = group[1]
             node_idx = ac_id_to_unified_idx[node_id]
             
-            # 检查该节点是否有连接（包括到DC系统的连接）
+            # Check if this node has connections (including to DC system)
             connections = sum(adj[node_idx, :])
             
-            # 找到对应的母线在jpc.busAC中的行
+            # Find the corresponding bus row in jpc.busAC
             bus_row = findfirst(x -> Int(x) == node_id, jpc.busAC[:, 1])
             if bus_row !== nothing
                 bus_type = Int(jpc.busAC[bus_row, 2])
                 
                 if connections == 0 && bus_type == PQ
-                    # 孤立的PQ节点移到isolated
+                    # Isolated PQ nodes move to isolated list
                     push!(isolated, node_id)
                     push!(groups_to_remove, idx)
                 end
             end
         else
-            # 检查多节点组是否全是PQ节点
+            # Check if multi-node group consists of only PQ nodes
             all_pq = true
             has_generator = false
             
             for node_id in group
-                # 找到对应的母线在jpc.busAC中的行
+                # Find the corresponding bus row in jpc.busAC
                 bus_row = findfirst(x -> Int(x) == node_id, jpc.busAC[:, 1])
                 if bus_row !== nothing
                     bus_type = Int(jpc.busAC[bus_row, 2])
@@ -314,10 +351,10 @@ function find_islands_acdc(jpc::JPC)
                     end
                 end
                 
-                # 检查是否有连接到该母线的发电机
+                # Check if there are generators connected to this bus
                 for j in 1:size(jpc.genAC, 1)
-                    gen_bus = Int(jpc.genAC[j, 1])  # 假设第二列是母线编号
-                    if gen_bus == node_id && jpc.genAC[j, 8] == 1  # 假设第8列是状态
+                    gen_bus = Int(jpc.genAC[j, 1])  # Assume column 2 is bus number
+                    if gen_bus == node_id && jpc.genAC[j, 8] == 1  # Assume column 8 is status
                         has_generator = true
                         all_pq = false
                         break
@@ -329,13 +366,13 @@ function find_islands_acdc(jpc::JPC)
                 end
             end
             
-            # 找到与该组相连的DC母线
+            # Find DC buses connected to this group
             connected_dc_buses = Set{Int}()
             for ac_bus_id in group
                 if haskey(ac_id_to_unified_idx, ac_bus_id)
                     ac_idx = ac_id_to_unified_idx[ac_bus_id]
                     
-                    # 查找与此AC节点直接相连的DC节点
+                    # Look for DC nodes directly connected to this AC node
                     for dc_idx in (n_bus_ac+1):n_bus_total
                         if adj[ac_idx, dc_idx] == 1
                             dc_bus_id = unified_ids[dc_idx]
@@ -345,11 +382,11 @@ function find_islands_acdc(jpc::JPC)
                 end
             end
             
-            # 检查这些DC母线是否有发电机
+            # Check if these DC buses have generators
             if !isempty(connected_dc_buses) && size(jpc.sgenDC, 1) > 0
                 for j in 1:size(jpc.sgenDC, 1)
-                    sgen_bus = Int(jpc.sgenDC[j, 1])  # 假设第一列是母线编号
-                    # 假设sgenDC的第3列是状态字段，如果不存在则假设为投运
+                    sgen_bus = Int(jpc.sgenDC[j, 1])  # Assume column 1 is bus number
+                    # Assume column 3 of sgenDC is status field, if not present assume in service
                     is_active = size(jpc.sgenDC, 2) >= 3 ? jpc.sgenDC[j, 3] != 0 : true
                     
                     if sgen_bus in connected_dc_buses && is_active
@@ -361,19 +398,19 @@ function find_islands_acdc(jpc::JPC)
             end
             
             if all_pq && !has_generator
-                # 如果全是PQ节点且没有发电机，将整个组移到isolated
+                # If all are PQ nodes and no generators, move the entire group to isolated
                 append!(isolated, group)
                 push!(groups_to_remove, idx)
             end
         end
     end
     
-    # 从后向前删除组，以避免索引变化带来的问题
+    # Delete groups from back to front to avoid index change issues
     sort!(groups_to_remove, rev=true)
     for idx in groups_to_remove
         deleteat!(groups, idx)
     end
       
-    # 返回结果
+    # Return results
     return groups, isolated
 end

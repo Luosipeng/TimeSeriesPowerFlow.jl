@@ -4,15 +4,69 @@ include("../../solvers/mips.jl")
 using  LinearAlgebra
 
 """
-    run_dynamic_dispatch_ipopt(new_jpc, Cld_ac, Cld_dc, loadAC_PD, loadAC_QD, loadDC_PD, genAC_PG,
-                              Cgen_ac, Cconv_ac, Cconv_dc, η_rec, η_inv, Cpv_ac, Cpv_dc,
-                              pv_ac_p_mw_ratio, pv_ac_p_mw, pv_max_p_mw, pv_max_p_mw_ratio,
-                              Cstorage_ac, ess_initial_soc, ess_max_soc, ess_min_soc,
-                              ess_power_capacity_mw, ess_energy_capacity_mwh, ess_efficiency,
+    run_dynamic_dispatch_ipopt(new_jpc, Cld_ac, Cld_dc, loadAC_PD, loadAC_QD, loadDC_PD, genAC_PG, 
+                              Cgen_ac, Cconv_ac, Cconv_dc, η_rec, η_inv, Cpv_ac, Cpv_dc, 
+                              pv_ac_p_mw_ratio, pv_ac_p_mw, pv_max_p_mw, pv_max_p_mw_ratio, 
+                              Cstorage_ac, ess_initial_soc, ess_max_soc, ess_min_soc, 
+                              ess_power_capacity_mw, ess_energy_capacity_mwh, ess_efficiency, 
                               day_price_line, num_hours=24)
 
-使用自定义内部点法求解动态调度问题，采用解析雅可比矩阵计算。
+Solve the dynamic economic dispatch problem for a hybrid AC-DC power system using the interior point method.
+
+# Arguments
+- `new_jpc`: Renumbered hybrid power system data structure
+- `Cld_ac`: AC load connection matrix
+- `Cld_dc`: DC load connection matrix
+- `loadAC_PD`: AC load active power demand (MW) over time
+- `loadAC_QD`: AC load reactive power demand (MVar) over time
+- `loadDC_PD`: DC load power demand (MW) over time
+- `genAC_PG`: AC generator active power output (MW)
+- `Cgen_ac`: AC generator connection matrix
+- `Cconv_ac`: AC side converter connection matrix
+- `Cconv_dc`: DC side converter connection matrix
+- `η_rec`: Rectifier efficiency (AC to DC conversion)
+- `η_inv`: Inverter efficiency (DC to AC conversion)
+- `Cpv_ac`: AC PV system connection matrix
+- `Cpv_dc`: DC PV system connection matrix
+- `pv_ac_p_mw_ratio`: AC PV power output ratio over time
+- `pv_ac_p_mw`: AC PV system maximum power output (MW)
+- `pv_max_p_mw`: Maximum power output of each PV system (MW)
+- `pv_max_p_mw_ratio`: PV power output ratio over time
+- `Cstorage_ac`: Energy storage system connection matrix
+- `ess_initial_soc`: Initial state of charge for energy storage systems
+- `ess_max_soc`: Maximum state of charge for energy storage systems
+- `ess_min_soc`: Minimum state of charge for energy storage systems
+- `ess_power_capacity_mw`: Power capacity of energy storage systems (MW)
+- `ess_energy_capacity_mwh`: Energy capacity of energy storage systems (MWh)
+- `ess_efficiency`: Energy storage charging/discharging efficiency
+- `day_price_line`: Electricity price data over time
+- `num_hours`: Number of hours in the optimization horizon (default: 24)
+
+# Description
+This function formulates and solves the dynamic economic dispatch problem for a hybrid AC-DC power system
+using an interior point optimization method. The objective is to minimize the total generation cost while
+satisfying power balance constraints, converter operation constraints, and energy storage operation constraints.
+
+The optimization variables include:
+- Branch power flows (Pij)
+- Generator power outputs (Pgen)
+- Converter power flows (Pij_inv, Pij_rec)
+- PV system power outputs (P_pv_mw)
+- Energy storage state of charge (soc)
+- Energy storage charging/discharging power (ess_charge, ess_discharge)
+- Energy storage operation mode (ess_mode)
+
+Key constraints include:
+- Power balance at each node for each time period
+- Converter mutual exclusivity (cannot operate in both inverter and rectifier modes simultaneously)
+- Energy storage state of charge evolution
+- Energy storage charging/discharging mutual exclusivity
+- Initial and final state of charge requirements
+
+The function returns detailed optimization results including the optimal solution, objective value,
+convergence status, and constraint violations.
 """
+
 function run_dynamic_dispatch_ipopt(new_jpc,
         Cld_ac, Cld_dc, 
         loadAC_PD, loadAC_QD,

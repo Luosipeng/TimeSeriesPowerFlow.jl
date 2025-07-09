@@ -1,3 +1,41 @@
+"""
+    renumber_hybrid_system(jpc)
+
+Renumber buses and branches in a hybrid AC-DC power system to create a more organized numbering scheme.
+
+# Arguments
+- `jpc`: A structure containing the hybrid power system data with fields:
+  - `busAC`: Matrix of AC bus data
+  - `busDC`: Matrix of DC bus data
+  - `branchAC`: Matrix of AC branch data
+  - `branchDC`: Matrix of DC branch data
+  - `converter`: Matrix of AC-DC converter data
+  - Optional fields: `loadAC`, `loadDC`, `genAC`, `genDC`, `pv`, `pv_acsystem`, `storage`
+
+# Returns
+- `new_jpc`: A structure with renumbered system data
+- `ac_node_mapping`: Dictionary mapping old AC bus numbers to new numbers
+- `dc_node_mapping`: Dictionary mapping old DC bus numbers to new numbers
+
+# Description
+This function performs a breadth-first search (BFS) based renumbering of buses in a hybrid AC-DC power system.
+Starting from the AC slack bus, it assigns new sequential numbers to buses while preserving the system topology.
+The function handles both AC and DC subsystems and their interconnections through converters.
+
+The renumbering process:
+1. Creates a unified graph representation of the hybrid system
+2. Identifies the AC slack bus as the starting point
+3. Performs BFS traversal to assign new sequential numbers
+4. Updates all component references to use the new numbering scheme
+5. Sorts components based on the new numbering for better organization
+
+The function also ensures that for branches and converters, the bus with the smaller number
+is always listed first, which helps standardize the system representation.
+
+All system components (buses, branches, converters, loads, generators, PV arrays, and storage devices)
+are updated to use the new numbering scheme, and the results are sorted for better organization.
+"""
+
 function renumber_hybrid_system(jpc)
     # Extract necessary data
     busAC = jpc.busAC

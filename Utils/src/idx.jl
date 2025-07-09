@@ -56,7 +56,7 @@ function idx_brch()
 
     ## included in opf solution, not necessarily in input
     ## assume objective function has units, u
-    MU_SF       = 29;   ## Kuhn-Tucker multiplier on MVA limit at "from" bus (u/MVA)
+    MU_SF       = 19;   ## Kuhn-Tucker multiplier on MVA limit at "from" bus (u/MVA)
     MU_ST       = 20;   ## Kuhn-Tucker multiplier on MVA limit at "to" bus (u/MVA)
     MU_ANGMIN   = 21;   ## Kuhn-Tucker multiplier lower angle difference limit (u/degree)
     MU_ANGMAX   = 22;   ## Kuhn-Tucker multiplier upper angle difference limit (u/degree)
@@ -94,22 +94,22 @@ function idx_gen()
     RAMP_30     = 19;   ## ramp rate for 30 minute reserves (MW)
     RAMP_Q      = 20;   ## ramp rate for reactive power (2 sec timescale) (MVAr/min)
     APF         = 21;   ## area participation factor
-    PW_LINEAR   = 1;   ## piecewise linear cost data, 2n pairs of real (MW) and positive real (u$/hr) (n must be less than 10)
-    POLYNOMIAL = 2;   ## polynomial cost data, p+1 coefficients (p must be less than 10)
-    MODEL       = 22;   ## generator model, 0 - model 1, 1 - model 2
-    STARTUP     = 23;   ## startup cost in US dollars
-    SHUTDOWN    = 24;   ## shutdown cost in US dollars
-    NCOST       = 25;   ## number of cost coefficients for polynomial cost function, or number of PW pairs
-    COST        = 26;   ## parameters defining total cost function f(Pg) for general model
+    PW_LINEAR   = 22;   ## piecewise linear cost data, 2n pairs of real (MW) and positive real (u$/hr) (n must be less than 10)
+    POLYNOMIAL = 23;   ## polynomial cost data, p+1 coefficients (p must be less than 10)
+    MODEL       = 24;   ## generator model, 0 - model 1, 1 - model 2
+    STARTUP     = 25;   ## startup cost in US dollars
+    SHUTDOWN    = 26;   ## shutdown cost in US dollars
+    NCOST       = 27;   ## number of cost coefficients for polynomial cost function, or number of PW pairs
+    COST        = 28;   ## parameters defining total cost function f(Pg) for general model
 
     ## included in opf solution, not necessarily in input
     ## assume objective function has units, u
-    MU_PMAX     = 27;   ## Kuhn-Tucker multiplier on upper Pg limit (u/MW)
-    MU_PMIN     = 28;   ## Kuhn-Tucker multiplier on lower Pg limit (u/MW)
-    MU_QMAX     = 29;   ## Kuhn-Tucker multiplier on upper Qg limit (u/MVAr)
-    MU_QMIN     = 30;   ## Kuhn-Tucker multiplier on lower Qg limit (u/MVAr)
+    MU_PMAX     = 29;   ## Kuhn-Tucker multiplier on upper Pg limit (u/MW)
+    MU_PMIN     = 30;   ## Kuhn-Tucker multiplier on lower Pg limit (u/MW)
+    MU_QMAX     = 31;   ## Kuhn-Tucker multiplier on upper Qg limit (u/MVAr)
+    MU_QMIN     = 32;   ## Kuhn-Tucker multiplier on lower Qg limit (u/MVAr)
 
-    GEN_AREA = 31;
+    GEN_AREA = 33;   ## area number, 1-100
     ## Note: When a generator's PQ capability curve is not simply a box and the
     ## upper Qg limit is binding, the multiplier on this constraint is split into
     ## it's P and Q components and combined with the appropriate MU_Pxxx and

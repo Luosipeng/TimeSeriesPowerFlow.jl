@@ -1,3 +1,17 @@
+"""
+    calculate_line_parameter(net, jpc, sequence, opt)
+
+Calculate line parameters for the branch matrix based on the specified sequence (positive, negative, or zero).
+
+# Arguments
+- `net`: Network data structure containing line information
+- `jpc`: MATPOWER-style power flow case structure
+- `sequence`: Sequence type (1 for positive, 2 for negative, 0 for zero sequence)
+- `opt`: Options dictionary containing power flow parameters
+
+# Returns
+- `jpc`: Updated jpc structure with branch parameters
+"""
 function calculate_line_parameter(net, jpc, sequence, opt)
 
     nbr = size(net["line"], 1)
@@ -55,6 +69,19 @@ function calculate_line_parameter(net, jpc, sequence, opt)
     return jpc
 end
 
+"""
+    calculate_line_parameter(net, jpc, opt)
+
+Calculate line parameters for the branch matrix (default implementation without sequence specification).
+
+# Arguments
+- `net`: Network data structure containing line information
+- `jpc`: MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+
+# Returns
+- `jpc`: Updated jpc structure with branch parameters
+"""
 function calculate_line_parameter(net, jpc, opt)
 
     nbr = size(net["line"], 1)
@@ -85,6 +112,19 @@ function calculate_line_parameter(net, jpc, opt)
     return jpc
 end
 
+"""
+    calculate_transformer_parameter(net, jpc, opt)
+
+Calculate transformer parameters for the branch matrix.
+
+# Arguments
+- `net`: Network data structure containing transformer information
+- `jpc`: MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+
+# Returns
+- `jpc`: Updated jpc structure with transformer branch parameters
+"""
 function calculate_transformer_parameter(net, jpc, opt)
  
     if !haskey(net, "trafo")
@@ -133,6 +173,21 @@ function calculate_transformer_parameter(net, jpc, opt)
     return jpc
 end
 
+"""
+    calc_branch_values_from_trafo_df(net, jpc, opt, trafo_df=nothing, sequence=1)
+
+Calculate branch values (r, x, g, b, etc.) from transformer dataframe.
+
+# Arguments
+- `net`: Network data structure
+- `jpc`: MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+- `trafo_df`: Optional transformer dataframe (uses net["trafo"] if not provided)
+- `sequence`: Sequence type (1 for positive, 2 for negative, 0 for zero sequence)
+
+# Returns
+- Tuple of calculated parameters: r, x, g, b, g_asym, b_asym, ratio, shift
+"""
 function calc_branch_values_from_trafo_df(net, jpc, opt, trafo_df=nothing, sequence=1)
  
     if isnothing(trafo_df)
@@ -148,29 +203,51 @@ function calc_branch_values_from_trafo_df(net, jpc, opt, trafo_df=nothing, seque
     return r, x, g, b, g_asym, b_asym, ratio, shift
 end
 
+"""
+    get_trafo_values(trafo_df, par)
 
+Extract and process values from transformer dataframe.
+
+# Arguments
+- `trafo_df`: Transformer dataframe or dictionary
+- `par`: Parameter name to extract
+
+# Returns
+- Processed parameter values
+"""
 function get_trafo_values(trafo_df, par)
-    # 获取原始值
+    # Get original values
     if isa(trafo_df, Dict)
         raw_values = trafo_df[par]
     elseif isa(trafo_df, DataFrame)
-        # 对于DataFrame类型的处理
-        raw_values = trafo_df[!, par]  # 返回整列数据
+        # For DataFrame type handling
+        raw_values = trafo_df[!, par]  # Return entire column data
     else Symbol(par) in names(trafo_df)
         raw_values = trafo_df[:, Symbol(par)]
     end
     
-    # 将字符串"NaN"转换为数值NaN，将字符串"None"转换为nothing
+    # Convert string "NaN" to numeric NaN, convert string "None" to nothing
     if isa(raw_values, Vector) || isa(raw_values, Array)
-        # 对向量或数组中的每个元素进行处理
+        # Process each element in vector or array
         return map(val -> process_value(val), raw_values)
     else
-        # 处理单个值
+        # Process single value
         return process_value(raw_values)
     end
 end
 
-# 辅助函数，处理单个值
+
+"""
+    process_value(val)
+
+Helper function to process individual values, converting strings like "NaN" to numeric NaN.
+
+# Arguments
+- `val`: Value to process
+
+# Returns
+- Processed value
+"""
 function process_value(val)
     if isa(val, String)
         if val == "NaN"
@@ -186,7 +263,18 @@ function process_value(val)
 end
 
 
-# TODO:检查函数鲁棒性
+"""
+    calc_tap_from_dataframe(net, trafo_df)
+
+Calculate tap changer parameters from transformer dataframe.
+
+# Arguments
+- `net`: Network data structure
+- `trafo_df`: Transformer dataframe
+
+# Returns
+- Tuple of (vnh, vnl, trafo_shift): high voltage, low voltage, and phase shift
+"""
 function calc_tap_from_dataframe(net, trafo_df)
     vnh = get_trafo_values(trafo_df, "vn_hv_kv")
     vnl = get_trafo_values(trafo_df, "vn_lv_kv")
@@ -204,7 +292,7 @@ function calc_tap_from_dataframe(net, trafo_df)
         tap_step_percent = get_trafo_values(trafo_df, "tap$(t)_step_percent")
         tap_step_degree = get_trafo_values(trafo_df, "tap$(t)_step_degree")
     
-        # 定义三角函数
+        # Define trigonometric functions
         cos_func(x) = cos.(deg2rad.(x))
         sin_func(x) = sin.(deg2rad.(x))
         arctan_func(x) = rad2deg.(atan.(x))
@@ -215,14 +303,14 @@ function calc_tap_from_dataframe(net, trafo_df)
             
             if "tap$(t)_dependency_table" in names(trafo_df)
                 tap_dependency_table = get_trafo_values(trafo_df, "tap_dependency_table")
-                # 替换NaN为false
+                # Replace NaN with false
                 tap_dependency_table = map(x -> (typeof(x) <: AbstractFloat && isnan(x)) ? false : x, tap_dependency_table)
             else
                 tap_table = fill(false, size(tap_changer_type))
                 tap_dependency_table = fill(false, size(tap_changer_type))
             end
             
-            # 逻辑运算
+            # Logical operations
             tap_table = tap_dependency_table .& .!(tap_changer_type .== "None")
             tap_no_table = .!tap_dependency_table .& .!(tap_changer_type .== "None")
             
@@ -236,20 +324,20 @@ function calc_tap_from_dataframe(net, trafo_df)
                 for (side, vn, direction) in [("hv", vnh, 1), ("lv", vnl, -1)]
                     mask = tap_table .& (side .== tap_side)
                     
-                    # 创建DataFrame进行过滤
+                    # Create DataFrame for filtering
                     filter_df = DataFrame(
                         id_characteristic = id_characteristic_table,
                         step = tap_pos,
                         mask = mask
                     )
                     
-                    # 过滤并合并DataFrame
+                    # Filter and join DataFrames
                     filtered_mask = filter_df[filter_df.mask, :]
                     filtered_df = innerjoin(net.trafo_characteristic_table, filtered_mask, on=[:id_characteristic, :step])
                     
                     cleaned_id_characteristic = id_characteristic_table[(.!ismissing.(id_characteristic_table)) .& mask]
                     
-                    # 创建映射字典
+                    # Create mapping dictionaries
                     voltage_mapping = Dict(zip(filtered_df.id_characteristic, filtered_df.voltage_ratio))
                     shift_mapping = Dict(zip(filtered_df.id_characteristic, filtered_df.angle_deg))
                     
@@ -346,7 +434,20 @@ function calc_tap_from_dataframe(net, trafo_df)
     return vnh, vnl, trafo_shift
 end
 
+"""
+    calc_nominal_ratio_from_dataframe(jpc, trafo_df, vn_trafo_hv, vn_trafo_lv)
 
+Calculate nominal voltage ratio from transformer dataframe.
+
+# Arguments
+- `jpc`: MATPOWER-style power flow case structure
+- `trafo_df`: Transformer dataframe
+- `vn_trafo_hv`: Transformer high voltage side nominal voltage
+- `vn_trafo_lv`: Transformer low voltage side nominal voltage
+
+# Returns
+- Nominal voltage ratio
+"""
 function calc_nominal_ratio_from_dataframe(jpc, trafo_df, vn_trafo_hv, vn_trafo_lv)
     # Call indexing function
     (PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM,VA, 
@@ -356,13 +457,30 @@ function calc_nominal_ratio_from_dataframe(jpc, trafo_df, vn_trafo_hv, vn_trafo_
     hv_bus = get_trafo_values(trafo_df, "hv_bus")
     lv_bus = get_trafo_values(trafo_df, "lv_bus")
     
-    # 注意：在Julia中，我们使用点运算符来进行向量化操作
-    # 假设BASE_KV是一个常量，表示母线电压在jpc["bus"]矩阵中的列索引
+    # Note: In Julia, we use dot operators for vectorized operations
+    # Assuming BASE_KV is a constant representing the bus voltage column index in jpc["bus"] matrix
     nom_rat = jpc["bus"][hv_bus, BASE_KV]./ jpc["bus"][lv_bus, BASE_KV]
     
     return tap_rat ./ nom_rat
 end
 
+"""
+    calc_r_x_y_from_dataframe(net, trafo_df, vn_trafo_lv, vn_lv, jpc, opt, sequence=1)
+
+Calculate resistance, reactance, and admittance parameters from transformer dataframe.
+
+# Arguments
+- `net`: Network data structure
+- `trafo_df`: Transformer dataframe
+- `vn_trafo_lv`: Transformer low voltage side nominal voltage
+- `vn_lv`: System low voltage
+- `jpc`: MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+- `sequence`: Sequence type (1 for positive, 2 for negative, 0 for zero sequence)
+
+# Returns
+- Tuple of (r, x, g, b, r_ratio, x_ratio) after wye-delta transformation
+"""
 function calc_r_x_y_from_dataframe(net, trafo_df, vn_trafo_lv, vn_lv, jpc, opt, sequence=1)
     characteristic=get(net, "characteristic", nothing)
     r, x = calc_r_x_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, opt, sequence, characteristic )
@@ -377,7 +495,24 @@ function calc_r_x_y_from_dataframe(net, trafo_df, vn_trafo_lv, vn_lv, jpc, opt, 
 
 end
 
+"""
+    calc_r_x_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, opt, sequence=1, characteristic=nothing, trafo_characteristic_table=nothing)
 
+Calculate resistance and reactance according to transformer values.
+
+# Arguments
+- `net`: Network data structure
+- `trafo_df`: Transformer dataframe
+- `vn_lv`: System low voltage
+- `vn_trafo_lv`: Transformer low voltage side nominal voltage
+- `opt`: Options dictionary containing power flow parameters
+- `sequence`: Sequence type (1 for positive, 2 for negative, 0 for zero sequence)
+- `characteristic`: Optional characteristic data
+- `trafo_characteristic_table`: Optional transformer characteristic table
+
+# Returns
+- Tuple of (r_sc, x_sc) resistance and reactance values
+"""
 function calc_r_x_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, opt, sequence=1, characteristic=nothing, trafo_characteristic_table=nothing)
     """
     Calculates (Vectorized) the resistance and reactance according to the
@@ -410,7 +545,18 @@ function calc_r_x_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, opt, sequenc
     return r_sc ./ parallel, x_sc ./ parallel
 end
 
+"""
+    get_vk_values(trafo_df, trafotype="2W")
 
+Get short-circuit voltage values from transformer dataframe.
+
+# Arguments
+- `trafo_df`: Transformer dataframe
+- `trafotype`: Transformer type ("2W" for two-winding, "3W" for three-winding)
+
+# Returns
+- Tuple of short-circuit voltage values
+"""
 function get_vk_values(trafo_df, trafotype="2W")
     if trafotype == "2W"
         vk_variables = ("vk_percent", "vkr_percent")
@@ -431,6 +577,21 @@ function get_vk_values(trafo_df, trafotype="2W")
     return vals
 end
 
+"""
+    calc_y_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, net_sn_mva)
+
+Calculate admittance values from transformer dataframe.
+
+# Arguments
+- `net`: Network data structure
+- `trafo_df`: Transformer dataframe
+- `vn_lv`: System low voltage
+- `vn_trafo_lv`: Transformer low voltage side nominal voltage
+- `net_sn_mva`: Network base power in MVA
+
+# Returns
+- Tuple of (g_pu, b_pu) conductance and susceptance values in per unit
+"""
 function calc_y_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, net_sn_mva)
 
     if net["mode"] == "3_ph_pf"
@@ -470,14 +631,30 @@ function calc_y_from_dataframe(net, trafo_df, vn_lv, vn_trafo_lv, net_sn_mva)
     return g_pu, b_pu
 end
 
+"""
+    wye_delta(r, x, g, b, r_ratio, x_ratio)
+
+Transform parameters from wye (star) to delta configuration.
+
+# Arguments
+- `r`: Resistance values
+- `x`: Reactance values
+- `g`: Conductance values
+- `b`: Susceptance values
+- `r_ratio`: Resistance ratio
+- `x_ratio`: Reactance ratio
+
+# Returns
+- Tuple of transformed parameters (r, x, g, b, g_asym, b_asym)
+"""
 function wye_delta(r, x, g, b, r_ratio, x_ratio)
     tidx = (g .!= 0) .| (b .!= 0)
-    # 创建临时数组来存储计算结果
+    # Create temporary arrays to store calculation results
     za_star = zeros(Complex{Float64}, count(tidx))
     zb_star = zeros(Complex{Float64}, count(tidx))
     zc_star = zeros(Complex{Float64}, count(tidx))
     
-    # 对满足条件的元素进行计算
+    # Calculate for elements meeting the condition
     za_star = r[tidx] .* r_ratio[tidx] .+ x[tidx] .* x_ratio[tidx] .* im
     zb_star = r[tidx] .* (1 .- r_ratio[tidx]) .+ x[tidx] .* (1 .- x_ratio[tidx]) .* im
     zc_star = 1 ./ (g[tidx] .+ im .* b[tidx])
@@ -506,6 +683,20 @@ function wye_delta(r, x, g, b, r_ratio, x_ratio)
     return r, x, g, b, g_asym, b_asym
 end
 
+"""
+    build_branch_Jpc_zero(net, jpc_new, opt, k_st = nothing)
+
+Build branch data for zero sequence model.
+
+# Arguments
+- `net`: Network data structure
+- `jpc_new`: New MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+- `k_st`: Optional correction factor
+
+# Returns
+- `jpc_new`: Updated jpc structure with zero sequence branch data
+"""
 function build_branch_Jpc_zero(net, jpc_new, opt, k_st = nothing)
  
     length = initialize_branch_length(net)
@@ -526,6 +717,17 @@ function build_branch_Jpc_zero(net, jpc_new, opt, k_st = nothing)
 
 end
 
+"""
+    initialize_branch_length(net)
+
+Initialize branch matrix length based on network elements.
+
+# Arguments
+- `net`: Network data structure
+
+# Returns
+- Total number of branches
+"""
 function initialize_branch_length(net)
     Start = 0
     End = 0
@@ -543,6 +745,16 @@ function initialize_branch_length(net)
     return End
 end
 
+"""
+    add_line_sc_impedance_zero(net, jpc, opt)
+
+Add zero sequence impedance parameters for lines to the branch matrix.
+
+# Arguments
+- `net`: Network data structure
+- `jpc`: MATPOWER-style power flow case structure
+- `opt`: Options dictionary containing power flow parameters
+"""
 function add_line_sc_impedance_zero(net, jpc, opt)
     # Call the indexing function to get the indices for the bus matrix
   
@@ -575,6 +787,17 @@ function add_line_sc_impedance_zero(net, jpc, opt)
     jpc["branch"][f:t, BR_STATUS] = line.in_service .== true
 end
 
+"""
+    add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
+
+Add zero sequence impedance parameters for transformers to the branch matrix.
+
+# Arguments
+- `net`: Network data structure
+- `jpc`: MATPOWER-style power flow case structure
+- `trafo_df`: Optional transformer dataframe (uses net["trafo"] if not provided)
+- `k_st`: Optional correction factor
+"""
 function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
 
     if !haskey(net, "trafo")
@@ -615,10 +838,10 @@ function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
 
     if !("vector_group" in names(trafo_df))
         error("Vector Group of transformer needs to be specified for zero " *
-              "sequence modelling \n Try : net.trafo[\"vector_group\"] = 'Dyn'")
+              "sequence modeling \n Try : net.trafo[\"vector_group\"] = 'Dyn'")
     end
 
-    # 按vector_group分组处理
+    # Process by vector_group
     for (vector_group, trafos) in pairs(groupby(trafo_df, :vector_group))
         (; vector_group) = vector_group
         # TODO Roman: check this/expand this
@@ -635,7 +858,7 @@ function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
         # Just put pos seq parameter if zero seq parameter is zero
         if !("vk0_percent" in names(trafos))
             error("Short circuit voltage of transformer Vk0 needs to be specified for zero " *
-                  "sequence modelling \n Try : net.trafo[\"vk0_percent\"] = net.trafo[\"vk_percent\"]")
+                  "sequence modeling \n Try : net.trafo[\"vk0_percent\"] = net.trafo[\"vk_percent\"]")
         end
         
         vk0_percent = all(convert.(Float64, trafos.vk0_percent) .!= 0.0) ? 
@@ -645,7 +868,7 @@ function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
         # Just put pos seq parameter if zero seq parameter is zero
         if !("vkr0_percent" in names(trafos))
             error("Real part of short circuit voltage Vk0(Real) needs to be specified for transformer " *
-                  "modelling \n Try : net.trafo[\"vkr0_percent\"] = net.trafo[\"vkr_percent\"]")
+                  "modeling \n Try : net.trafo[\"vkr0_percent\"] = net.trafo[\"vkr_percent\"]")
         end
         
         vkr0_percent = all(convert.(Float64, trafos.vkr0_percent) .!= 0.0) ? 
@@ -659,21 +882,21 @@ function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
         
         if !("mag0_percent" in names(trafos))
             error("Magnetizing impedance to vk0 ratio needs to be specified for transformer " *
-                  "modelling  \n Try : net.trafo[\"mag0_percent\"] = 100")
+                  "modeling  \n Try : net.trafo[\"mag0_percent\"] = 100")
         end
         
         mag0_ratio = convert.(Float64, trafos.mag0_percent)
         
         if !("mag0_rx" in names(trafos))
             error("Magnetizing impedance R/X ratio needs to be specified for transformer " *
-                  "modelling \n Try : net.trafo[\"mag0_rx\"] = 0 ")
+                  "modeling \n Try : net.trafo[\"mag0_rx\"] = 0 ")
         end
         
         mag0_rx = convert.(Float64, trafos.mag0_rx)
         
         if !("si0_hv_partial" in names(trafos))
             error("Zero sequence short circuit impedance partition towards HV side needs to be specified " *
-                  "for transformer modelling \n Try : net.trafo[\"si0_hv_partial\"] = 0.9 ")
+                  "for transformer modeling \n Try : net.trafo[\"si0_hv_partial\"] = 0.9 ")
         end
         
         si0_hv_partial = convert.(Float64, trafos.si0_hv_partial)
@@ -733,7 +956,7 @@ function add_trafo_sc_impedance_zero(net, jpc, trafo_df=nothing, k_st=nothing)
         # y0_k = 1 / (z0_k * k_st_tr + 3j * z_n_ohm)  # adding admittance for "pi" model
 
         # =============================================================================
-        #       Transformer magnetising impedance for zero sequence
+        #       Transformer magnetizing impedance for zero sequence
         # =============================================================================
         z_m = z_sc .* mag0_ratio
         x_m = z_m ./ sqrt.(mag0_rx.^2 .+ 1)

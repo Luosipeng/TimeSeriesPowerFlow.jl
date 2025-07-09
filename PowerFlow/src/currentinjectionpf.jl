@@ -1,4 +1,35 @@
-# Define the current injection method function
+"""
+    currentinjectionpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
+
+Solve power flow using the Current Injection method, particularly suitable for resistive networks.
+
+# Arguments
+- `baseMVA`: Base MVA for power system normalization
+- `bus`: Matrix containing bus data
+- `gen`: Matrix containing generator data
+- `load`: Matrix containing load data
+- `pvarray`: Array of PV bus information
+- `Ybus`: Bus admittance matrix
+- `V0`: Initial voltage vector
+- `ref`: Reference (slack) bus index
+- `p`: Array of PQ bus indices
+- `tol0`: Convergence tolerance
+- `max_it0`: Maximum number of iterations
+- `alg`: Algorithm variant (optional)
+
+# Returns
+- `V`: Final complex voltage vector solution
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+
+# Description
+This function implements the Current Injection power flow method, which is particularly
+effective for networks with high R/X ratios (resistive networks). The method works by:
+1. Converting power injections to current injections
+2. Calculating current mismatches
+3. Solving for voltage updates using the real part of the admittance matrix
+4. Iterating until convergence or maximum iterations reached
+"""
 function currentinjectionpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
     tol = tol0
     max_it = max_it0

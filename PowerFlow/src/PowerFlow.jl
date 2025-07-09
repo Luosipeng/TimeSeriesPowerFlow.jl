@@ -29,15 +29,15 @@ module PowerFlow
     using Test
     # using KrylovPreconditioners
     # using different packages based on the operating system
-    # ...其他component_models目录下的文件...
+    # ...other files in component_models directory...
     
-    # ...其他Utils目录下的文件...
+    # ...other files in Utils directory...
     # include(joinpath(dirname(@__DIR__), "Utils","Utils.jl"))
     using Utils
     using Utils: JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
     const ComponentModel = Utils.ComponentModel
 
-    # ... 其他直接在 src 下的文件 ...
+    # ... other files directly under src ...
 
     include(joinpath(@__DIR__,"bustypes.jl"))
     # include(joinpath(@__DIR__,"ext2int.jl"))
@@ -86,9 +86,9 @@ module PowerFlow
     include(joinpath(@__DIR__,"runupf.jl"))
 
 
-    # ... 其他 models 目录下的文件 ...
+    # ... other files in models directory ...
 
-    # ... 其他 test 目录下的文件 ...
+    # ... other files in test directory ...
     # include(joinpath(dirname(@__DIR__), "test","lindistflow_inverter_evaluate.jl"))
     # include(joinpath(dirname(@__DIR__), "test","ac_element_validate.jl"))
     # include(joinpath(dirname(@__DIR__), "test","dc_element_validate.jl"))
@@ -98,7 +98,7 @@ module PowerFlow
     # include(joinpath(dirname(@__DIR__), "test","resultcompare.jl"))
     # include(joinpath(dirname(@__DIR__), "test", "loadflow_result_ETAP.jl"))
     # include(joinpath(dirname(@__DIR__), "test","acdccompare.jl"))
-    # # ... 其他 ios 目录下的文件 ...
+    # # ... other files in ios directory ...
     # include(joinpath(dirname(@__DIR__), "ios","matlab2julia.jl"))
     # include(joinpath(dirname(@__DIR__), "ios","ETAPImporter.jl"))
 

@@ -2,6 +2,71 @@ using  JuMP
 using  Ipopt
 using  Gurobi
 
+"""
+    run_dynamic_dispatch(new_jpc, Cld_ac, Cld_dc, loadAC_PD, loadAC_QD, loadDC_PD, genAC_PG,
+                        Cgen_ac, Cconv_ac, Cconv_dc, η_rec, η_inv, Cpv_ac, Cpv_dc,
+                        pv_ac_p_mw_ratio, pv_ac_p_mw, pv_max_p_mw, pv_max_p_mw_ratio,
+                        Cstorage_ac, ess_initial_soc, ess_max_soc, ess_min_soc,
+                        ess_power_capacity_mw, ess_energy_capacity_mwh, ess_efficiency,
+                        day_price_line, num_hours=24)
+
+Solve the dynamic economic dispatch problem for a hybrid AC-DC power system using JuMP with Ipopt solver.
+
+# Arguments
+- `new_jpc`: Renumbered hybrid power system data structure
+- `Cld_ac`: AC load connection matrix
+- `Cld_dc`: DC load connection matrix
+- `loadAC_PD`: AC load active power demand (MW) over time
+- `loadAC_QD`: AC load reactive power demand (MVar) over time
+- `loadDC_PD`: DC load power demand (MW) over time
+- `genAC_PG`: AC generator active power output (MW)
+- `Cgen_ac`: AC generator connection matrix
+- `Cconv_ac`: AC side converter connection matrix
+- `Cconv_dc`: DC side converter connection matrix
+- `η_rec`: Rectifier efficiency (AC to DC conversion)
+- `η_inv`: Inverter efficiency (DC to AC conversion)
+- `Cpv_ac`: AC PV system connection matrix
+- `Cpv_dc`: DC PV system connection matrix
+- `pv_ac_p_mw_ratio`: AC PV power output ratio over time
+- `pv_ac_p_mw`: AC PV system maximum power output (MW)
+- `pv_max_p_mw`: Maximum power output of each PV system (MW)
+- `pv_max_p_mw_ratio`: PV power output ratio over time
+- `Cstorage_ac`: Energy storage system connection matrix
+- `ess_initial_soc`: Initial state of charge for energy storage systems
+- `ess_max_soc`: Maximum state of charge for energy storage systems
+- `ess_min_soc`: Minimum state of charge for energy storage systems
+- `ess_power_capacity_mw`: Power capacity of energy storage systems (MW)
+- `ess_energy_capacity_mwh`: Energy capacity of energy storage systems (MWh)
+- `ess_efficiency`: Energy storage charging/discharging efficiency
+- `day_price_line`: Electricity price data over time
+- `num_hours`: Number of hours in the optimization horizon (default: 24)
+
+# Description
+This function formulates and solves the dynamic economic dispatch problem for a hybrid AC-DC power system
+using the JuMP optimization framework with Ipopt as the solver. The objective is to minimize the total 
+generation cost while satisfying power balance constraints, converter operation constraints, and energy 
+storage operation constraints.
+
+The optimization variables include:
+- Branch power flows (Pij)
+- Generator power outputs (Pgen)
+- Converter power flows (Pij_inv, Pij_rec)
+- PV system power outputs (P_pv_mw)
+- Energy storage state of charge (soc)
+- Energy storage charging/discharging power (ess_charge, ess_discharge)
+- Energy storage operation mode (ess_mode)
+
+Key constraints include:
+- Power balance at each node for each time period
+- Converter mutual exclusivity (handled via penalty term in objective function)
+- Energy storage state of charge evolution
+- Energy storage charging/discharging mutual exclusivity
+- Initial and final state of charge requirements
+
+The function returns a dictionary containing the optimization status, objective value, and optimal values
+for all decision variables.
+"""
+
 function run_dynamic_dispatch(new_jpc,
         Cld_ac, Cld_dc, 
         loadAC_PD, loadAC_QD,
@@ -225,6 +290,36 @@ function run_dynamic_dispatch(new_jpc,
     end
 end
 
+"""
+    build_incidence_matrix_td(n_nodes, branchAC, branchDC, converter)
+
+Build the incidence matrix for a hybrid AC-DC power system.
+
+# Arguments
+- `n_nodes`: Total number of nodes in the system
+- `branchAC`: Matrix containing AC branch data, with columns for from/to buses
+- `branchDC`: Matrix containing DC branch data, with columns for from/to buses
+- `converter`: Matrix containing converter data, with columns for AC/DC bus connections
+
+# Returns
+- `A`: Incidence matrix where rows represent branches and columns represent nodes
+- `branch_data`: Vector of tuples containing (from_node, to_node, branch_type, original_index)
+  where branch_type is 1 for AC branches, 2 for DC branches, and 3 for converters
+
+# Description
+This function constructs the node-branch incidence matrix for a hybrid AC-DC power system.
+The incidence matrix A has dimensions (n_branches × n_nodes) where n_branches is the total
+number of branches (AC branches + DC branches + converters) and n_nodes is the total number
+of nodes in the system.
+
+For each branch connecting nodes i and j:
+- A[branch, i] = 1 (outflow from node i is positive)
+- A[branch, j] = -1 (inflow to node j is negative)
+
+The function also returns branch_data, which provides information about each branch including
+its start and end nodes, type (AC, DC, or converter), and its original index in the input data.
+Branches are sorted by their starting node for consistent ordering.
+"""
 function build_incidence_matrix_td(n_nodes, branchAC, branchDC, converter)
     # Calculate total number of branches
     n_branches = size(branchAC, 1) + size(branchDC, 1) + size(converter, 1)
