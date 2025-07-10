@@ -60,8 +60,8 @@ If you use TSPF.jl in your research, please cite:
 ```bibtex
 @software{TSPF2023,
   author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
-  title = {TSPF.jl: A Time Series Prediction Framework in Julia},
-  year = {2023},
+  title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
+  year = {2025},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
 ```

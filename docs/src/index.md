@@ -135,7 +135,7 @@ If you use TSPF.jl in your research, please cite:
 @misc{TSPF.jl,
   author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
   title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
-  year = {2023},
+  year = {2025},
   publisher = {GitHub},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
