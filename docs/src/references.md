@@ -6,8 +6,8 @@ If you use TSPF.jl in your research, please use the following citation format:
 
 ```bibtex
 @software{TSPF2025,
-  author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
-  title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
+  author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
+  title = {TSPF.jl: a Julia package for time series power flow analysis},
   year = {2025},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }

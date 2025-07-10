@@ -5,7 +5,7 @@
 TSPF.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
 
 ## 1. Features
-## Features
+### Features
 
 - **Integration of PF and OPF**: Using relaxed OPF to bridge time-varying loads and generation profiles with ESS status, integrating VSC power allocation into Power Flow calculations
 - **Customizable Simulation Environment**: Comprehensive parameter customization including irradiance data, electricity prices, load profiles, and flexible network topology configuration
@@ -13,18 +13,18 @@ TSPF.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong Univer
 - **Advanced VSC Control Framework**: Implementation of seven control modes (voltage, reactive power, droop control, etc.) with corresponding solution algorithms
 - **Flexible Case Management**: Support for both externally imported and internally generated case studies with complete data structures
 
-## Project Structure
+### Project Structure
 
 TSPF.jl contains four main modules:
 
-- **TSPF**: Power system component modeling
+- **ComponentModel**: Power system component modeling
 - **Utils**: General utility functions
 - **PowerFlow**: AC/DC hybrid power flow calculation
 - **TimeSeriesPowerFlow**: Time series power flow analysis
 
 ## 2. Installation
 
-## Installation
+### Installation
 
 You can install this package through Julia's package manager:
 
@@ -42,7 +42,7 @@ Pkg.add(url="https://github.com/Luosipeng/TSPF.jl.git")
 
 ## 3. Quick Start Example
 
-## Quick Start
+### Quick Start
 Here's a simple example showing how to use TSPF.jl to run the time series power flow:
 
 ```julia
@@ -97,7 +97,7 @@ voltage_results = get_bus_voltage_results_acdc(results, new_case)
 
 ## 4. Documentation Structure
 
-## Documentation Structure
+### Documentation Structure
 
 This documentation is divided into the following sections:
 
@@ -117,24 +117,24 @@ This documentation is divided into the following sections:
 
 ## 5. Contribution and License Information
 
-## Contribution
+### Contribution
 
 Contributions to TSPF.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TSPF.jl/blob/master/CONTRIBUTING.md) for more information.
 
-## License
+### License
 
 TSPF.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPF.jl/blob/master/LICENSE).
 
 ## 6. Citation Information
 
-## Citation
+### Citation
 
 If you use TSPF.jl in your research, please cite:
 
 ```bibtex
 @software{TSPF2025,
-  author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
-  title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
+  author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
+  title = {TSPF.jl: a Julia package for time series power flow analysis},
   year = {2025},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
