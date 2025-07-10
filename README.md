@@ -6,7 +6,7 @@
 
 ## Description
 
-TSPF.jl is a Julia package for Time Series Prediction Framework that provides efficient algorithms and tools for time series analysis, forecasting, and prediction.
+TSPF.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
 
 ## Installation
 
@@ -33,11 +33,11 @@ Comprehensive documentation is available online:
 
 ## Features
 
-- Time series preprocessing and feature extraction
-- Multiple forecasting algorithms
-- Model evaluation and comparison tools
-- Visualization utilities
-- Support for univariate and multivariate time series
+- **Integration of PF and OPF**: Using relaxed OPF to bridge time-varying loads and generation profiles with ESS status, integrating VSC power allocation into Power Flow calculations
+- **Customizable Simulation Environment**: Comprehensive parameter customization including irradiance data, electricity prices, load profiles, and flexible network topology configuration
+- **Comprehensive Renewable Energy Models**: Validated mathematical models for energy storage, photovoltaic generation, and VSCs for reliable distribution network analysis
+- **Advanced VSC Control Framework**: Implementation of seven control modes (voltage, reactive power, droop control, etc.) with corresponding solution algorithms
+- **Flexible Case Management**: Support for both externally imported and internally generated case studies with complete data structures
 
 ## Contributing
 
@@ -59,7 +59,7 @@ If you use TSPF.jl in your research, please cite:
 
 ```bibtex
 @software{TSPF2023,
-  author = {Luosipeng},
+  author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
   title = {TSPF.jl: A Time Series Prediction Framework in Julia},
   year = {2023},
   url = {https://github.com/Luosipeng/TSPF.jl}

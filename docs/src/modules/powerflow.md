@@ -289,6 +289,7 @@ PowerFlow.process_result(results, case, opt)
 ### Hybrid Power Flow
 
 The module supports hybrid power flow for integrated AC/DC systems with various converter control modes:
+- Vθ control
 - PQ control
 - PV control
 - Vdc-Q control

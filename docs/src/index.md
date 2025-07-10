@@ -2,17 +2,16 @@
 
 *Time Series Power Flow Analysis Tool*
 
-TSPF.jl is a Julia package for distribution system simulation design. It provides AC/DC hybrid power flow calculation and time series power flow calculation functions for power systems that support the access of photovoltaic, energy storage and VSC equipment.
+TSPF.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
 
-## 2. Features
+## 1. Features
 ## Features
 
-- **Complete Components Model**: AC system models, DC system models, Hybrid models and carbon emission models, etc.
-- **Complete case structure**: JuliaPowerCase, JPC
-- **Independent functional Module**: TSPF, Utils, PowerFlow, TimeSeriesPowerFlow
-- **DOPF Fusion**: Using relaxed OPF to bridge time varying loads and generation profiles on the energy status of ESSs
-- **Multi Control Mode Aggregation**: Support 7 VSC control modes
-- **Aggregation of externally input and internally generated studies**: Support external input cases and internal generated cases
+- **Integration of PF and OPF**: Using relaxed OPF to bridge time-varying loads and generation profiles with ESS status, integrating VSC power allocation into Power Flow calculations
+- **Customizable Simulation Environment**: Comprehensive parameter customization including irradiance data, electricity prices, load profiles, and flexible network topology configuration
+- **Comprehensive Renewable Energy Models**: Validated mathematical models for energy storage, photovoltaic generation, and VSCs for reliable distribution network analysis
+- **Advanced VSC Control Framework**: Implementation of seven control modes (voltage, reactive power, droop control, etc.) with corresponding solution algorithms
+- **Flexible Case Management**: Support for both externally imported and internally generated case studies with complete data structures
 
 ## Project Structure
 
@@ -23,7 +22,7 @@ TSPF.jl contains four main modules:
 - **PowerFlow**: AC/DC hybrid power flow calculation
 - **TimeSeriesPowerFlow**: Time series power flow analysis
 
-## 3. Installation
+## 2. Installation
 
 ## Installation
 
@@ -41,7 +40,7 @@ using Pkg
 Pkg.add(url="https://github.com/Luosipeng/TSPF.jl.git")
 ```
 
-## 4. Quick Start Example
+## 3. Quick Start Example
 
 ## Quick Start
 Here's a simple example showing how to use TSPF.jl to run the time series power flow:
@@ -96,7 +95,7 @@ results = (value=results_array, time=elapsed)
 voltage_results = get_bus_voltage_results_acdc(results, new_case)
 ```
 
-## 5. Documentation Structure
+## 4. Documentation Structure
 
 ## Documentation Structure
 
@@ -114,7 +113,9 @@ This documentation is divided into the following sections:
   - [PowerFlow API](api/powerflow.md): API document of PowerFlow.jl
   - [TimeSeriesPowerFlow API](api/timeseriespowerflow.md): API document of TimeSeriesPowerFlow.jl
 
-## 6. Contribution and License Information
+- **[References](references.md)**: Citation information for TSPF.jl and acknowledgments of referenced works and dependencies
+
+## 5. Contribution and License Information
 
 ## Contribution
 
@@ -124,7 +125,7 @@ Contributions to TSPF.jl are welcome! Please refer to the [Contribution Guidelin
 
 TSPF.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPF.jl/blob/master/LICENSE).
 
-## 7. Citation Information
+## 6. Citation Information
 
 ## Citation
 
@@ -132,7 +133,7 @@ If you use TSPF.jl in your research, please cite:
 
 ```bibtex
 @misc{TSPF.jl,
-  author = {Luosipeng},
+  author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
   title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
   year = {2023},
   publisher = {GitHub},

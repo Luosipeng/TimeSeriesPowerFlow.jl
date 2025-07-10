@@ -12,6 +12,52 @@ If you use TSPF.jl in your research, please use the following citation format:
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
 ```
+## Referenced Code and Inspirations
+
+TSPF.jl was developed with inspiration from and reference to the following open source projects:
+
+### MATPOWER
+An open-source MATLAB package for power system simulation and optimization.
+
+```bibtex
+@article{zimmerman2011matpower,
+  title = {MATPOWER: Steady-State Operations, Planning and Analysis Tools for Power Systems Research and Education},
+  author = {Zimmerman, Ray D and Murillo-S{\'a}nchez, Carlos E and Thomas, Robert J},
+  journal = {IEEE Transactions on Power Systems},
+  volume = {26},
+  number = {1},
+  pages = {12--19},
+  year = {2011},
+  doi = {10.1109/TPWRS.2010.2051168}
+}
+```
+```bibtex
+@software{zimmerman2024matpower,
+  author = {Zimmerman, Ray D and Murillo-S{\'a}nchez, Carlos E},
+  title = {MATPOWER},
+  version = {8.0},
+  year = {2024},
+  url = {https://matpower.org},
+  doi = {10.5281/zenodo.11212330}
+}
+```
+
+### PandaPower
+An easy to use open source tool for power system modeling, analysis and optimization with a high degree of automation.
+
+```bibtex
+@ARTICLE{pandapower.2018,
+    author={L. Thurner and A. Scheidler and F. Sch{\"a}fer and J. Menke and J. Dollichon and F. Meier and S. Meinecke and M. Braun},
+    journal={IEEE Transactions on Power Systems},
+    title={pandapower — An Open-Source Python Tool for Convenient Modeling, Analysis, and Optimization of Electric Power Systems},
+    year={2018},
+    month={Nov},
+    volume={33},
+    number={6},
+    pages={6510-6521},
+    doi={10.1109/TPWRS.2018.2829021},
+    ISSN={0885-8950}}
+```
 
 ## External Packages
 
@@ -22,11 +68,15 @@ TSPF.jl relies on several external packages. We acknowledge and thank the contri
 A Julia interface to the AMD library of Amestoy, Davis and Duff.
 
 ```bibtex
-@misc{amd2023,
-  author = {Montoison},
+@software{montoison2020amd,
+  author = {Montoison, Alexis and Orban, Dominique and Siqueira, Abel S. and contributors},
   title = {AMD.jl: A Julia interface to the AMD library of Amestoy, Davis and Duff},
-  year = {2023},
-  url = {https://github.com/JuliaSmoothOptimizers/AMD.jl}
+  year = {2020},
+  month = {5},
+  day = {3},
+  url = {https://github.com/JuliaSmoothOptimizers/AMD.jl},
+  doi = {10.5281/zenodo.3381898},
+  version = {0.4.0}
 }
 ```
 
@@ -91,7 +141,63 @@ A powerful graph analysis tool in Julia
   url = {https://github.com/JuliaGraphs/Graphs.jl/}
 }
 ```
+### LinearOperator
 
+A Julia Linear Operator Package
+
+```bibtex
+@software{leconte2023linearoperators,
+  title = {LinearOperators.jl: Linear Operators for Julia},
+  author = {Leconte, Geoffroy and Orban, Dominique and Soares Siqueira, Abel and contributors},
+  year = {2023},
+  month = {12},
+  day = {11},
+  version = {2.6.0},
+  doi = {10.5281/zenodo.2559295},
+  url = {https://github.com/JuliaSmoothOptimizers/LinearOperators.jl},
+  keywords = {Linear Algebra, Julia, Matrix Factorization},
+  license = {MPL-2.0}
+}
+```
+
+### Krylov
+
+A Julia basket of hand-picked Krylov methods
+
+```bibtex
+@article{montoison2023krylov,
+  title = {Krylov.jl: A Julia basket of hand-picked {Krylov} methods},
+  author = {Montoison, Alexis and Orban, Dominique},
+  journal = {Journal of Open Source Software},
+  volume = {8},
+  number = {89},
+  pages = {5187},
+  year = {2023},
+  month = {9},
+  day = {26},
+  publisher = {Open Journals},
+  doi = {10.21105/joss.05187},
+  url = {https://joss.theoj.org/papers/10.21105/joss.05187},
+  issn = {2475-9066}
+}
+```
+
+### KrylovKit
+
+A Julia package collecting a number of Krylov-based algorithms for linear problems, singular value and eigenvalue problems and the application of functions of linear maps or operators to vectors.
+
+```bibtex
+@software{haegeman2024krylovkit,
+  author = {Haegeman, Jutho},
+  title = {KrylovKit},
+  version = {0.7.0},
+  year = {2024},
+  month = {3},
+  day = {14},
+  doi = {10.5281/zenodo.10622234},
+  url = {https://github.com/Jutho/KrylovKit.jl}
+}
+```
 
 ## Note on Julia Standard Libraries
 
