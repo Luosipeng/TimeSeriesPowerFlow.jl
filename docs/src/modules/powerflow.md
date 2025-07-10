@@ -6,7 +6,7 @@ The PowerFlow module provides comprehensive power flow analysis capabilities for
 
 ## Flow Chart
 
-![PowerFlow flow chart](../assets/powerflow.png)
+![PowerFlow flow chart](../assets/powerFlow.png)
 
 ## Core Features
 
