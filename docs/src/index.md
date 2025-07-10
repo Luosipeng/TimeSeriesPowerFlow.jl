@@ -118,11 +118,11 @@ This documentation is divided into the following sections:
 
 ## Contribution
 
-Contributions to TSPF.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TSPF.jl/blob/main/CONTRIBUTING.md) for more information.
+Contributions to TSPF.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TSPF.jl/blob/master/CONTRIBUTING.md) for more information.
 
 ## License
 
-TSPF.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPF.jl/blob/main/LICENSE).
+TSPF.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPF.jl/blob/master/LICENSE).
 
 ## 7. Citation Information
 

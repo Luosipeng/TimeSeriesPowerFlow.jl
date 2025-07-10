@@ -22,6 +22,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Module" => [
+            "Overview" => "modules/overview.md",
             "ComponentModel" => "modules/componentmodel.md",
             "Utils" => "modules/utils.md",
             "PowerFlow" => "modules/powerflow.md",
