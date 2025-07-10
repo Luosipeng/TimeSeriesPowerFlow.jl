@@ -5,9 +5,9 @@
 If you use TSPF.jl in your research, please use the following citation format:
 
 ```bibtex
-@misc{luo2025tspf,
-  author = {Luo, Sipeng},
-  title = {TSPF.jl: A Julia Package for Time Series Power Flow Analysis},
+@software{TSPF2025,
+  author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
+  title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
   year = {2025},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
@@ -198,11 +198,6 @@ A Julia package collecting a number of Krylov-based algorithms for linear proble
   url = {https://github.com/Jutho/KrylovKit.jl}
 }
 ```
-
-## Note on Julia Standard Libraries
-
-This package also uses the following standard libraries that are part of Julia:
-- Dates: Julia's standard library for working with dates and time
 
 ## Acknowledgments
 
