@@ -40,9 +40,9 @@ opt["PF"]["DC_PREPROCESS"] = 0;      # Enable DC power flow preprocessing
 # Run time-series power flow calculation and measure execution time
 @time results = runtdpf(new_case, data, load_names, price_profiles, irradiance_profiles, opt)
 
-# 获取电压结果并绘图
+# get the voltage results for all nodes
 plot_result = plot_voltage_time_series(results, "Bus_21", new_case, 366, "AC"; save_path="voltage_plot")
-# plot_PD_time_series(results, "Bus_大刀沙村2号直流", case, 30, "DC")
+# plot_PD_time_series(results, "Bus_21", case, 30, "DC")
 plot_result, violation_stats = record_voltage_violation(results, "Bus_21", new_case, 366, "AC", save_path="voltage_violation_analysis")
 
 # # Plot and analyze system losses (active power losses in both AC and DC networks)

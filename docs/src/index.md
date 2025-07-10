@@ -52,47 +52,40 @@ push!(LOAD_PATH, "/path/to/TSPF")
 # Import modules
 using TSPF
 
+# Input Data
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
+load_path = joinpath(pwd(), "data", "load.xlsx")  
+price_path = joinpath(pwd(), "data", "price.xlsx")  
+irradiance_path = joinpath(pwd(), "data", "irradiance.xlsx")  
 
+# Process Data
 case = load_julia_power_data(file_path)
+time_column, time_str_column, load_names, data = read_load_data(load_path) 
+time_column, time_str_column, price_profiles = read_price_data(price_path)  
+time_column, time_str_column, irradiance_profiles = read_irradiance_data(irradiance_path) 
 
 # Topology processing
 results, new_case = topology_analysis(case, output_file="topology_results.xlsx")
 
-# View results
-println("Found ", nrow(results["cycles"]), " cycles")
-println("Network is divided into ", length(unique(results["nodes"].Partition)), " partitions")
+# Clear existing storage data and add a new battery storage system
+empty!(new_case.storageetap)
+push!(new_case.storages, Storage(1, "Battery_ESS_1", 3, 0.75, 1.5, 0.3, 0.05, 0.95, 0.9, true, "lithium_ion", true))
 
-jpc = JuliaPowerCase2Jpc(new_case)
+# Set control mode for converters to Droop_Udc_Us (voltage droop control)
+new_case.converters[3].control_mode = "Droop_Udc_Us"
+new_case.converters[2].control_mode = "Droop_Udc_Us"
+new_case.converters[1].control_mode = "Droop_Udc_Us"
 
 opt = options() # The initial settings 
 opt["PF"]["NR_ALG"] = "bicgstab";
 opt["PF"]["ENFORCE_Q_LIMS"] = 0;
 opt["PF"]["DC_PREPROCESS"] = 1;
 
-jpc_list, isolated = extract_islands_acdc(jpc)
-n_islands = length(jpc_list)
-println("Extracted $(n_islands) islands in total")
-
-# Create results array
-results_array = Vector{Any}(undef, n_islands)
-
-println("Starting multi-threaded calculation...")
-t_start = time()
-
-# Use multi-threading to calculate power flow for each island
-@threads for i in 1:n_islands
-    results_array[i] = runhpf(jpc_list[i], opt)
-end
-
-t_end = time()
-elapsed = t_end - t_start
-
-# Construct result similar to @timed return
-results = (value=results_array, time=elapsed)
+# Run time-series power flow calculation and measure execution time
+@time results = runtdpf(new_case, data, load_names, price_profiles, irradiance_profiles, opt)
 
 # # Get voltage results for all nodes
-voltage_results = get_bus_voltage_results_acdc(results, new_case)
+plot_result = plot_voltage_time_series(results, "Bus_21", new_case, 366, "AC"; save_path="voltage_plot")
 ```
 
 ## 4. Documentation Structure
