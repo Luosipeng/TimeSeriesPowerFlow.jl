@@ -35,6 +35,7 @@ makedocs(
             "TimeSeriesPowerFlow API" => "api/timeseriespowerflow.md",
             "TSPF API" => "api/tspf.md",
         ],
+        "References" => "references.md",
     ],
 )
 
