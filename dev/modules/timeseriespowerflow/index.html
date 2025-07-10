@@ -26,7 +26,39 @@ end</code></pre><h2 id="Flow-Chart"><a class="docs-heading-anchor" href="#Flow-C
 using XLSX
 using DataFrames
 using Base.Filesystem
-# Additional imports...
+using TSPF
 
-# Test script implementation
-# ...</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../powerflow/">« PowerFlow</a><a class="docs-footer-nextpage" href="../../api/componentmodel/">ComponentModel API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.0 on <span class="colophon-date" title="Thursday 10 July 2025 11:37">Thursday 10 July 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+# Input Data
+file_path = joinpath(pwd(), &quot;data&quot;, &quot;test_case.xlsx&quot;)
+load_path = joinpath(pwd(), &quot;data&quot;, &quot;load.xlsx&quot;)  
+price_path = joinpath(pwd(), &quot;data&quot;, &quot;price.xlsx&quot;)  
+irradiance_path = joinpath(pwd(), &quot;data&quot;, &quot;irradiance.xlsx&quot;)  
+
+# Process Data
+case = load_julia_power_data(file_path)
+time_column, time_str_column, load_names, data = read_load_data(load_path) 
+time_column, time_str_column, price_profiles = read_price_data(price_path)  
+time_column, time_str_column, irradiance_profiles = read_irradiance_data(irradiance_path) 
+
+# Topology processing
+results, new_case = topology_analysis(case, output_file=&quot;topology_results.xlsx&quot;)
+
+# Clear existing storage data and add a new battery storage system
+empty!(new_case.storageetap)
+push!(new_case.storages, Storage(1, &quot;Battery_ESS_1&quot;, 3, 0.75, 1.5, 0.3, 0.05, 0.95, 0.9, true, &quot;lithium_ion&quot;, true))
+
+# Set control mode for converters to Droop_Udc_Us (voltage droop control)
+new_case.converters[3].control_mode = &quot;Droop_Udc_Us&quot;
+new_case.converters[2].control_mode = &quot;Droop_Udc_Us&quot;
+new_case.converters[1].control_mode = &quot;Droop_Udc_Us&quot;
+
+opt = options() # The initial settings 
+opt[&quot;PF&quot;][&quot;NR_ALG&quot;] = &quot;bicgstab&quot;;
+opt[&quot;PF&quot;][&quot;ENFORCE_Q_LIMS&quot;] = 0;
+opt[&quot;PF&quot;][&quot;DC_PREPROCESS&quot;] = 1;
+
+# Run time-series power flow calculation and measure execution time
+@time results = runtdpf(new_case, data, load_names, price_profiles, irradiance_profiles, opt)
+
+# # Get voltage results for all nodes
+plot_result = plot_voltage_time_series(results, &quot;Bus_21&quot;, new_case, 366, &quot;AC&quot;; save_path=&quot;voltage_plot&quot;)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../powerflow/">« PowerFlow</a><a class="docs-footer-nextpage" href="../../api/componentmodel/">ComponentModel API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.0 on <span class="colophon-date" title="Thursday 10 July 2025 11:56">Thursday 10 July 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
