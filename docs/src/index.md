@@ -132,11 +132,10 @@ TSPF.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPF.jl
 If you use TSPF.jl in your research, please cite:
 
 ```bibtex
-@misc{TSPF.jl,
-  author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
+@software{TSPF2025,
+  author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
   title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
   year = {2025},
-  publisher = {GitHub},
   url = {https://github.com/Luosipeng/TSPF.jl}
 }
 ```

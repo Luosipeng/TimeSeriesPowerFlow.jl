@@ -58,7 +58,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 If you use TSPF.jl in your research, please cite:
 
 ```bibtex
-@software{TSPF2023,
+@software{TSPF2025,
   author = {sipeng Luo,Tianyang Zhao,Chaohong Bie},
   title = {TSPF.jl: a Julia package for distribution system dynamic power flow},
   year = {2025},
