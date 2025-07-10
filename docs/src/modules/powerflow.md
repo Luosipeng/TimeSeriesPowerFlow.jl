@@ -270,7 +270,7 @@ Defines default settings for power flow calculations including:
 using PowerFlow
 
 # Load case data
-case = load_case("case14.m")
+case = case3()
 
 # Set options
 opt = PowerFlow.settings()
