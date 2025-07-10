@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [deps]
 AMD = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
-ComponentModel = "4b24ec6f-2e34-4333-9ec3-c9a09eea52b5"
+ComponentModel = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

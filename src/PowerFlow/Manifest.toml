@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.4"
 manifest_format = "2.0"
 project_hash = "ff8ea5771f6e8eb6d9b952966e894efcd6ddf1ab"
 
@@ -117,10 +117,10 @@ deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
 
-[[deps.Component_Model]]
+[[deps.ComponentModel]]
 deps = ["DataFrames", "Dates", "SparseArrays"]
-path = "c:\\Users\\13733\\Desktop\\Code_script\\DistributionPowerFlow\\Component_Model"
-uuid = "4b24ec6f-2e34-4333-9ec3-c9a09eea52b5"
+path = "../ComponentModel"
+uuid = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
 version = "0.1.0"
 
 [[deps.ConcurrentUtilities]]
@@ -662,7 +662,7 @@ version = "0.3.27+1"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.1+4"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -1077,8 +1077,8 @@ uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
 
 [[deps.Utils]]
-deps = ["AMD", "Component_Model", "DataFrames", "DataStructures", "Dates", "Graphs", "IncompleteLU", "IterativeSolvers", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "Test", "XLSX"]
-path = "c:\\Users\\13733\\Desktop\\Code_script\\DistributionPowerFlow\\Utils"
+deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Graphs", "IterativeSolvers", "LinearAlgebra", "LinearOperators", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
+path = "../Utils"
 uuid = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"
 version = "0.1.0"
 

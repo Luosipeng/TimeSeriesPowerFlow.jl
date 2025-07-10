@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "584c35ca130b5917675453a31c265adfaef73958"
+project_hash = "f7f2574da3a812a1562769825aba61df3317e4a9"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -152,7 +152,7 @@ version = "1.1.1+0"
 [[deps.ComponentModel]]
 deps = ["DataFrames", "Dates", "SparseArrays"]
 path = "src/ComponentModel"
-uuid = "4b24ec6f-2e34-4333-9ec3-c9a09eea52b5"
+uuid = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
 version = "0.1.0"
 
 [[deps.ConcurrentUtilities]]
