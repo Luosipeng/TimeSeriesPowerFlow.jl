@@ -1,24 +1,24 @@
 using Documenter
-using TSPF
-# using TSPF.PowerFlow
-# using TSPF.Utils
-# using TSPF.TimeSeriesPowerFlow
+using TSPflow
+# using TSPflow.PowerFlow
+# using TSPflow.Utils
+# using TSPflow.TimeSeriesPowerFlow
 # 设置 DocMeta
-DocMeta.setdocmeta!(TSPF, :DocTestSetup, :(using TSPF); recursive=true)
+DocMeta.setdocmeta!(TSPflow, :DocTestSetup, :(using TSPflow); recursive=true)
 
 # 生成文档
 makedocs(
-    sitename = "TSPF.jl",
+    sitename = "TSPflow.jl",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
-        repolink = "https://github.com/Luosipeng/TSPF.jl.git",
-        canonical = "https://Luosipeng.github.io/TSPF.jl",
+        repolink = "https://github.com/Luosipeng/TSPflow.jl.git",
+        canonical = "https://Luosipeng.github.io/TSPflow.jl",
         assets = ["assets/favicon.ico"],
         sidebar_sitename = false,
     ),
-    modules = [TSPF],
+    modules = [TSPflow],
     authors = "Luosipeng",
-    repo = "github.com/Luosipeng/TSPF.jl/blob/{commit}{path}#L{line}",
+    repo = "github.com/Luosipeng/TSPflow.jl/blob/{commit}{path}#L{line}",
     pages = [
         "Home" => "index.md",
         "Module" => [
@@ -33,7 +33,7 @@ makedocs(
             "Utils API" => "api/utils.md",
             "PowerFlow API" => "api/powerflow.md",
             "TimeSeriesPowerFlow API" => "api/timeseriespowerflow.md",
-            "TSPF API" => "api/tspf.md",
+            "TSPflow API" => "api/tspflow.md",
         ],
         "References" => "references.md",
     ],
@@ -42,6 +42,6 @@ makedocs(
 
 # 部署文档
 deploydocs(
-    repo = "github.com/Luosipeng/TSPF.jl.git",
+    repo = "github.com/Luosipeng/TSPflow.jl.git",
     devbranch = "master",
 )

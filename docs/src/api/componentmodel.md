@@ -1,7 +1,7 @@
 # API Reference
 
 ```@meta
-CurrentModule = TSPF
+CurrentModule = TSPflow
 ```
 
 ## AC Components

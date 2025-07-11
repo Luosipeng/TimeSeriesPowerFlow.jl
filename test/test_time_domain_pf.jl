@@ -2,7 +2,7 @@ using  Dates
 using  XLSX
 using  DataFrames
 using  Base.Threads
-using  TSPF
+using  TSPflow
 
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 

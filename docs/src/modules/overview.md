@@ -1,10 +1,10 @@
-# TSPF Framework Overview
+# TSPflow Framework Overview
 
-TSPF is a comprehensive power system analysis framework developed in Julia, focusing on modeling, simulation, and optimization of modern power systems. The framework supports traditional AC systems, DC systems, and hybrid AC/DC systems analysis, providing rich tools to address modern power system challenges including renewable energy integration, carbon emission assessment, and time-series analysis.
+TSPflow is a comprehensive power system analysis framework developed in Julia, focusing on modeling, simulation, and optimization of modern power systems. The framework supports traditional AC systems, DC systems, and hybrid AC/DC systems analysis, providing rich tools to address modern power system challenges including renewable energy integration, carbon emission assessment, and time-series analysis.
 
 ## Framework Structure
 
-The TSPF framework consists of four core modules, each focusing on different aspects of power system analysis:
+The TSPflow framework consists of four core modules, each focusing on different aspects of power system analysis:
 
 1. **ComponentModel** - Power system component modeling
 2. **Utils** - Utility tools and helper functions
@@ -84,7 +84,7 @@ The TimeSeriesPowerFlow module extends traditional power flow analysis to handle
 
 ## Application Scenarios
 
-The TSPF framework is suitable for various power system analysis scenarios:
+The TSPflow framework is suitable for various power system analysis scenarios:
 
 1. **Traditional Power System Analysis** - Power flow calculation, fault analysis, and stability studies
 2. **Renewable Energy Integration** - Assessing the impact of renewable sources like PV and wind on the system
@@ -102,7 +102,7 @@ The TSPF framework is suitable for various power system analysis scenarios:
 
 ## Usage Example
 
-Below is an example of using the TSPF framework for basic power flow analysis:
+Below is an example of using the TSPflow framework for basic power flow analysis:
 
 ```julia
 using ComponentModel
@@ -147,4 +147,4 @@ PowerFlow.process_result(results, case, opt)
 
 ## Conclusion
 
-The TSPF framework provides a comprehensive and efficient solution for modeling, simulating, and optimizing modern power systems. By combining Julia's high-performance characteristics with advanced power system analysis algorithms, the framework can handle a wide range of challenges from traditional AC systems to complex hybrid AC/DC systems. Whether for basic research, education, or engineering applications, TSPF provides powerful and flexible tools to meet the needs of power system analysis.
+The TSPflow framework provides a comprehensive and efficient solution for modeling, simulating, and optimizing modern power systems. By combining Julia's high-performance characteristics with advanced power system analysis algorithms, the framework can handle a wide range of challenges from traditional AC systems to complex hybrid AC/DC systems. Whether for basic research, education, or engineering applications, TSPflow provides powerful and flexible tools to meet the needs of power system analysis.

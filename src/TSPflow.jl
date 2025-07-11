@@ -3,7 +3,7 @@ TSPF
 
 Time Series Power Flow module for power system analysis.
 """
-module TSPF
+module TSPflow
     using XLSX
     using DataFrames
     using Base.Threads

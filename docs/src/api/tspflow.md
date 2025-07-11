@@ -1,13 +1,13 @@
 # API Reference
 
 ```@docs
-TSPF.TSPF
+TSPflow.TSPflow
 ```
 
 ## Core Module
 
 ```@autodocs
-Modules = [TSPF]
+Modules = [TSPflow]
 Pages   = ["ComponentModel.jl","Utils.jl","PowerFlow.jl","TimeSeriesPowerFlow.jl"]
 Order   = [:type, :function, :macro, :constant]
 ```
