@@ -4,7 +4,6 @@ TSPF
 Time Series Power Flow module for power system analysis.
 """
 module TSPF
-    using TimeSeriesPowerFlow
     using XLSX
     using DataFrames
     using Base.Threads
@@ -12,22 +11,35 @@ module TSPF
     using DataStructures
     using Dates
 
+    include("TimeSeriesPowerFlow/src/TimeSeriesPowerFlow.jl")
+
+    using .TimeSeriesPowerFlow
+
+
     const Utils = TimeSeriesPowerFlow.Utils
     const ComponentModel = TimeSeriesPowerFlow.ComponentModel
     const PowerFlow = TimeSeriesPowerFlow.PowerFlow
 
-    using Utils: load_julia_power_data, JuliaPowerCase,JPC,topology_analysis, extract_islands_acdc,JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph,extract_islands_acdc,extract_islands
-    using TimeSeriesPowerFlow: read_load_data, read_price_data, read_irradiance_data,create_time_series_loads,create_time_series_prices,create_time_series_irradiance,extract_load_matrix_by_islands
-    using Utils:idx_brch, idx_bus, idx_gen, idx_dcbus, idx_ld, idx_hvcb, idx_microgrid, idx_pv,idx_conv, idx_ess, idx_jpc_3ph,idx_ev, idx_pv_acsystem
-    using PowerFlow: options,runhpf,runpf,rundcpf,get_bus_voltage_results_acdc,analyze_voltage_results,process_result
-    using ComponentModel: AbstractComponent, Bus, Line, LineDC, Switch, BusDC, HighVoltageCircuitBreaker,Transformer2W, Transformer3W, Transformer2Wetap
-    using ComponentModel: StaticGenerator, Generator, StaticGeneratorDC,Load, AsymmetricLoad, LoadDC
-    using ComponentModel: Storage, MobileStorage, Storageetap, StorageAC
-    using ComponentModel: ExternalGrid, Converter
-    using ComponentModel: EquipmentCarbon, CarbonTimeSeries, CarbonScenario
-    using ComponentModel: VirtualPowerPlant, FlexLoad
-    using ComponentModel: ChargingStation, Charger, EVAggregator, V2GService
-    using ComponentModel: Microgrid,PVArray, ACPVSystem
+    using .Utils:idx_brch, idx_bus, idx_gen, idx_dcbus, idx_ld, idx_hvcb, idx_microgrid, idx_pv,idx_conv, idx_ess, idx_jpc_3ph,idx_ev, idx_pv_acsystem
+    using .Utils: load_julia_power_data, JuliaPowerCase, JPC, topology_analysis, extract_islands_acdc, JuliaPowerCase2Jpc, JuliaPowerCase2Jpc_3ph, extract_islands_acdc, extract_islands, create_virtual_node
+    using .Utils: topology_analysis, create_virtual_connection, is_switch_element, extract_data, filter_active_edges, identify_partitions, find_path_to_lca, ext2int
+    using .Utils: safe_get_value, create_node_mapping, count_switch_ports, is_substation, dfs_tree, parse_bool, int2ext
+    using .Utils: write_results_with_partitions, create_and_plot_graph_by_partition, generate_partition_report, process_switch_nodes, get_edge_endpoints, update_edge_ids, extract_edges_from_case, find_fundamental_cycles, load_vpps!
+    using .TimeSeriesPowerFlow: read_load_data, read_price_data, read_irradiance_data, create_time_series_loads, create_time_series_prices, create_time_series_irradiance, extract_load_matrix_by_islands
+    using .PowerFlow: build_gen, calculate_bus, process_value, xor, dc_preprocess, process_pv_acsystem, init_gen, calc_r_x_from_dataframe, add_trafo_sc_impedance_zero
+    using .PowerFlow: dSbus_dV, eliminate_element, bustypes, calculate_transformer_parameter, wye_delta, add_grid_external_sc_impedance
+    using .PowerFlow: calc_r_x_y_from_dataframe, initialize_branch_length, add_gen_order, dcbustypes, add_element_to_gen, calc_tap_from_dataframe
+    using .PowerFlow: get_trafo_values, dcpf, calc_nominal_ratio_from_dataframe, build_branch_Jpc_zero, calc_branch_values_from_trafo_df
+    using .PowerFlow: calc_y_from_dataframe, add_line_sc_impedance_zero, calculate_line_parameter, get_vk_values, makeBdc
+    using .PowerFlow: options, runhpf, runpf, rundcpf, get_bus_voltage_results_acdc, analyze_voltage_results, process_result, _build_pp_ext_grid
+    using .ComponentModel: AbstractComponent, Bus, Line, LineDC, Switch, BusDC, HighVoltageCircuitBreaker, Transformer2W, Transformer3W, Transformer2Wetap
+    using .ComponentModel: StaticGenerator, Generator, StaticGeneratorDC, Load, AsymmetricLoad, LoadDC
+    using .ComponentModel: Storage, MobileStorage, Storageetap, StorageAC
+    using .ComponentModel: ExternalGrid, Converter
+    using .ComponentModel: EquipmentCarbon, CarbonTimeSeries, CarbonScenario
+    using .ComponentModel: VirtualPowerPlant, FlexLoad
+    using .ComponentModel: ChargingStation, Charger, EVAggregator, V2GService
+    using .ComponentModel: Microgrid, PVArray, ACPVSystem
 
 
     # ... export other indexes defined in idx.jl ...
@@ -94,28 +106,45 @@ module TSPF
     const EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA = idx_ev()
     export EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA
 
-    export  read_load_data,read_price_data,read_irradiance_data
-    export runtdpf, run_dynamic_dispatch, run_single_day,plot_voltage_time_series,plot_PD_time_series
+    export read_load_data, read_price_data, read_irradiance_data
+    export runtdpf, run_dynamic_dispatch, run_single_day, plot_voltage_time_series, plot_PD_time_series
     export record_voltage_violation, plot_losses_time_series, plot_flow_violations, 
-        get_bus_voltage_results_acdc,analyze_voltage_results,process_result
+        get_bus_voltage_results_acdc, analyze_voltage_results, process_result
 
     export topology_analysis, options, runhpf, runpf, rundcpf
     export load_julia_power_data
-    export JuliaPowerCase2Jpc, JuliaPowerCase2Jpc_3ph,extract_islands_acdc,extract_islands
-    export create_time_series_loads,create_time_series_prices,create_time_series_irradiance,extract_load_matrix_by_islands
+    export JuliaPowerCase, JPC, JuliaPowerCase2Jpc, JuliaPowerCase2Jpc_3ph, extract_islands_acdc, extract_islands
+    export create_time_series_loads, create_time_series_prices, create_time_series_irradiance, extract_load_matrix_by_islands
 
-    export AbstractComponent, Bus, Line, LineDC, Switch, BusDC, HighVoltageCircuitBreaker,Transformer2W, Transformer3W, Transformer2Wetap
-    export StaticGenerator, Generator, StaticGeneratorDC,Load, AsymmetricLoad, LoadDC
+    export AbstractComponent, Bus, Line, LineDC, Switch, BusDC, HighVoltageCircuitBreaker, Transformer2W, Transformer3W, Transformer2Wetap
+    export StaticGenerator, Generator, StaticGeneratorDC, Load, AsymmetricLoad, LoadDC
     export Storage, MobileStorage, Storageetap, StorageAC
     export ExternalGrid, Converter
     export EquipmentCarbon, CarbonTimeSeries, CarbonScenario
     export VirtualPowerPlant, FlexLoad
     export ChargingStation, Charger, EVAggregator, V2GService
-    export Microgrid,PVArray, ACPVSystem
+    export Microgrid, PVArray, ACPVSystem
+
+    export create_virtual_node, create_virtual_connection, is_switch_element, extract_data, filter_active_edges
+    export identify_partitions, find_path_to_lca, ext2int, safe_get_value, create_node_mapping
+    export count_switch_ports, is_substation, dfs_tree, parse_bool, int2ext
+    export write_results_with_partitions, create_and_plot_graph_by_partition, generate_partition_report
+    export process_switch_nodes, get_edge_endpoints, update_edge_ids, extract_edges_from_case, find_fundamental_cycles
+    export load_vpps!
+
+    export build_gen, calculate_bus, process_value, xor, dc_preprocess, process_pv_acsystem, init_gen
+    export calc_r_x_from_dataframe, add_trafo_sc_impedance_zero, dSbus_dV, eliminate_element
+    export bustypes, calculate_transformer_parameter, wye_delta, add_grid_external_sc_impedance
+    export calc_r_x_y_from_dataframe, initialize_branch_length, add_gen_order, dcbustypes
+    export add_element_to_gen, calc_tap_from_dataframe, get_trafo_values, dcpf
+    export calc_nominal_ratio_from_dataframe, build_branch_Jpc_zero, calc_branch_values_from_trafo_df
+    export calc_y_from_dataframe, add_line_sc_impedance_zero, calculate_line_parameter, get_vk_values, makeBdc
+    export _build_pp_ext_grid
 
     export ComponentModel
     export Utils
     export PowerFlow
     export TimeSeriesPowerFlow
+
 end
 

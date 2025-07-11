@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "f7f2574da3a812a1562769825aba61df3317e4a9"
+project_hash = "44b336370372ee351c0cc74d747e7ff9c90041c5"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -148,12 +148,6 @@ weakdeps = ["Dates", "LinearAlgebra"]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
-
-[[deps.ComponentModel]]
-deps = ["DataFrames", "Dates", "SparseArrays"]
-path = "src/ComponentModel"
-uuid = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
-version = "0.1.0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -757,9 +751,9 @@ version = "0.1.2"
 
 [[deps.MathOptInterface]]
 deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "DataStructures", "ForwardDiff", "JSON3", "LinearAlgebra", "MutableArithmetics", "NaNMath", "OrderedCollections", "PrecompileTools", "Printf", "SparseArrays", "SpecialFunctions", "Test"]
-git-tree-sha1 = "2f2c18c6acab9042557bdb0af8c3a14dd7b64413"
+git-tree-sha1 = "1251fce78b907fe415a2f680291b67cf51360d2a"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "1.41.0"
+version = "1.42.0"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
@@ -939,12 +933,6 @@ deps = ["DataAPI", "Future"]
 git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
 uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
 version = "1.4.3"
-
-[[deps.PowerFlow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "IncompleteLU", "IterativeSolvers", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "Test", "Utils", "XLSX"]
-path = "src/PowerFlow"
-uuid = "c5956ac0-0e7c-433f-a167-1e414f239e52"
-version = "0.1.0"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1227,12 +1215,6 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
-[[deps.TimeSeriesPowerFlow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "Ipopt", "JuMP", "LinearAlgebra", "LinearOperators", "Plots", "PowerFlow", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
-path = "src/TimeSeriesPowerFlow"
-uuid = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
-version = "0.1.0"
-
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
 git-tree-sha1 = "3748bd928e68c7c346b52125cf41fff0de6937d0"
@@ -1298,12 +1280,6 @@ version = "1.7.0"
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
-
-[[deps.Utils]]
-deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Graphs", "IterativeSolvers", "LinearAlgebra", "LinearOperators", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
-path = "src/Utils"
-uuid = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"
-version = "0.1.0"
 
 [[deps.VectorInterface]]
 deps = ["LinearAlgebra"]

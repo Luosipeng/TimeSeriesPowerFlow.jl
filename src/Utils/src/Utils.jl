@@ -23,8 +23,9 @@ module Utils
     using DataStructures  
     using Dates
 
-    # include(joinpath(dirname(@__DIR__), "Component_Model","Component_Model.jl"))
-    using ComponentModel
+    include("../../ComponentModel/src/ComponentModel.jl")
+
+    using .ComponentModel
 
     # main module
     include(joinpath(@__DIR__,"idx.jl"))
@@ -110,4 +111,5 @@ module Utils
     export ext2int, int2ext, find_islands, extract_islands, topology_analysis
     export find_islands_acdc, extract_islands_acdc
     export load_julia_power_data, convert_matpower_case
+    
 end

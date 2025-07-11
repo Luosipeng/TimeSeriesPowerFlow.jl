@@ -37,6 +37,7 @@ makedocs(
         ],
         "References" => "references.md",
     ],
+    warnonly = [:missing_docs, :cross_references], 
 )
 
 # 部署文档

@@ -32,9 +32,9 @@ module PowerFlow
     # ...other files in component_models directory...
     
     # ...other files in Utils directory...
-    # include(joinpath(dirname(@__DIR__), "Utils","Utils.jl"))
-    using Utils
-    using Utils: JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
+    include("../../Utils/src/Utils.jl")
+    using .Utils
+    using .Utils: JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
     const ComponentModel = Utils.ComponentModel
 
     # ... other files directly under src ...
@@ -106,8 +106,8 @@ module PowerFlow
     
     
     export idx_bus, idx_brch, idx_gen, bustypes, makeYbus, newtonpf, makeSbus, makeSdzip, mplinsolve, total_load, pfsoln, dSbus_dV, MPC
-    export runpf, rundcpf, makeBdc, dcpf, find_island, int2ext, runprepf, dc_preprocess, build_branch, build_bus
-    export build_gen, JuliaPowerCase2Jpc, JuliaPowerCase2Jpc_3ph,options, runhpf_iteration,runpf,runhpf, runprepf, runupf,rundcpf
+    export runpf, rundcpf, makeBdc, dcpf, int2ext, runprepf, dc_preprocess, build_branch, build_bus
+    export build_gen, options, runhpf_iteration,runpf,runhpf, runprepf, runupf,rundcpf
     export runhpf, dcbustypes, newtondcpf, dcpfsoln
     export  pf_summary, merge_results, process_result
 end

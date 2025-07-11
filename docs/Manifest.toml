@@ -150,10 +150,9 @@ uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
 
 [[deps.ComponentModel]]
-deps = ["DataFrames", "Dates", "SparseArrays"]
 path = "../src/ComponentModel"
 uuid = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
-version = "0.1.0"
+version = "0.0.0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -941,10 +940,9 @@ uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
 version = "1.4.3"
 
 [[deps.PowerFlow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "IncompleteLU", "IterativeSolvers", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "Test", "Utils", "XLSX"]
 path = "../src/PowerFlow"
 uuid = "c5956ac0-0e7c-433f-a167-1e414f239e52"
-version = "0.1.0"
+version = "0.0.0"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1200,7 +1198,7 @@ uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
 [[deps.TSPF]]
-deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Documenter", "Plots", "PowerFlow", "PrettyTables", "StatsBase", "TimeSeriesPowerFlow", "Utils", "XLSX"]
+deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Documenter", "Graphs", "IncompleteLU", "Ipopt", "IterativeSolvers", "JuMP", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "StatsBase", "SuiteSparse", "Test", "XLSX"]
 path = ".."
 uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
 version = "0.1.0"
@@ -1234,10 +1232,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.TimeSeriesPowerFlow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Graphs", "Ipopt", "JuMP", "LinearAlgebra", "LinearOperators", "Plots", "PowerFlow", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
 path = "../src/TimeSeriesPowerFlow"
 uuid = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
-version = "0.1.0"
+version = "0.0.0"
 
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
@@ -1306,10 +1303,9 @@ uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
 
 [[deps.Utils]]
-deps = ["AMD", "ComponentModel", "DataFrames", "DataStructures", "Dates", "Graphs", "IterativeSolvers", "LinearAlgebra", "LinearOperators", "PrettyTables", "Printf", "SparseArrays", "Statistics", "StatsBase", "SuiteSparse", "XLSX"]
 path = "../src/Utils"
 uuid = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"
-version = "0.1.0"
+version = "0.0.0"
 
 [[deps.VectorInterface]]
 deps = ["LinearAlgebra"]

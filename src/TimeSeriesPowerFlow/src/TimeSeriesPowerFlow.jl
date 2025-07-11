@@ -25,14 +25,18 @@ module TimeSeriesPowerFlow
     using JuMP
     using Ipopt
     
-    using PowerFlow
     # ...other files in Utils directory...
+    include("../../PowerFlow/src/PowerFlow.jl")
+
+    using .PowerFlow
+
     const Utils = PowerFlow.Utils
     const ComponentModel = PowerFlow.Utils.ComponentModel
-    using PowerFlow.Utils: load_julia_power_data, JuliaPowerCase,JPC,topology_analysis, extract_islands_acdc,JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
-    using PowerFlow.ComponentModel: Storage
-    using PowerFlow.Utils: idx_brch, idx_bus, idx_gen, idx_dcbus, idx_ld, idx_hvcb, idx_microgrid, idx_pv,idx_conv, idx_ess, idx_jpc_3ph,idx_ev, idx_pv_acsystem
-    using PowerFlow: options
+    using .PowerFlow.Utils: load_julia_power_data, JuliaPowerCase,JPC,topology_analysis, extract_islands_acdc,JuliaPowerCase2Jpc,JuliaPowerCase2Jpc_3ph
+    using .PowerFlow.ComponentModel: Storage
+    using .PowerFlow.Utils: idx_brch, idx_bus, idx_gen, idx_dcbus, idx_ld, idx_hvcb, idx_microgrid, idx_pv,idx_conv, idx_ess, idx_jpc_3ph,idx_ev, idx_pv_acsystem
+    using .PowerFlow: options
+    
 
     include(joinpath(@__DIR__,"renumber_hybrid_system.jl"))
     include(joinpath(@__DIR__,"run_dynamic_dispatch.jl"))
@@ -108,7 +112,7 @@ module TimeSeriesPowerFlow
     const EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA = idx_ev()
     export EV_ID, EV_CAPACITY, EV_FLEX_CAPACITY, EV_AREA
 
-    export  read_load_data,read_price_data,read_irradiance_data
+    # export  read_load_data,read_price_data,read_irradiance_data
     export runtdpf, run_dynamic_dispatch, run_single_day,plot_voltage_time_series,plot_PD_time_series,create_time_series_loads
     export record_voltage_violation, plot_losses_time_series, plot_flow_violations
 

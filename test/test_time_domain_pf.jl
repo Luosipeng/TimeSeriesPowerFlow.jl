@@ -2,8 +2,7 @@ using  Dates
 using  XLSX
 using  DataFrames
 using  Base.Threads
-include("../src/TSPF.jl")
-using   .TSPF
+using  TSPF
 
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 

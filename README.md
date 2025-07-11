@@ -59,7 +59,7 @@ If you use TSPF.jl in your research, please cite:
 
 ```bibtex
 @software{TSPF2025,
-  author = {Sipeng Luo,Tianyang Zhao,Chaohong Bie},
+  author = {Sipeng Luo,Tianyang Zhao,Zhaohong Bie},
   title = {TSPF.jl: a Julia package for time series power flow analysis},
   year = {2025},
   url = {https://github.com/Luosipeng/TSPF.jl}

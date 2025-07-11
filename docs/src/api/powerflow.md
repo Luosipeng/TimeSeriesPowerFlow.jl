@@ -10,6 +10,9 @@ Modules = [PowerFlow]
 Pages   = ["adaptive_damped_newton.jl","currentinjectionpf.jl","newtonpf.jl","newtonpf_gpu.jl"]
 Order   = [:type, :function, :macro, :constant]
 ```
+```@docs
+TSPF.TimeSeriesPowerFlow.PowerFlow.build_gen
+```
 
 ## DC Power Flow Algorithm
 ```@autodocs
