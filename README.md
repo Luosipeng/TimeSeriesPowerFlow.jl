@@ -1,34 +1,34 @@
-# TSPflow.jl
+# TimeSeriesPowerFlow.jl
 
-[![Documentation](https://github.com/Luosipeng/TSPflow.jl/actions/workflows/documentation.yml/badge.svg)](https://github.com/Luosipeng/TSPflow.jl/actions/workflows/documentation.yml)
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://luosipeng.github.io/TSPflow.jl/stable)
-[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://luosipeng.github.io/TSPflow.jl/dev)
+[![Documentation](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/actions/workflows/documentation.yml/badge.svg)](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/actions/workflows/documentation.yml)
+[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://luosipeng.github.io/TimeSeriesPowerFlow.jl/stable)
+[![Dev Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://luosipeng.github.io/TimeSeriesPowerFlow.jl/dev)
 
 ## Description
 
-TSPflow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
+TimeSeriesPowerFlow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
 
 ## Installation
 
 You can install the package via the Julia package manager. From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add TSPflow
+pkg> add TimeSeriesPowerFlow
 ```
 
 Or, you can install it directly in Julia code:
 
 ```julia
 using Pkg
-Pkg.add("TSPflow")
+Pkg.add("TimeSeriesPowerFlow")
 ```
 
 ## Documentation
 
 Comprehensive documentation is available online:
 
-- **Stable version**: [https://luosipeng.github.io/TSPflow.jl/stable](https://luosipeng.github.io/TSPflow.jl/stable)
-- **Development version**: [https://luosipeng.github.io/TSPflow.jl/dev](https://luosipeng.github.io/TSPflow.jl/dev)
+- **Stable version**: [https://luosipeng.github.io/TimeSeriesPowerFlow.jl/stable](https://luosipeng.github.io/TimeSeriesPowerFlow.jl/stable)
+- **Development version**: [https://luosipeng.github.io/TimeSeriesPowerFlow.jl/dev](https://luosipeng.github.io/TimeSeriesPowerFlow.jl/dev)
 
 
 ## Features
@@ -55,17 +55,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Citation
 
-If you use TSPflow.jl in your research, please cite:
+If you use TimeSeriesPowerFlow.jl in your research, please cite:
 
 ```bibtex
-@software{TSPflow2025,
+@software{TimeSeriesPowerFlow2025,
   author = {Sipeng Luo,Tianyang Zhao,Zhaohong Bie},
-  title = {TSPflow.jl: a Julia package for time series power flow analysis},
+  title = {TimeSeriesPowerFlow.jl: a Julia package for time series power flow analysis},
   year = {2025},
-  url = {https://github.com/Luosipeng/TSPflow.jl}
+  url = {https://github.com/Luosipeng/TimeSeriesPowerFlow.jl}
 }
 ```
 
 ## Contact
 
-For questions and feedback, please open an issue on the [GitHub repository](https://github.com/Luosipeng/TSPflow.jl/issues) or contact the maintainer.
+For questions and feedback, please open an issue on the [GitHub repository](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/issues) or contact the maintainer.
