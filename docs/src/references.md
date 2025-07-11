@@ -1,20 +1,20 @@
 # References
 
-## How to Cite TSPflow.jl
+## How to Cite TimeSeriesPowerFlow.jl
 
-If you use TSPflow.jl in your research, please use the following citation format:
+If you use TimeSeriesPowerFlow.jl in your research, please use the following citation format:
 
 ```bibtex
-@software{TSPflow2025,
+@software{TimeSeriesPowerFlow2025,
   author = {Sipeng Luo,Tianyang Zhao,Zhaohong Bie},
-  title = {TSPflow.jl: a Julia package for time series power flow analysis},
+  title = {TimeSeriesPowerFlow.jl: a Julia package for time series power flow analysis},
   year = {2025},
-  url = {https://github.com/Luosipeng/TSPflow.jl}
+  url = {https://github.com/Luosipeng/TimeSeriesPowerFlow.jl}
 }
 ```
 ## Referenced Code and Inspirations
 
-TSPflow.jl was developed with inspiration from and reference to the following open source projects:
+TimeSeriesPowerFlow.jl was developed with inspiration from and reference to the following open source projects:
 
 ### MATPOWER
 An open-source MATLAB package for power system simulation and optimization.
@@ -61,7 +61,7 @@ An easy to use open source tool for power system modeling, analysis and optimiza
 
 ## External Packages
 
-TSPflow.jl relies on several external packages. We acknowledge and thank the contributors of these packages:
+TimeSeriesPowerFlow.jl relies on several external packages. We acknowledge and thank the contributors of these packages:
 
 ### AMD.jl
 
@@ -201,4 +201,4 @@ A Julia package collecting a number of Krylov-based algorithms for linear proble
 
 ## Acknowledgments
 
-We would like to thank all the contributors to the Julia ecosystem whose work has made this package possible. Special thanks to the developers of the packages listed above for their valuable tools that form the foundation of TSPflow.jl.
+We would like to thank all the contributors to the Julia ecosystem whose work has made this package possible. Special thanks to the developers of the packages listed above for their valuable tools that form the foundation of TimeSeriesPowerFlow.jl.

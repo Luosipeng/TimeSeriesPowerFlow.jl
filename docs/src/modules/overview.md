@@ -1,15 +1,15 @@
-# TSPflow Framework Overview
+# TimeSeriesPowerFlow Framework Overview
 
-TSPflow is a comprehensive power system analysis framework developed in Julia, focusing on modeling, simulation, and optimization of modern power systems. The framework supports traditional AC systems, DC systems, and hybrid AC/DC systems analysis, providing rich tools to address modern power system challenges including renewable energy integration, carbon emission assessment, and time-series analysis.
+TimeSeriesPowerFlow is a comprehensive power system analysis framework developed in Julia, focusing on modeling, simulation, and optimization of modern power systems. The framework supports traditional AC systems, DC systems, and hybrid AC/DC systems analysis, providing rich tools to address modern power system challenges including renewable energy integration, carbon emission assessment, and time-series analysis.
 
 ## Framework Structure
 
-The TSPflow framework consists of four core modules, each focusing on different aspects of power system analysis:
+The TimeSeriesPowerFlow framework consists of four core modules, each focusing on different aspects of power system analysis:
 
 1. **ComponentModel** - Power system component modeling
 2. **Utils** - Utility tools and helper functions
 3. **PowerFlow** - Power flow calculation algorithms
-4. **TimeSeriesPowerFlow** - Time-series power flow analysis
+4. **TimeDomainPowerFlow** - Time-series power flow analysis
 
 These modules work together to provide a complete solution from basic component modeling to advanced time-series analysis.
 
@@ -69,9 +69,9 @@ The PowerFlow module provides comprehensive power flow analysis capabilities for
 
 The PowerFlow module is the core analysis engine of the framework, providing multiple algorithms to solve different types of power flow problems, from traditional AC systems to modern hybrid AC/DC systems.
 
-### TimeSeriesPowerFlow Module
+### TimeDomainPowerFlow Module
 
-The TimeSeriesPowerFlow module provides tools and functions for time-series power flow analysis, including dynamic dispatch, voltage profile analysis, and renewable integration.
+The TimeDomainPowerFlow module provides tools and functions for time-series power flow analysis, including dynamic dispatch, voltage profile analysis, and renewable integration.
 
 **Key Features:**
 - Time-series power flow analysis
@@ -80,11 +80,11 @@ The TimeSeriesPowerFlow module provides tools and functions for time-series powe
 - Renewable energy integration
 - Visualization capabilities
 
-The TimeSeriesPowerFlow module extends traditional power flow analysis to handle time-varying system states, which is crucial for analyzing modern power system challenges such as renewable energy integration and demand response.
+The TimeDomainPowerFlow module extends traditional power flow analysis to handle time-varying system states, which is crucial for analyzing modern power system challenges such as renewable energy integration and demand response.
 
 ## Application Scenarios
 
-The TSPflow framework is suitable for various power system analysis scenarios:
+The TimeDomainPowerFlow framework is suitable for various power system analysis scenarios:
 
 1. **Traditional Power System Analysis** - Power flow calculation, fault analysis, and stability studies
 2. **Renewable Energy Integration** - Assessing the impact of renewable sources like PV and wind on the system
@@ -102,12 +102,10 @@ The TSPflow framework is suitable for various power system analysis scenarios:
 
 ## Usage Example
 
-Below is an example of using the TSPflow framework for basic power flow analysis:
+Below is an example of using the TimeSeriesPowerFlow framework for basic power flow analysis:
 
 ```julia
-using ComponentModel
-using PowerFlow
-using Utils
+using TimeSeriesPowerFlow
 
 # Create power system model
 case = JuliaPowerCase()
@@ -147,4 +145,4 @@ PowerFlow.process_result(results, case, opt)
 
 ## Conclusion
 
-The TSPflow framework provides a comprehensive and efficient solution for modeling, simulating, and optimizing modern power systems. By combining Julia's high-performance characteristics with advanced power system analysis algorithms, the framework can handle a wide range of challenges from traditional AC systems to complex hybrid AC/DC systems. Whether for basic research, education, or engineering applications, TSPflow provides powerful and flexible tools to meet the needs of power system analysis.
+The TimeSeriesPowerFlow framework provides a comprehensive and efficient solution for modeling, simulating, and optimizing modern power systems. By combining Julia's high-performance characteristics with advanced power system analysis algorithms, the framework can handle a wide range of challenges from traditional AC systems to complex hybrid AC/DC systems. Whether for basic research, education, or engineering applications, TimeSeriesPowerFlow provides powerful and flexible tools to meet the needs of power system analysis.

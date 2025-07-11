@@ -1,24 +1,24 @@
 using Documenter
-using TSPflow
-# using TSPflow.PowerFlow
-# using TSPflow.Utils
-# using TSPflow.TimeSeriesPowerFlow
+using TimeSeriesPowerFlow
+# using TimeSeriesPowerFlow.PowerFlow
+# using TimeSeriesPowerFlow.Utils
+# using TimeSeriesPowerFlow.TSPF
 # 设置 DocMeta
-DocMeta.setdocmeta!(TSPflow, :DocTestSetup, :(using TSPflow); recursive=true)
+DocMeta.setdocmeta!(TimeSeriesPowerFlow, :DocTestSetup, :(using TimeSeriesPowerFlow); recursive=true)
 
 # 生成文档
 makedocs(
-    sitename = "TSPflow.jl",
+    sitename = "TimeSeriesPowerFlow.jl",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
-        repolink = "https://github.com/Luosipeng/TSPflow.jl.git",
-        canonical = "https://Luosipeng.github.io/TSPflow.jl",
+        repolink = "https://github.com/Luosipeng/TimeSeriesPowerFlow.jl.git",
+        canonical = "https://Luosipeng.github.io/TimeSeriesPowerFlow.jl",
         assets = ["assets/favicon.ico"],
         sidebar_sitename = false,
     ),
-    modules = [TSPflow],
+    modules = [TimeSeriesPowerFlow],
     authors = "Luosipeng",
-    repo = "github.com/Luosipeng/TSPflow.jl/blob/{commit}{path}#L{line}",
+    repo = "github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/{commit}{path}#L{line}",
     pages = [
         "Home" => "index.md",
         "Module" => [
@@ -26,14 +26,14 @@ makedocs(
             "ComponentModel" => "modules/componentmodel.md",
             "Utils" => "modules/utils.md",
             "PowerFlow" => "modules/powerflow.md",
-            "TimeSeriesPowerFlow" => "modules/timeseriespowerflow.md",
+            "TimeDomainPowerFlow" => "modules/timedomainpowerflow.md",
         ],
         "API" => [
             "ComponentModel API" => "api/componentmodel.md",
             "Utils API" => "api/utils.md",
             "PowerFlow API" => "api/powerflow.md",
+            "TimeDomainPowerFlow API" => "api/timedomainpowerflow.md",
             "TimeSeriesPowerFlow API" => "api/timeseriespowerflow.md",
-            "TSPflow API" => "api/tspflow.md",
         ],
         "References" => "references.md",
     ],
@@ -42,6 +42,6 @@ makedocs(
 
 # 部署文档
 deploydocs(
-    repo = "github.com/Luosipeng/TSPflow.jl.git",
+    repo = "github.com/Luosipeng/TimeSeriesPowerFlow.jl.git",
     devbranch = "master",
 )

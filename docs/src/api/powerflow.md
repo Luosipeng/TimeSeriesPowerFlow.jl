@@ -1,7 +1,7 @@
 # API Reference
 
 ```@meta
-CurrentModule = TSPflow
+CurrentModule = TimeSeriesPowerFlow
 ```
 
 ## Power Flow Algorithm

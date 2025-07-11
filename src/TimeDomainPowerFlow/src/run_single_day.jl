@@ -107,7 +107,7 @@ function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irrad
         end
     end
 
-   new_jpc, ac_node_mapping, dc_node_mapping = TimeSeriesPowerFlow.renumber_hybrid_system(jpc)
+   new_jpc, ac_node_mapping, dc_node_mapping = TimeDomainPowerFlow.renumber_hybrid_system(jpc)
     
 
     ac_node_reverse_mapping = Dict{Int, Float64}()

@@ -267,7 +267,7 @@ Defines default settings for power flow calculations including:
 ## Usage Example
 
 ```julia
-using PowerFlow
+using TimeSeriesPowerFlow.PowerFlow
 
 # Load case data
 case = case3()

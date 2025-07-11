@@ -1,11 +1,11 @@
-# TimeSeriesPowerFlow Module
+# TimeDomainPowerFlow Module
 
-The TimeSeriesPowerFlow module provides tools and functions for time-series power flow analysis in power systems, including dynamic dispatch, voltage profile analysis, and renewable integration.
+The TimeDomainPowerFlow module provides tools and functions for time-series power flow analysis in power systems, including dynamic dispatch, voltage profile analysis, and renewable integration.
 
 ## Module Overview
 
 ```julia
-module TimeSeriesPowerFlow
+module TimeDomainPowerFlow
 
     using Printf
     using SparseArrays
@@ -22,7 +22,7 @@ end
 
 ## Flow Chart
 
-![TimeSeriesPowerFlow flow chart](../assets/TimeSeriesPowerFlow.png)
+![TimeDomainPowerFlow flow chart](../assets/TimeDomainPowerFlow.png)
 
 ## Time Series Data Processing
 
@@ -218,7 +218,7 @@ Renumber buses and branches in a hybrid AC-DC power system to create a more orga
 
 ## Testing
 
-The module includes a test script (`test_time_domain_pf.jl`) that demonstrates the use of the TimeSeriesPowerFlow module for analyzing a power system over a time period. The script:
+The module includes a test script (`test_time_domain_pf.jl`) that demonstrates the use of the TimeDomainPowerFlow module for analyzing a power system over a time period. The script:
 
 1. Loads required packages
 2. Reads power system data
@@ -231,7 +231,7 @@ using Dates
 using XLSX
 using DataFrames
 using Base.Filesystem
-using TSPflow
+using TimeSeriesPowerFlow.TimeDomainPowerFlowlow
 
 # Input Data
 file_path = joinpath(pwd(), "data", "test_case.xlsx")

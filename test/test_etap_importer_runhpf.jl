@@ -2,7 +2,7 @@ using  Dates
 using  XLSX
 using  DataFrames
 using  Base.Threads
-using  TSPflow
+using  TimeSeriesPowerFlow
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 
 case = load_julia_power_data(file_path)

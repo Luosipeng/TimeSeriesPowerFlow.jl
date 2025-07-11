@@ -514,15 +514,15 @@ function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, op
     end
     
     # Generate load data organized by day (with loads on the same bus merged)
-    day_loads = TimeSeriesPowerFlow.create_time_series_loads(case, data, load_names, num_days)
-    day_price = TimeSeriesPowerFlow.create_time_series_prices(price_profiles, num_days)
-    day_irradiance = TimeSeriesPowerFlow.create_time_series_irradiance(irradiance_profiles, num_days)
+    day_loads = TimeDomainPowerFlow.create_time_series_loads(case, data, load_names, num_days)
+    day_price = TimeDomainPowerFlow.create_time_series_prices(price_profiles, num_days)
+    day_irradiance = TimeDomainPowerFlow.create_time_series_irradiance(irradiance_profiles, num_days)
 
     # Convert powerflow case to JPC format
-    jpc = TimeSeriesPowerFlow.JuliaPowerCase2Jpc(case)
+    jpc = TimeDomainPowerFlow.JuliaPowerCase2Jpc(case)
 
     # Extract grid islands
-    jpc_list, isolated = TimeSeriesPowerFlow.extract_islands_acdc(jpc)
+    jpc_list, isolated = TimeDomainPowerFlow.extract_islands_acdc(jpc)
     n_islands = length(jpc_list)
 
     # Create results array
@@ -543,7 +543,7 @@ function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, op
         day_irradiance_line = day_irradiance[d]
             
         # Extract load matrix for the day
-        load_matrix_list, isolated_load_matrix = TimeSeriesPowerFlow.extract_load_matrix_by_islands(day_load_matrix, jpc_list)
+        load_matrix_list, isolated_load_matrix = TimeDomainPowerFlow.extract_load_matrix_by_islands(day_load_matrix, jpc_list)
         
         # Perform power flow calculation for each island
         # Note: Not using @threads here because outer loop is already parallel

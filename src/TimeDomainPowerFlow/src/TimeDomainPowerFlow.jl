@@ -1,10 +1,10 @@
 """
-TimeSeriesPowerFlow module for power system time-domain analysis
+TimeDomainPowerFlow module for power system time-domain analysis
 
 This module provides tools and functions for time-series power flow analysis,
 including dynamic dispatch, voltage profile analysis, and renewable integration.
 """
-module TimeSeriesPowerFlow
+module TimeDomainPowerFlow
 
     using Printf
     using SparseArrays

@@ -1,8 +1,8 @@
-# TSPflow.jl
+# TimeSeriesPowerFlow.jl
 
 *Time Series Power Flow Analysis Tool*
 
-TSPflow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
+TimeSeriesPowerFlow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
 
 ## 1. Features
 ### Features
@@ -15,12 +15,12 @@ TSPflow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong Uni
 
 ### Project Structure
 
-TSPflow.jl contains four main modules:
+TimeSeriesPowerFlow.jl contains four main modules:
 
 - **ComponentModel**: Power system component modeling
 - **Utils**: General utility functions
 - **PowerFlow**: AC/DC hybrid power flow calculation
-- **TimeSeriesPowerFlow**: Time series power flow analysis
+- **TimeDomainPowerFlow**: Time series power flow analysis
 
 ## 2. Installation
 
@@ -30,31 +30,31 @@ You can install this package through Julia's package manager:
 
 ```julia
 using Pkg
-Pkg.add("TSPflow")
+Pkg.add("TimeSeriesPowerFlow")
 ```
 
 Or, if you want to use the latest development version:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Luosipeng/TSPflow.jl.git")
+Pkg.add(url="https://github.com/Luosipeng/TimeSeriesPowerFlow.jl.git")
 ```
 
 ## 3. Quick Start Example
 
 ### Quick Start
-Here's a simple example showing how to use TSPflow.jl to run the time series power flow:
+Here's a simple example showing how to use TimeSeriesPowerFlow.jl to run the time series power flow:
 
 ```julia
 # Add project path
-push!(LOAD_PATH, "/path/to/TSPflow")
+push!(LOAD_PATH, "/path/to/TimeSeriesPowerFlow")
 
 # Import modules
 using Dates
 using XLSX
 using DataFrames
 using Base.Filesystem
-using TSPflow
+using TimeSeriesPowerFlow
 
 # Input Data
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
@@ -102,37 +102,37 @@ This documentation is divided into the following sections:
   - [ComponentModel](modules/componentmodel.md): Detailed introduction to ComponentModel.jl
   - [Utils](modules/utils.md): Detailed introduction to Utils.jl
   - [PowerFlow](modules/powerflow.md): Detailed introduction to PowerFlow.jl
-  - [TimeSeriesPowerFlow](modules/timeseriespowerflow.md): Detailed introduction to TimeSeriesPowerFlow.jl
+  - [TimeDomainPowerFlow](modules/timedomainpowerflow.md): Detailed introduction to TimeDomainPowerFlow.jl
 
 - **[API](api/componentmodel.md)**: API document of various modules
   - [ComponentModel API](api/componentmodel.md): API document of ComponentModel.jl
   - [Utils API](api/utils.md): API document of Utils.jl
   - [PowerFlow API](api/powerflow.md): API document of PowerFlow.jl
-  - [TimeSeriesPowerFlow API](api/timeseriespowerflow.md): API document of TimeSeriesPowerFlow.jl
+  - [TimeDomainPowerFlow API](api/timedomainpowerflow.md): API document of TimeDomainPowerFlow.jl
 
-- **[References](references.md)**: Citation information for TSPflow.jl and acknowledgments of referenced works and dependencies
+- **[References](references.md)**: Citation information for TimeSeriesPowerFlow.jl and acknowledgments of referenced works and dependencies
 
 ## 5. Contribution and License Information
 
 ### Contribution
 
-Contributions to TSPflow.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TSPflow.jl/blob/master/CONTRIBUTING.md) for more information.
+Contributions to TimeSeriesPowerFlow.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/master/CONTRIBUTING.md) for more information.
 
 ### License
 
-TSPflow.jl is licensed under the [MIT License](https://github.com/Luosipeng/TSPflow.jl/blob/master/LICENSE).
+TimeSeriesPowerFlow.jl is licensed under the [MIT License](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/master/LICENSE).
 
 ## 6. Citation Information
 
 ### Citation
 
-If you use TSPflow.jl in your research, please cite:
+If you use TimeSeriesPowerFlow.jl in your research, please cite:
 
 ```bibtex
-@software{TSPflow2025,
+@software{TimeSeriesPowerFlow2025,
   author = {Sipeng Luo,Tianyang Zhao,Zhaohong Bie},
-  title = {TSPflow.jl: a Julia package for time series power flow analysis},
+  title = {TimeSeriesPowerFlow.jl: a Julia package for time series power flow analysis},
   year = {2025},
-  url = {https://github.com/Luosipeng/TSPflow.jl}
+  url = {https://github.com/Luosipeng/TimeSeriesPowerFlow.jl}
 }
 ```

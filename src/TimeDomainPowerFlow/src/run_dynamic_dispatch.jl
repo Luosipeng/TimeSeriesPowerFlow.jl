@@ -98,7 +98,7 @@ function run_dynamic_dispatch(new_jpc,
     rconv = zeros(size(converter, 1))
     # Extract bus count
     n_nodes = size(new_jpc.busAC, 1) + size(new_jpc.busDC, 1)
-    A , branch_data = TimeSeriesPowerFlow.build_incidence_matrix_td(n_nodes, branchAC, branchDC, converter)
+    A , branch_data = TimeDomainPowerFlow.build_incidence_matrix_td(n_nodes, branchAC, branchDC, converter)
 
      # Initialize
     nbr = size(A, 1)  # Number of branches

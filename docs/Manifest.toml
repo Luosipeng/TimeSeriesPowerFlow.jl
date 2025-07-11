@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "e8a1949cb20efbff0e54a414c7a544ce042c83f9"
+project_hash = "f0fb95c8b5e7afb760664403bab7f737e5e8fd8d"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -1197,12 +1197,6 @@ deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
-[[deps.TSPflow]]
-deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Documenter", "Graphs", "IncompleteLU", "Ipopt", "IterativeSolvers", "JuMP", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "StatsBase", "SuiteSparse", "Test", "XLSX"]
-path = ".."
-uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
-version = "0.1.0"
-
 [[deps.TableTraits]]
 deps = ["IteratorInterfaceExtensions"]
 git-tree-sha1 = "c06b2f539df1c6efa794486abfb6ed2022561a39"
@@ -1232,9 +1226,10 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.TimeSeriesPowerFlow]]
-path = "../src/TimeSeriesPowerFlow"
-uuid = "b25dd82d-4ada-4909-9a0a-f4c5b62418ca"
-version = "0.0.0"
+deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Documenter", "Graphs", "IncompleteLU", "Ipopt", "IterativeSolvers", "JuMP", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "StatsBase", "SuiteSparse", "Test", "XLSX"]
+path = ".."
+uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
+version = "0.1.0"
 
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
