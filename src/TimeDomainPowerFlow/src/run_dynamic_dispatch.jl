@@ -207,16 +207,14 @@ function run_dynamic_dispatch(new_jpc,
     original_objective = sum(day_price_line[t,2] * Pgen[g, t] for g in 1:ng for t in 1:num_hours)
     penalty_weight = 1000  # Penalty weight, needs adjustment
     # Objective function: Minimize total power flow
-    # @objective(model, Min, sum(day_price_line[t,2] * Pgen[g, t] for g in 1:ng for t in 1:num_hours))
-    if nc > 0 && num_hours > 0
-        complementarity_penalty = sum(Pij_inv[i,t] * Pij_rec[i,t] for i in 1:nc for t in 1:num_hours)
-        @objective(model, Min, original_objective + penalty_weight * complementarity_penalty)
-    else
-        @objective(model, Min, original_objective)
-        println("Warning: nc or num_hours is zero, skipping complementarity penalty term")
-    end
-    # Objective function: Minimize the sum of squares of AC branch power flows
-    # @objective(model, Min, sum(Pij[i,t]^2 *r[i]  for i in acbranch_indices for t in 1:num_hours)  )
+    @objective(model, Min, sum(day_price_line[t,2] * Pgen[g, t] for g in 1:ng for t in 1:num_hours))
+    # if nc > 0 && num_hours > 0
+    #     complementarity_penalty = sum(Pij_inv[i,t] * Pij_rec[i,t] for i in 1:nc for t in 1:num_hours)
+    #     @objective(model, Min, original_objective + penalty_weight * complementarity_penalty)
+    # else
+    #     @objective(model, Min, original_objective)
+    #     println("Warning: nc or num_hours is zero, skipping complementarity penalty term")
+    # end
     
 
     # Solve the model

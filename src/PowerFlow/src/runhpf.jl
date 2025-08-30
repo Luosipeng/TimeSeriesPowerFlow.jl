@@ -143,13 +143,13 @@ function runhpf(jpc, opt)
     
     # Set solution status
     if !isempty(result_jpc.busDC)
-        if result_jpc.iterationsAC > 0 && result_jpc.iterationsDC > 0
+        if result_jpc.iterationsAC >= 0 && result_jpc.iterationsDC >= 0
             result_jpc.success = true
         else
             result_jpc.success = false
         end
     else
-        result_jpc.success = result_jpc.iterationsAC > 0
+        result_jpc.success = result_jpc.iterationsAC >= 0
     end
     
     return result_jpc

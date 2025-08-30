@@ -712,10 +712,11 @@ function plot_voltage_comparison(comparison_results, output_file::String="voltag
 end
 
 
+
 """
     analyze_voltage_results(results::NamedTuple, case::JuliaPowerCase, reference_file::String;
                            tolerance_mag::Float64=1e-4, tolerance_ang::Float64=1e-3,
-                           output_dir::String="./results")
+                           output_dir::String="./results", save_pdf::Bool=true)
 
 Analyze voltage differences between power flow calculation results and reference file, generate comparison reports and charts.
 Supports both original format and AC/DC mixed format.
@@ -726,13 +727,14 @@ Parameters:
 - tolerance_mag: Tolerance for voltage magnitude comparison (default: 1e-4)
 - tolerance_ang: Tolerance for voltage angle comparison (default: 1e-3)
 - output_dir: Output directory (default: "./results")
+- save_pdf: Whether to save plots in PDF format in addition to PNG (default: true)
 
 Returns:
 - DataFrame or NamedTuple containing comparison results
 """
 function analyze_voltage_results(results::NamedTuple, case::JuliaPowerCase, reference_file::String;
                                 tolerance_mag::Float64=1e-4, tolerance_ang::Float64=1e-3,
-                                output_dir::String="./results")
+                                output_dir::String="./results", save_pdf::Bool=true)
     # Ensure output directory exists
     mkpath(output_dir)
     
@@ -753,6 +755,35 @@ function analyze_voltage_results(results::NamedTuple, case::JuliaPowerCase, refe
     comparison_plot_file = joinpath(output_dir, "voltage_comparison.png")
     comparison_plots = plot_voltage_comparison(comparison_results, comparison_plot_file)
     
+    # Save plots in PDF format if requested
+    if save_pdf
+        if isa(comparison_results, DataFrame)
+            # Original format
+            pdf_error_plot_file = joinpath(output_dir, "voltage_errors.pdf")
+            savefig(error_plots, pdf_error_plot_file)
+            
+            pdf_comparison_plot_file = joinpath(output_dir, "voltage_comparison.pdf")
+            savefig(comparison_plots, pdf_comparison_plot_file)
+        else
+            # AC/DC mixed format
+            if !isempty(comparison_results.ac)
+                pdf_ac_error_plot_file = joinpath(output_dir, "ac_voltage_errors.pdf")
+                savefig(error_plots.ac.plot, pdf_ac_error_plot_file)
+                
+                pdf_ac_comparison_plot_file = joinpath(output_dir, "ac_voltage_comparison.pdf")
+                savefig(comparison_plots.ac.plot, pdf_ac_comparison_plot_file)
+            end
+            
+            if !isempty(comparison_results.dc)
+                pdf_dc_error_plot_file = joinpath(output_dir, "dc_voltage_errors.pdf")
+                savefig(error_plots.dc.plot, pdf_dc_error_plot_file)
+                
+                pdf_dc_comparison_plot_file = joinpath(output_dir, "dc_voltage_comparison.pdf")
+                savefig(comparison_plots.dc.plot, pdf_dc_comparison_plot_file)
+            end
+        end
+    end
+    
     println("\nAnalysis complete!")
     println("Comparison results saved to: $excel_output")
     
@@ -761,18 +792,31 @@ function analyze_voltage_results(results::NamedTuple, case::JuliaPowerCase, refe
         # Original format
         println("Voltage error plots saved to: $error_plot_file")
         println("Voltage comparison plots saved to: $comparison_plot_file")
+        if save_pdf
+            println("PDF voltage error plots saved to: $(joinpath(output_dir, "voltage_errors.pdf"))")
+            println("PDF voltage comparison plots saved to: $(joinpath(output_dir, "voltage_comparison.pdf"))")
+        end
     else
         # AC/DC mixed format
         if !isempty(comparison_results.ac)
             println("AC voltage error plots saved to: $(error_plots.ac.file)")
             println("AC voltage comparison plots saved to: $(comparison_plots.ac.file)")
+            if save_pdf
+                println("PDF AC voltage error plots saved to: $(joinpath(output_dir, "ac_voltage_errors.pdf"))")
+                println("PDF AC voltage comparison plots saved to: $(joinpath(output_dir, "ac_voltage_comparison.pdf"))")
+            end
         end
         
         if !isempty(comparison_results.dc)
             println("DC voltage error plots saved to: $(error_plots.dc.file)")
             println("DC voltage comparison plots saved to: $(comparison_plots.dc.file)")
+            if save_pdf
+                println("PDF DC voltage error plots saved to: $(joinpath(output_dir, "dc_voltage_errors.pdf"))")
+                println("PDF DC voltage comparison plots saved to: $(joinpath(output_dir, "dc_voltage_comparison.pdf"))")
+            end
         end
     end
     
     return comparison_results
 end
+

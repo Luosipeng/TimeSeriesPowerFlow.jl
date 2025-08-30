@@ -2383,7 +2383,7 @@ function load_converters!(case::JuliaPowerCase, file_path::String, sheet_name::S
                     min_q_mvar, max_q_mvar = max_q_mvar, min_q_mvar
                 end
                 
-                control_mode = haskey(row, :control_mode) ? safe_get_value(row[:control_mode], "", String) : ""
+                control_mode = haskey(row, :acoperationmode) ? safe_get_value(row[:acoperationmode], "", String) : ""
                 droop_kv = haskey(row, :droop_kv) ? safe_get_value(row[:droop_kv], 0.0, Float64) : 0.05
                 in_service = haskey(row, :inservice) ? parse_bool(safe_get_value(row[:inservice], true)) : true
                 controllable = haskey(row, :controllable) ? parse_bool(safe_get_value(row[:controllable], true)) : true

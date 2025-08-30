@@ -16,6 +16,8 @@ Plot voltage time series for a specified bus in a power system.
 
 # Returns
 - `plot_result`: The generated plot showing voltage time series
+- `voltage_magnitude`: Vector of voltage magnitude values for the specified bus
+- `voltage_angle`: Vector of voltage angle values for the specified bus (only for AC buses, empty for DC buses)
 
 # Description
 This function extracts and visualizes voltage data for a specified bus over time. For AC buses,
@@ -28,6 +30,9 @@ it shows day labels at appropriate intervals.
 
 The plot includes grid lines and time span information for easy reference, and can be saved
 to a file if a save path is provided.
+
+In addition to the plot, the function also returns the actual voltage magnitude and angle values
+for further analysis or processing.
 """
 
 function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = "AC"; save_path = nothing, save_format = "pdf")
@@ -109,11 +114,19 @@ function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = 
     plot_width = min(1000, max(800, time_day * 20))  # Dynamically adjust width based on number of days
     plot_size = (plot_width, 600)
     
+    # Initialize return values
+    voltage_magnitude = Float64[]
+    voltage_angle = Float64[]
+    
     if bus_type == "AC"
         bus_name_to_index = case.bus_name_to_id
         voltage_row = bus_name_to_index[bus_name]
         voltage_magnitude_series = voltage_magnitude_time_series_AC[voltage_row, 2:end]  # Get voltage magnitude for the corresponding bus
         voltage_angle_series = voltage_angle_time_series_AC[voltage_row, 2:end]
+        
+        # Store values for return
+        voltage_magnitude = copy(voltage_magnitude_series)
+        voltage_angle = copy(voltage_angle_series)
         
         # Create two subplots
         p1 = plot(time_points, voltage_magnitude_series, 
@@ -155,6 +168,11 @@ function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = 
         voltage_row = bus_name_to_index[bus_name]
         voltage_magnitude_series = voltage_magnitude_time_series_DC[voltage_row, 2:end]  # Get voltage magnitude for the corresponding bus
 
+        # Store values for return
+        voltage_magnitude = copy(voltage_magnitude_series)
+        # For DC buses, voltage angle is not applicable, so return empty array
+        voltage_angle = Float64[]
+        
         # Plot voltage magnitude time series
         plot_result = plot(time_points, voltage_magnitude_series, 
                           label="", 
@@ -189,5 +207,5 @@ function plot_voltage_time_series(results, bus_name, case, time_day, bus_type = 
         println("Plot saved to: $(save_path)")
     end
     
-    return plot_result
+    return plot_result, voltage_magnitude, voltage_angle
 end

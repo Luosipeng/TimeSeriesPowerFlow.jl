@@ -92,6 +92,37 @@ function read_irradiance_data(file_path)
     return hour_column, time_str_column, data
 end
 
+
+"""
+    read_storage_profile_data(file_path)
+
+Read storage profile time series data from an Excel file.
+
+# Arguments
+- `file_path`: Path to the Excel file containing storage profile data
+
+# Returns
+- `hour_column`: Vector containing hour values from the first column
+- `time_str_column`: Vector containing time string representations from the second column
+- `data`: DataFrame containing the entire storage profile dataset
+
+# Description
+This function reads storage profile time series data from an Excel file into a DataFrame.
+It extracts the hour values (first column) and time string representations (second column).
+The function returns these components separately along with the complete DataFrame for further processing.
+"""
+function read_storage_profile_data(file_path)
+    # Read Excel file into DataFrame
+    data = DataFrame(XLSX.readtable(file_path, 1, header=true))
+    
+    # Extract hour column
+    hour_column = data[!, 1]  # First column is hour
+    # Extract time string column
+    time_str_column = data[!, 2]  # Second column is time string
+    
+    return hour_column, time_str_column, data
+end
+
 """
     create_time_series_loads(case::Utils.JuliaPowerCase, data, load_names, num_days)
 
@@ -466,6 +497,79 @@ function create_time_series_irradiance(irradiance_profiles, num_days=nothing)
     return day_irradiance
 end
 
+"""
+    create_time_series_storage_profile(storage_profiles, num_days=nothing)
+
+Create time series storage profile data for energy system simulation.
+
+# Arguments
+- `storage_profiles`: Matrix containing storage profile data, where rows represent days and columns represent hours
+- `num_days`: Optional parameter specifying the number of days to process (defaults to all available days)
+
+# Returns
+- Dictionary mapping day number to storage profile matrix for that day
+
+# Description
+This function processes storage profiles and organizes them into daily storage matrices.
+For each day, it creates a matrix where each row represents a specific hour, with columns:
+[hour, storage_value]
+
+The function performs the following steps:
+1. Determines the total number of days available in the storage profiles
+2. Limits processing to the specified number of days if provided
+3. For each day and hour:
+   - Extracts the storage value from the storage profiles
+   - Creates a matrix with hour and storage value information
+4. Returns a dictionary where keys are day numbers and values are the corresponding storage profile matrices
+
+The storage profiles are expected to have a structure where the first column contains date information
+and subsequent columns (2-25) contain hourly storage data.
+"""
+function create_time_series_storage_profile(storage_profiles, num_days=nothing)
+    # Get number of days
+    total_days = size(storage_profiles, 1)
+    hours_per_day = 24
+    
+    # If days are specified, ensure not exceeding available days
+    if num_days === nothing
+        num_days = total_days
+    else
+        num_days = min(num_days, total_days)
+    end
+    
+    @info "Processing storage profile data, total $num_days days"
+    
+    # Create a dictionary to store storage profile time series data by day
+    # Format: day_storage[day] = [hour, storage_value]
+    day_storage = Dict{Int, Array{Float64, 2}}()
+    
+    # Process by day
+    for day in 1:num_days
+        @info "Processing day $day storage profile data, total $num_days days"
+        
+        # Create storage profile matrix for the day [hour, storage_value]
+        day_storage_matrix = zeros(hours_per_day, 2)
+        
+        # Process each hour of the day
+        for hour in 1:hours_per_day
+            # Column index (first column is date, so start from second column)
+            col_idx = hour + 1
+            
+            # Get storage value
+            storage_value = storage_profiles[day, col_idx]
+            
+            # Fill storage profile matrix
+            day_storage_matrix[hour, :] = [hour, storage_value]
+        end
+        
+        # Store the day's storage profile data in the dictionary
+        day_storage[day] = day_storage_matrix
+    end
+    
+    return day_storage
+end
+
+
 
 """
     runtdpf(case, data, load_names, price_profiles, irradiance_profiles, opt)
@@ -501,7 +605,7 @@ The function performs the following steps:
 The parallel processing is implemented using Julia's threading capabilities (@threads),
 with the outer loop over days being parallelized for efficiency.
 """
-function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, opt)
+function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, opt; storage_profiles=nothing)
     # Get number of time points and days
     num_timepoints = size(data, 1)
     hours_per_day = 24
@@ -518,6 +622,9 @@ function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, op
     day_price = TimeDomainPowerFlow.create_time_series_prices(price_profiles, num_days)
     day_irradiance = TimeDomainPowerFlow.create_time_series_irradiance(irradiance_profiles, num_days)
 
+    if storage_profiles !== nothing
+        day_storage = TimeDomainPowerFlow.create_time_series_storage_profile(storage_profiles, num_days)
+    end
     # Convert powerflow case to JPC format
     jpc = TimeDomainPowerFlow.JuliaPowerCase2Jpc(case)
 
@@ -541,14 +648,18 @@ function runtdpf(case, data, load_names, price_profiles, irradiance_profiles, op
         day_load_matrix = day_loads[d]
         day_price_line = day_price[d]
         day_irradiance_line = day_irradiance[d]
-            
+        if storage_profiles !== nothing
+            day_storage_line = day_storage[d]
+        else
+            day_storage_line = nothing
+        end
         # Extract load matrix for the day
         load_matrix_list, isolated_load_matrix = TimeDomainPowerFlow.extract_load_matrix_by_islands(day_load_matrix, jpc_list)
         
         # Perform power flow calculation for each island
         # Note: Not using @threads here because outer loop is already parallel
         for i in 1:n_islands
-            results[i,d,:] = run_single_day(jpc_list[i], opt, load_matrix_list[i], day_price_line, day_irradiance_line)
+            results[i,d,:] = run_single_day(jpc_list[i], opt, load_matrix_list[i], day_price_line, day_irradiance_line, day_storage_line)
         end
 
         @info "Completed processing day $d"

@@ -1,20 +1,8 @@
-"""
-    parse_matlab_case_file(filepath)
-
-Parse a MATPOWER case file in MATLAB format and convert it to a Julia dictionary.
-The function extracts baseMVA, version, and all matrix data from the file.
-
-# Arguments
-- `filepath::String`: Path to the MATLAB case file
-
-# Returns
-- `Dict{String, Any}`: Dictionary containing all parsed data from the case file
-"""
 function parse_matlab_case_file(filepath)
     # Read file content
     content = read(filepath, String)
     
-    # Create empty dictionary to store results
+    # Create empty dictionary to store intermediate results
     mpc = Dict{String, Any}()
     
     # Parse baseMVA
@@ -29,30 +17,19 @@ function parse_matlab_case_file(filepath)
         mpc["version"] = version_match[1]
     end
     
-    """
-        extract_data(content, key)
-    
-    Internal helper function to extract matrix or string data from MATLAB content.
-    
-    # Arguments
-    - `content::String`: Full content of the MATLAB file
-    - `key::String`: Name of the matrix to extract
-    
-    # Returns
-    - Matrix data or nothing if extraction fails
-    """
+    # Function to parse matrix or string data
     function extract_data(content, key)
         # Split content into lines
         lines = split(content, '\n')
         
-        # Find the line where matrix starts
+        # Find the starting line of the matrix
         start_pattern = "mpc.$key = ["
         end_pattern = "];"
         
         start_idx = 0
         end_idx = 0
         
-        # Find start and end positions of the matrix
+        # Find the start and end positions of the matrix
         for (i, line) in enumerate(lines)
             if occursin(start_pattern, line)
                 start_idx = i
@@ -70,16 +47,16 @@ function parse_matlab_case_file(filepath)
             # Filter out empty lines and comment lines
             matrix_lines = filter(line -> !isempty(strip(line)) && !startswith(strip(line), '%'), matrix_lines)
             
-            # Check if contains string data
+            # Check if it contains string data
             contains_strings = any(line -> occursin("'", line) || occursin("\"", line), matrix_lines)
             
             if contains_strings
                 # Process string data
                 matrix = []
                 for line in matrix_lines
-                    # Remove semicolons and comments at end of line
+                    # Remove semicolon and comments at the end of line
                     line = replace(line, r";.*$" => "")
-                    # Extract content in quotes and numbers
+                    # Extract content within quotes and numbers
                     parts = String[]
                     current_str = ""
                     in_quotes = false
@@ -122,12 +99,12 @@ function parse_matlab_case_file(filepath)
                 end
                 return length(matrix) > 0 ? reduce(vcat, transpose.(matrix)) : nothing
             else
-                # Process numeric data
+                # Process numerical data
                 matrix = []
                 for line in matrix_lines
-                    # Remove semicolons and comments at end of line
+                    # Remove semicolon and comments at the end of line
                     line = replace(line, r";.*$" => "")
-                    # Split and convert to numeric values
+                    # Split and convert to numerical values
                     try
                         row = parse.(Float64, split(strip(line)))
                         if !isempty(row)
@@ -166,98 +143,151 @@ function parse_matlab_case_file(filepath)
     return mpc
 end
 
-"""
-    save_to_julia_file(mpc, output_filepath)
+# Convert dictionary format to JPC structure
+function dict_to_jpc(mpc_dict)
+    # Create JPC instance
+    jpc = JPC()
+    
+    # Set basic attributes
+    if haskey(mpc_dict, "version")
+        jpc.version = mpc_dict["version"]
+    end
+    
+    if haskey(mpc_dict, "baseMVA")
+        jpc.baseMVA = mpc_dict["baseMVA"]
+    end
+    
+    # Map MATPOWER fields to JPC fields
+    field_mapping = Dict(
+        "bus" => "busAC",
+        "gen" => "genAC",
+        "branch" => "branchAC",
+        "load" => "loadAC"
+        # Add more mappings as needed
+    )
+    
+    # Transfer data from dictionary to JPC structure
+    for (matpower_field, jpc_field) in field_mapping
+        if haskey(mpc_dict, matpower_field)
+            data = mpc_dict[matpower_field]
+            # Ensure data is a 2D array
+            if ndims(data) == 1
+                data = reshape(data, 1, length(data))
+            end
+            
+            # Get reference to corresponding field in JPC structure
+            field_ref = getfield(jpc, Symbol(jpc_field))
+            
+            # Check if data columns match target field
+            target_cols = size(field_ref, 2)
+            data_cols = size(data, 2)
+            
+            if data_cols <= target_cols
+                # Create new array of appropriate size
+                new_data = zeros(size(data, 1), target_cols)
+                # Copy data
+                new_data[:, 1:data_cols] = data
+                # Set field value
+                setfield!(jpc, Symbol(jpc_field), new_data)
+            else
+                # If data columns exceed target field, truncate data
+                setfield!(jpc, Symbol(jpc_field), data[:, 1:target_cols])
+                @warn "Data $matpower_field has $data_cols columns exceeding target field $jpc_field with $target_cols columns, truncated."
+            end
+        end
+    end
+    
+    # Handle other unmapped fields
+    for field in keys(mpc_dict)
+        if field ∉ ["version", "baseMVA"] && !haskey(field_mapping, field)
+            # Try to directly match field names
+            try
+                if hasproperty(jpc, Symbol(field))
+                    data = mpc_dict[field]
+                    # Ensure data is a 2D array
+                    if ndims(data) == 1
+                        data = reshape(data, 1, length(data))
+                    end
+                    
+                    # Get reference to corresponding field in JPC structure
+                    field_ref = getfield(jpc, Symbol(field))
+                    
+                    # Check if data columns match target field
+                    target_cols = size(field_ref, 2)
+                    data_cols = size(data, 2)
+                    
+                    if data_cols <= target_cols
+                        # Create new array of appropriate size
+                        new_data = zeros(size(data, 1), target_cols)
+                        # Copy data
+                        new_data[:, 1:data_cols] = data
+                        # Set field value
+                        setfield!(jpc, Symbol(field), new_data)
+                    else
+                        # If data columns exceed target field, truncate data
+                        setfield!(jpc, Symbol(field), data[:, 1:target_cols])
+                        @warn "Data $field has $data_cols columns exceeding target field with $target_cols columns, truncated."
+                    end
+                end
+            catch e
+                @warn "Unable to map field $field to JPC structure: $e"
+            end
+        end
+    end
+    
+    return jpc
+end
 
-Save a parsed MATPOWER case as a Julia file with a function that returns the data.
-
-# Arguments
-- `mpc::Dict{String, Any}`: Dictionary containing the parsed MATPOWER case data
-- `output_filepath::String`: Path where the Julia file should be saved
-
-# Returns
-- Nothing, but creates a Julia file at the specified location
-"""
-function save_to_julia_file(mpc, output_filepath)
+function save_to_julia_file(jpc, output_filepath)
     open(output_filepath, "w") do f
         write(f, """function case_data()
-    mpc = Dict{String, Any}()
-
+    # Create JPC structure instance
+    jpc = JPC("$(jpc.version)", $(jpc.baseMVA), $(jpc.success), $(jpc.iterationsAC), $(jpc.iterationsDC))
+    
 """)
         
-        # Write version
-        if haskey(mpc, "version")
-            write(f, "    mpc[\"version\"] = \"$(mpc["version"])\"\n\n")
-        end
+        # Get all field names of JPC structure
+        field_names = fieldnames(JPC)
         
-        # Write baseMVA
-        if haskey(mpc, "baseMVA")
-            write(f, "    mpc[\"baseMVA\"] = $(mpc["baseMVA"])\n\n")
-        end
-        
-        # Write all matrix data
-        for key in keys(mpc)
-            if key ∉ ["version", "baseMVA"]
-                matrix = mpc[key]
-                write(f, "    mpc[\"$key\"] = [\n")
+        # Iterate through all fields
+        for field in field_names
+            # Skip basic attributes
+            if field ∉ [:version, :baseMVA, :success, :iterationsAC, :iterationsDC]
+                data = getfield(jpc, field)
                 
-                # Check matrix dimensions
-                if ndims(matrix) == 1
-                    # Handle one-dimensional arrays
-                    write(f, "        ")
-                    for value in matrix
-                        if typeof(value) <: AbstractString
-                            write(f, "\"$value\" ")  # String values are surrounded by quotes
-                        else
-                            write(f, "$(value) ")    # Numeric values are written directly
-                        end
-                    end
-                    write(f, "\n")
-                else
-                    # Handle two-dimensional arrays
-                    for i in eachindex(matrix[:,1])
+                # Only process non-empty arrays
+                if !isempty(data)
+                    write(f, "    # Set $field data\n")
+                    write(f, "    jpc.$field = [\n")
+                    
+                    # Write array data
+                    for i in 1:size(data, 1)
                         write(f, "        ")
-                        for j in eachindex(matrix[1,:])
-                            value = matrix[i,j]
-                            if typeof(value) <: AbstractString
-                                write(f, "\"$value\" ")  # String values are surrounded by quotes
-                            else
-                                write(f, "$(value) ")    # Numeric values are written directly
-                            end
+                        for j in 1:size(data, 2)
+                            write(f, "$(data[i,j]) ")
                         end
                         write(f, ";\n")
                     end
+                    
+                    write(f, "    ]\n\n")
                 end
-                
-                write(f, "    ]\n\n")
             end
         end
         
-        write(f, "    return mpc\nend")
+        write(f, "    return jpc\nend")
     end
 end
 
-"""
-    convert_matpower_case(input_filepath, output_filepath)
-
-Convert a MATPOWER case file from MATLAB format to Julia format.
-This function handles the entire conversion process, including parsing the MATLAB file,
-converting the data structures, and saving the result as a Julia file.
-
-# Arguments
-- `input_filepath::String`: Path to the input MATLAB case file
-- `output_filepath::String`: Path where the output Julia file should be saved
-
-# Returns
-- `Dict{String, Any}` or `nothing`: The parsed case data if successful, nothing if an error occurs
-"""
 function convert_matpower_case(input_filepath, output_filepath)
     try
         println("Parsing MATLAB file...")
-        mpc = parse_matlab_case_file(input_filepath)
+        mpc_dict = parse_matlab_case_file(input_filepath)
         
-        println("Saving as Julia file...")
-        save_to_julia_file(mpc, output_filepath)
+        println("Converting to JPC structure...")
+        jpc = dict_to_jpc(mpc_dict)
+        
+        println("Saving to Julia file...")
+        save_to_julia_file(jpc, output_filepath)
         
         println("Conversion completed!")
         println("Input file: $input_filepath")
@@ -265,15 +295,18 @@ function convert_matpower_case(input_filepath, output_filepath)
         
         # Print data statistics
         println("\nData statistics:")
-        for (key, value) in mpc
-            if value isa Array
-                println("$key matrix size: $(size(value))")
+        for field in fieldnames(JPC)
+            data = getfield(jpc, field)
+            if isa(data, Array)
+                if !isempty(data)
+                    println("$field matrix size: $(size(data))")
+                end
             else
-                println("$key: $(value)")
+                println("$field: $(data)")
             end
         end
         
-        return mpc
+        return jpc
     catch e
         println("Error occurred during conversion:")
         println(e)

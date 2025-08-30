@@ -1,5 +1,5 @@
 """
-    run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line)
+    run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line, day_storage_line = nothing)
 
 Run a day-ahead simulation for a hybrid AC-DC power system with renewable generation and energy storage.
 
@@ -36,72 +36,75 @@ subsystems, PV systems (both AC-connected and DC-connected), and energy storage 
 time-varying load profiles, electricity prices, and solar irradiance patterns throughout the day.
 """
 
-function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line)
+function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irradiance_line, day_storage_line = nothing)
 
     jpc = deepcopy(old_jpc)
-    converter_ac_bus = Int.(jpc.converter[:, CONV_ACBUS])
-    converter_ac_p_mw = jpc.converter[:, CONV_P_AC]
-    converter_ac_q_mvar = jpc.converter[:, CONV_Q_AC]
-    converter_dc_bus = Int.(jpc.converter[:, CONV_DCBUS])
-    converter_dc_p_mw = jpc.converter[:, CONV_P_DC]
 
-    # Create mapping from bus ID to index
-    ac_bus_map = Dict(jpc.busAC[i, BUS_I] => i for i in 1:size(jpc.busAC, 1))
-    dc_bus_map = Dict(jpc.busDC[i, BUS_I] => i for i in 1:size(jpc.busDC, 1))
+    if day_storage_line == nothing
+        converter_ac_bus = Int.(jpc.converter[:, CONV_ACBUS])
+        converter_ac_p_mw = jpc.converter[:, CONV_P_AC]
+        converter_ac_q_mvar = jpc.converter[:, CONV_Q_AC]
+        converter_dc_bus = Int.(jpc.converter[:, CONV_DCBUS])
+        converter_dc_p_mw = jpc.converter[:, CONV_P_DC]
 
-    # AC side processing - subtract converter power
-    for i in 1:length(converter_ac_bus)
-        ac_bus_id = converter_ac_bus[i]
-        if haskey(ac_bus_map, ac_bus_id)
-            idx = ac_bus_map[ac_bus_id]
-            if jpc.converter[i, CONV_MODE] != 6 && jpc.converter[i, CONV_MODE] != 7
-            jpc.busAC[idx, PD] -= converter_ac_p_mw[i]
-            end
-            if jpc.converter[i, CONV_MODE] != 7
-                jpc.busAC[idx, QD] -= converter_ac_q_mvar[i]
-            end
-        else
-            @warn "Cannot find AC bus with ID $ac_bus_id"
-        end
-    end
+        # Create mapping from bus ID to index
+        ac_bus_map = Dict(jpc.busAC[i, BUS_I] => i for i in 1:size(jpc.busAC, 1))
+        dc_bus_map = Dict(jpc.busDC[i, BUS_I] => i for i in 1:size(jpc.busDC, 1))
 
-    # DC side processing - subtract converter power
-    for i in 1:length(converter_dc_bus)
-        dc_bus_id = converter_dc_bus[i]
-        if haskey(dc_bus_map, dc_bus_id)
-            idx = dc_bus_map[dc_bus_id]
-            if jpc.converter[i, CONV_MODE] != 6 && jpc.converter[i, CONV_MODE] != 7
-                jpc.busDC[idx, PD] -= converter_dc_p_mw[i]
-            end
-        else
-            @warn "Cannot find DC bus with ID $dc_bus_id"
-        end
-    end
-
-    # Delete or subtract the corresponding load
-    for i in 1:size(jpc.loadAC, 1)
-        load_bus = jpc.loadAC[i, LOAD_CND]
-        for j in 1:length(converter_ac_bus)
-            if load_bus == converter_ac_bus[j]
-                # Only subtract the converter power part, not delete the entire load
-                if jpc.converter[j, CONV_MODE] != 6 && jpc.converter[j, CONV_MODE] != 7
-                    jpc.loadAC[i, LOAD_PD] -= converter_ac_p_mw[j]
+        # AC side processing - subtract converter power
+        for i in 1:length(converter_ac_bus)
+            ac_bus_id = converter_ac_bus[i]
+            if haskey(ac_bus_map, ac_bus_id)
+                idx = ac_bus_map[ac_bus_id]
+                if jpc.converter[i, CONV_MODE] != 6 && jpc.converter[i, CONV_MODE] != 7
+                jpc.busAC[idx, PD] -= converter_ac_p_mw[i]
                 end
-                if jpc.converter[j, CONV_MODE] != 7
-                    # Only subtract the converter reactive power part, not delete the entire load
-                    jpc.loadAC[i, LOAD_QD] -= converter_ac_q_mvar[j]
+                if jpc.converter[i, CONV_MODE] != 7
+                    jpc.busAC[idx, QD] -= converter_ac_q_mvar[i]
                 end
+            else
+                @warn "Cannot find AC bus with ID $ac_bus_id"
             end
         end
-    end
 
-    for i in 1:size(jpc.loadDC, 1)
-        load_bus = jpc.loadDC[i, LOAD_CND]
-        for j in 1:length(converter_dc_bus)
-            if load_bus == converter_dc_bus[j]
-                if jpc.converter[j, CONV_MODE] != 6 && jpc.converter[j, CONV_MODE] != 7
+        # DC side processing - subtract converter power
+        for i in 1:length(converter_dc_bus)
+            dc_bus_id = converter_dc_bus[i]
+            if haskey(dc_bus_map, dc_bus_id)
+                idx = dc_bus_map[dc_bus_id]
+                if jpc.converter[i, CONV_MODE] != 6 && jpc.converter[i, CONV_MODE] != 7
+                    jpc.busDC[idx, PD] -= converter_dc_p_mw[i]
+                end
+            else
+                @warn "Cannot find DC bus with ID $dc_bus_id"
+            end
+        end
+
+        # Delete or subtract the corresponding load
+        for i in 1:size(jpc.loadAC, 1)
+            load_bus = jpc.loadAC[i, LOAD_CND]
+            for j in 1:length(converter_ac_bus)
+                if load_bus == converter_ac_bus[j]
                     # Only subtract the converter power part, not delete the entire load
-                    jpc.loadDC[i, LOAD_PD] -= converter_dc_p_mw[j]
+                    if jpc.converter[j, CONV_MODE] != 6 && jpc.converter[j, CONV_MODE] != 7
+                        jpc.loadAC[i, LOAD_PD] -= converter_ac_p_mw[j]
+                    end
+                    if jpc.converter[j, CONV_MODE] != 7
+                        # Only subtract the converter reactive power part, not delete the entire load
+                        jpc.loadAC[i, LOAD_QD] -= converter_ac_q_mvar[j]
+                    end
+                end
+            end
+        end
+
+        for i in 1:size(jpc.loadDC, 1)
+            load_bus = jpc.loadDC[i, LOAD_CND]
+            for j in 1:length(converter_dc_bus)
+                if load_bus == converter_dc_bus[j]
+                    if jpc.converter[j, CONV_MODE] != 6 && jpc.converter[j, CONV_MODE] != 7
+                        # Only subtract the converter power part, not delete the entire load
+                        jpc.loadDC[i, LOAD_PD] -= converter_dc_p_mw[j]
+                    end
                 end
             end
         end
@@ -348,30 +351,31 @@ function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irrad
         end
     end
 
-    result = run_dynamic_dispatch(new_jpc,
-        Cld_ac, Cld_dc, 
-        loadAC_PD, loadAC_QD,
-        loadDC_PD,
-        genAC_PG,
-        Cgen_ac, 
-        Cconv_ac, Cconv_dc, 
-        η_rec, η_inv,
-        Cpv_ac,
-        Cpv_dc,
-        pv_ac_p_mw_ratio,
-        pv_ac_p_mw,
-        pv_max_p_mw,
-        pv_max_p_mw_ratio,
-        Cstorage_ac,
-        ess_initial_soc,
-        ess_max_soc,
-        ess_min_soc,
-        ess_power_capacity_mw,
-        ess_energy_capacity_mwh,
-        ess_efficiency,
-        day_price_line
-        )
-
+    if day_storage_line == nothing
+        result = run_dynamic_dispatch(new_jpc,
+            Cld_ac, Cld_dc, 
+            loadAC_PD, loadAC_QD,
+            loadDC_PD,
+            genAC_PG,
+            Cgen_ac, 
+            Cconv_ac, Cconv_dc, 
+            η_rec, η_inv,
+            Cpv_ac,
+            Cpv_dc,
+            pv_ac_p_mw_ratio,
+            pv_ac_p_mw,
+            pv_max_p_mw,
+            pv_max_p_mw_ratio,
+            Cstorage_ac,
+            ess_initial_soc,
+            ess_max_soc,
+            ess_min_soc,
+            ess_power_capacity_mw,
+            ess_energy_capacity_mwh,
+            ess_efficiency,
+            day_price_line
+            )
+    end
     # Full day power flow calculation
     results_pf = Array{Any}(undef, 24)
     # Assign values
@@ -420,72 +424,97 @@ function run_single_day(old_jpc, opt, day_load_matrix, day_price_line, day_irrad
             end
         end
 
-        # Reassign results to jpc.converter
-        for i in eachindex(converters[:, 1])
-            if result["Pij_inv"][i,t] > 0
-                jpc.converter[i, CONV_P_AC] = result["Pij_inv"][i,t]
-            else
-                jpc.converter[i, CONV_P_AC] = -result["Pij_rec"][i,t] * jpc.converter[i, CONV_EFF]
-            end
-
-            if result["Pij_rec"][i,t] > 0
-                jpc.converter[i, CONV_P_DC] = result["Pij_rec"][i,t]
-            else
-                jpc.converter[i, CONV_P_DC] = -result["Pij_inv"][i,t] * jpc.converter[i, CONV_EFF]
-            end
-            # jpc.converter[i, CONV_Q_AC] = Qij_inv_result[i]
-        end
-
-        # Modify load or generator power according to control mode
-        for i in eachindex(converters[:, 1])
-            if jpc.converter[i, CONV_MODE] == 6
-                # If in Droop_Udc_Qs mode, directly set AC power to 0
-                genDC_idx = findfirst(jpc.genDC[:, GEN_BUS] .== jpc.converter[i, CONV_DCBUS])
-                jpc.genDC[genDC_idx, PG] = -jpc.converter[i, CONV_P_DC]
-                # Step 1: Find the corresponding index
-                idx = findfirst(jpc.busAC[:, BUS_I] .== jpc.converter[i, CONV_ACBUS])
-                
-                # Step 2: If index found, update the active power of the bus
-                # if idx !== nothing
-                #     jpc.busAC[idx, PD] += jpc.converter[i, CONV_P_AC]
-                # end
-                # # Step 1: Find the corresponding index
-                # idx = findfirst(jpc.loadAC[:, LOAD_CND] .== jpc.converter[i, CONV_ACBUS])
-
-                # # Step 2: If index found, update the active power of the load
-                # if idx !== nothing
-                #     jpc.loadAC[idx, LOAD_PD] += jpc.converter[i, CONV_P_AC]
-                # end
-
-            elseif jpc.converter[i, CONV_MODE] == 7
-                # If in Droop_Udc_Us mode, directly set reactive power to 0
-                genAC_idx = findfirst(jpc.genAC[:, GEN_BUS] .== jpc.converter[i, CONV_ACBUS])
-                jpc.genAC[genAC_idx, PG] = -jpc.converter[i, CONV_P_AC]
-
-                genDC_idx = findfirst(jpc.genDC[:, GEN_BUS] .== jpc.converter[i, CONV_DCBUS])
-                jpc.genDC[genDC_idx, PG] = -jpc.converter[i, CONV_P_DC]
-
-            end
-        end
-
-        # Assign values for storage loads
-        for i in eachindex(storage[:, ESS_BUS])
-            bus_id = storage[i, ESS_BUS]
-            if bus_id in new_jpc.busDC[:, BUS_I]
-                bus_id = dc_node_reverse_mapping[bus_id]  # Use new DC bus ID
-                # ac_bus_count = size(new_jpc.busAC, 1)
-                line = findfirst(jpc.busDC[:,BUS_I] .== bus_id)
-                jpc.busDC[line, PD] = result["ess_charge"][i,t]- result["ess_discharge"][i,t]
-
-                # Update storage load
-                idx = findfirst(jpc.loadDC[:, LOAD_CND] .== bus_id)
-                if idx !== nothing
-                    jpc.loadDC[idx, LOAD_PD] = result["ess_charge"][i,t]- result["ess_discharge"][i,t]
+        if day_storage_line == nothing
+            # Reassign results to jpc.converter
+            for i in eachindex(converters[:, 1])
+                if result["Pij_inv"][i,t] > 0
+                    jpc.converter[i, CONV_P_AC] = result["Pij_inv"][i,t]
                 else
-                    @warn "Cannot find DC bus load with ID $bus_id"
+                    jpc.converter[i, CONV_P_AC] = -result["Pij_rec"][i,t] * jpc.converter[i, CONV_EFF]
                 end
-            else
-                @warn "Cannot find DC bus with ID $bus_id"
+
+                if result["Pij_rec"][i,t] > 0
+                    jpc.converter[i, CONV_P_DC] = result["Pij_rec"][i,t]
+                else
+                    jpc.converter[i, CONV_P_DC] = -result["Pij_inv"][i,t] * jpc.converter[i, CONV_EFF]
+                end
+                # jpc.converter[i, CONV_Q_AC] = Qij_inv_result[i]
+            end
+
+            # Modify load or generator power according to control mode
+            for i in eachindex(converters[:, 1])
+                if jpc.converter[i, CONV_MODE] == 6
+                    # If in Droop_Udc_Qs mode, directly set AC power to 0
+                    genDC_idx = findfirst(jpc.genDC[:, GEN_BUS] .== jpc.converter[i, CONV_DCBUS])
+                    jpc.genDC[genDC_idx, PG] = -jpc.converter[i, CONV_P_DC]
+                    # Step 1: Find the corresponding index
+                    idx = findfirst(jpc.busAC[:, BUS_I] .== jpc.converter[i, CONV_ACBUS])
+                    
+                    # Step 2: If index found, update the active power of the bus
+                    # if idx !== nothing
+                    #     jpc.busAC[idx, PD] += jpc.converter[i, CONV_P_AC]
+                    # end
+                    # # Step 1: Find the corresponding index
+                    # idx = findfirst(jpc.loadAC[:, LOAD_CND] .== jpc.converter[i, CONV_ACBUS])
+
+                    # # Step 2: If index found, update the active power of the load
+                    # if idx !== nothing
+                    #     jpc.loadAC[idx, LOAD_PD] += jpc.converter[i, CONV_P_AC]
+                    # end
+
+                elseif jpc.converter[i, CONV_MODE] == 7
+                    # If in Droop_Udc_Us mode, directly set reactive power to 0
+                    genAC_idx = findfirst(jpc.genAC[:, GEN_BUS] .== jpc.converter[i, CONV_ACBUS])
+                    jpc.genAC[genAC_idx, PG] = -jpc.converter[i, CONV_P_AC]
+
+                    genDC_idx = findfirst(jpc.genDC[:, GEN_BUS] .== jpc.converter[i, CONV_DCBUS])
+                    jpc.genDC[genDC_idx, PG] = -jpc.converter[i, CONV_P_DC]
+
+                end
+            end
+        
+
+            # Assign values for storage loads
+            for i in eachindex(storage[:, ESS_BUS])
+                bus_id = storage[i, ESS_BUS]
+                if bus_id in new_jpc.busDC[:, BUS_I]
+                    bus_id = dc_node_reverse_mapping[bus_id]  # Use new DC bus ID
+                    # ac_bus_count = size(new_jpc.busAC, 1)
+                    line = findfirst(jpc.busDC[:,BUS_I] .== bus_id)
+                    jpc.busDC[line, PD] = result["ess_charge"][i,t]- result["ess_discharge"][i,t]
+
+                    # Update storage load
+                    idx = findfirst(jpc.loadDC[:, LOAD_CND] .== bus_id)
+                    if idx !== nothing
+                        jpc.loadDC[idx, LOAD_PD] = result["ess_charge"][i,t]- result["ess_discharge"][i,t]
+                    else
+                        @warn "Cannot find DC bus load with ID $bus_id"
+                    end
+                else
+                    @warn "Cannot find DC bus with ID $bus_id"
+                end
+            end
+
+        else
+            # Assign values for storage loads
+            for i in eachindex(storage[:, ESS_BUS])
+                bus_id = storage[i, ESS_BUS]
+                if bus_id in new_jpc.busDC[:, BUS_I]
+                    bus_id = dc_node_reverse_mapping[bus_id]  # Use new DC bus ID
+                    # ac_bus_count = size(new_jpc.busAC, 1)
+                    line = findfirst(jpc.busDC[:,BUS_I] .== bus_id)
+                    jpc.busDC[line, PD] = day_storage_line[t, 2]
+
+                    # Update storage load
+                    idx = findfirst(jpc.loadDC[:, LOAD_CND] .== bus_id)
+                    if idx !== nothing
+                        jpc.loadDC[idx, LOAD_PD] =day_storage_line[t, 2]
+                    else
+                        @warn "Cannot find DC bus load with ID $bus_id"
+                    end
+                else
+                    @warn "Cannot find DC bus with ID $bus_id"
+                end
             end
         end
 

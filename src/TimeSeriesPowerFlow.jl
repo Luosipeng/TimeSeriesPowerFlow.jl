@@ -25,7 +25,7 @@ module TimeSeriesPowerFlow
     using .Utils: topology_analysis, create_virtual_connection, is_switch_element, extract_data, filter_active_edges, identify_partitions, find_path_to_lca, ext2int
     using .Utils: safe_get_value, create_node_mapping, count_switch_ports, is_substation, dfs_tree, parse_bool, int2ext
     using .Utils: write_results_with_partitions, create_and_plot_graph_by_partition, generate_partition_report, process_switch_nodes, get_edge_endpoints, update_edge_ids, extract_edges_from_case, find_fundamental_cycles, load_vpps!
-    using .TimeDomainPowerFlow: read_load_data, read_price_data, read_irradiance_data, create_time_series_loads, create_time_series_prices, create_time_series_irradiance, extract_load_matrix_by_islands
+    using .TimeDomainPowerFlow: read_load_data, read_price_data, read_irradiance_data, create_time_series_loads, create_time_series_prices, create_time_series_irradiance, extract_load_matrix_by_islands, read_storage_profile_data
     using .PowerFlow: build_gen, calculate_bus, process_value, xor, dc_preprocess, process_pv_acsystem, init_gen, calc_r_x_from_dataframe, add_trafo_sc_impedance_zero
     using .PowerFlow: dSbus_dV, eliminate_element, bustypes, calculate_transformer_parameter, wye_delta, add_grid_external_sc_impedance
     using .PowerFlow: calc_r_x_y_from_dataframe, initialize_branch_length, add_gen_order, dcbustypes, add_element_to_gen, calc_tap_from_dataframe
@@ -40,6 +40,7 @@ module TimeSeriesPowerFlow
     using .ComponentModel: VirtualPowerPlant, FlexLoad
     using .ComponentModel: ChargingStation, Charger, EVAggregator, V2GService
     using .ComponentModel: Microgrid, PVArray, ACPVSystem
+    using .Utils: convert_matpower_case
 
 
     # ... export other indexes defined in idx.jl ...
@@ -145,6 +146,7 @@ module TimeSeriesPowerFlow
     export Utils
     export PowerFlow
     export TimeDomainPowerFlow
-
+    export convert_matpower_case
+    export read_storage_profile_data    
 end
 

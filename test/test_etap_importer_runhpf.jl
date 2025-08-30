@@ -3,7 +3,7 @@ using  XLSX
 using  DataFrames
 using  Base.Threads
 using  TimeSeriesPowerFlow
-file_path = joinpath(pwd(), "data", "test_case.xlsx")
+file_path = joinpath(pwd(), "data", "石桥F12草河F27交直流.xlsx")
 
 case = load_julia_power_data(file_path)
 
@@ -25,6 +25,7 @@ opt = options() # The initial settings
 opt["PF"]["NR_ALG"] = "bicgstab";
 opt["PF"]["ENFORCE_Q_LIMS"] = 0;
 opt["PF"]["DC_PREPROCESS"] = 1;
+opt["PF"]["GPU_ACCELERATION"] = 0; 
 
 jpc_list, isolated = extract_islands_acdc(jpc)
 n_islands = length(jpc_list)
@@ -51,10 +52,8 @@ results = (value=results_array, time=elapsed)
 voltage_results = get_bus_voltage_results_acdc(results, new_case)
 
 # # Compare results with reference file
-
-# result_file = joinpath(pwd(), "data", "ShiQiao F12 CaoHe F27 AC-DC result.xlsx")
-# result_file = "C:/Users/13733/Desktop/etap-main/result.xlsx"
-# analyze_voltage_results(results, case, result_file, output_dir="./analysis_results")
+result_file = joinpath(pwd(), "data", "石桥F12草河F27交直流result.xlsx")
+analyze_voltage_results(results, case, result_file, output_dir="./analysis_results", save_pdf=false)
 
 # println("Calculation completed, time elapsed: $(results.time) seconds")
 # process_result(results, isolated, "PowerFlow_report.txt")
