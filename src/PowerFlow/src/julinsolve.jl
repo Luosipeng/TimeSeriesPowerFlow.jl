@@ -50,10 +50,9 @@ function julinsolve(A, b, solver = "", opt = nothing)
     elseif solver == "LU3"
         q = amd(A)
         if issparse(A)
-            # 使用与示例代码相同的方式进行LU分解
             F = lu(A[q,q])
             x = zeros(size(A, 1))
-            x[q] = F \ b[q]  # 直接使用分解结果求解
+            x[q] = F \ b[q]  #
         else
             L, U, p = lu(A[q,q])
             x = zeros(size(A, 1))

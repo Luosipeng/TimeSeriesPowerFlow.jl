@@ -1,5 +1,5 @@
 """
-    makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu; dc=false, Sg=nothing, return_derivative=false)
+    makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_gpu; dc=false, Sg=nothing, return_derivative=false)
 
 Build the vector of complex bus power injections using GPU acceleration.
 
@@ -10,6 +10,7 @@ Build the vector of complex bus power injections using GPU acceleration.
 - `gen`: Generator data matrix on CPU with columns representing generator parameters
 - `Vm_gpu`: Vector of bus voltage magnitudes on GPU
 - `load_gpu`: Load data matrix on GPU with columns representing load parameters
+- `pvarray_gpu`: PV array data matrix on GPU with columns representing PV parameters
 
 # Keyword Arguments
 - `dc`: Boolean indicating whether to use DC power flow assumptions (default: false)
@@ -22,7 +23,8 @@ Build the vector of complex bus power injections using GPU acceleration.
 
 # Description
 This function computes the vector of complex bus power injections (Sbus) for power flow analysis using GPU acceleration.
-It accounts for ZIP load models (constant power, constant current, and constant impedance components) and generator injections.
+It accounts for ZIP load models (constant power, constant current, and constant impedance components), generator injections,
+and PV array injections.
 
 When `return_derivative=true`, it returns the partial derivatives of the power injections with respect to voltage magnitude,
 which is useful for power flow Jacobian calculations.
@@ -32,6 +34,7 @@ which is useful for power flow Jacobian calculations.
 - The function handles ZIP load models with percentages specified in load_gpu
 - Generator status is considered when computing injections
 - When dc=true, voltage magnitudes are set to 1.0 p.u.
+- PV array injections are calculated separately and added to the total bus injections
 
 # Constants Used (assumed to be defined elsewhere)
 - LOAD_CND: Column index for load bus number in load_gpu matrix
@@ -42,6 +45,7 @@ which is useful for power flow Jacobian calculations.
 - GEN_BUS: Column index for generator bus number in gen matrix
 - PG: Column index for real power output in gen_gpu matrix
 - QG: Column index for reactive power output in gen_gpu matrix
+- PV_IN_SERVICE: Column index for PV array service status in pvarray_gpu matrix
 """
 function makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_gpu; dc=false, Sg=nothing, return_derivative=false)
 
@@ -108,22 +112,62 @@ function makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_
     end
 end
 
+"""
+    calculate_pv_power_gpu(pvarray_gpu, bus_gpu, Vm_gpu, baseMVA)
+
+Calculate power injections from PV arrays and their derivatives with respect to voltage magnitude using GPU acceleration.
+
+# Arguments
+- `pvarray_gpu`: PV array data matrix on GPU with columns representing PV parameters
+- `bus_gpu`: Bus data matrix on GPU with columns representing bus parameters
+- `Vm_gpu`: Vector of bus voltage magnitudes on GPU
+- `baseMVA`: Base MVA for the system
+
+# Returns
+- `Spv`: Vector of complex power injections from PV arrays
+- `dSpv_dVm`: Sparse matrix of partial derivatives of PV power injections with respect to voltage magnitude
+
+# Description
+This function computes the power injections from PV arrays using a modified power function model
+that relates voltage to current output. It also calculates the derivatives of these injections
+with respect to voltage magnitude for use in power flow Jacobian calculations.
+
+The function filters active PV arrays, maps them to their connected buses, and calculates
+their power output based on the current voltage conditions.
+
+# Notes
+- Power output is calculated using a modified power function model with parameters a, b, and c
+- The model accounts for the nonlinear relationship between voltage and current in PV arrays
+- Results are converted to per-unit on system MVA base
+- Only real power is considered (no reactive power from PV arrays)
+- Calculations are partially performed on CPU for complex operations
+
+# Constants Used (assumed to be defined elsewhere)
+- PV_IN_SERVICE: Column index for PV array service status
+- BUS_I: Column index for bus number in bus_gpu matrix
+- PV_BUS: Column index for connected bus number in pvarray_gpu matrix
+- BASE_KV: Column index for base voltage in bus_gpu matrix
+- PV_VOC: Column index for open circuit voltage in pvarray_gpu matrix
+- PV_ISC: Column index for short circuit current in pvarray_gpu matrix
+- PV_AREA: Column index for PV array area in pvarray_gpu matrix
+- PV_VMPP: Column index for maximum power point voltage in pvarray_gpu matrix
+"""
 function calculate_pv_power_gpu(pvarray_gpu, bus_gpu, Vm_gpu, baseMVA)
     nb = size(Vm_gpu, 1)
     Spv = CUDA.zeros(Complex{Float64}, nb)
     dSpv_dVm = CUDA.CUSPARSE.spzeros(nb, nb)
     
-    # 过滤在服务中的PV阵列
+    # Filter PV arrays that are in service
     active_pv = pvarray_gpu[pvarray_gpu[:, PV_IN_SERVICE] .> 0, :]
     
     if isempty(active_pv)
         return Spv, dSpv_dVm
     end
     
-    # 创建从总线号到索引的映射
+    # Create mapping from bus number to index
     valid_pv, bus_indices = process_pv_connections(bus_gpu, active_pv, BUS_I, PV_BUS)
     
-    # 只保留有效的PV阵列
+    # Keep only valid PV arrays
     active_pv = active_pv[valid_pv, :]
     bus_indices = bus_indices[valid_pv]
     
@@ -131,74 +175,74 @@ function calculate_pv_power_gpu(pvarray_gpu, bus_gpu, Vm_gpu, baseMVA)
         return Spv, dSpv_dVm
     end
     
-    # 将必要的数据传回CPU进行处理
+    # Transfer necessary data back to CPU for processing
     bus_cpu = Array(bus_gpu)
     Vm_cpu = Array(Vm_gpu)
     active_pv_cpu = Array(active_pv)
     
-    # 获取总线的基准电压 (kV)
+    # Get base voltage of buses (kV)
     base_kvs = bus_cpu[bus_indices, BASE_KV]
     
-    # 获取当前总线电压 (标幺值)
+    # Get current bus voltage (per unit)
     V_buses = Vm_cpu[bus_indices]
     
-    # 修改的功率函数模型参数
+    # Modified power function model parameters
     a = 10.000000
     b = 0.547596
     c = 0.023812
     
-    # 提取PV参数
-    Vocs = active_pv_cpu[:, PV_VOC]      # 开路电压 (V)
-    Iscs = active_pv_cpu[:, PV_ISC]      # 短路电流 (A)
-    areas = active_pv_cpu[:, PV_AREA]    # 面积或其他缩放因子
-    Vmpps = active_pv_cpu[:, PV_VMPP]    # 最大功率点电压 (V)
+    # Extract PV parameters
+    Vocs = active_pv_cpu[:, PV_VOC]      # Open circuit voltage (V)
+    Iscs = active_pv_cpu[:, PV_ISC]      # Short circuit current (A)
+    areas = active_pv_cpu[:, PV_AREA]    # Area or other scaling factor
+    Vmpps = active_pv_cpu[:, PV_VMPP]    # Maximum power point voltage (V)
     
-    # 将标幺值电压转换为实际电压 (V)
+    # Convert per unit voltage to actual voltage (V)
     voltage_ratios = 1
-    V_arrays = V_buses .* base_kvs .* 1000 .* voltage_ratios  # 转换为伏特
+    V_arrays = V_buses .* base_kvs .* 1000 .* voltage_ratios  # Convert to volts
     
-    # 初始化电流和导数数组
+    # Initialize current and derivative arrays
     I_arrays = zeros(size(active_pv_cpu, 1))
     dI_dVs = zeros(size(active_pv_cpu, 1))
     
-    # 创建用于向量化操作的掩码
+    # Create masks for vectorized operations
     neg_v_mask = real.(V_arrays) .< 0
     valid_v_mask = (real.(V_arrays) .>= 0) .& (real.(V_arrays) .<= Vocs)
     over_v_mask = real.(V_arrays) .> Vocs
     
-    # 计算比率
+    # Calculate ratios
     v_ratios = zeros(size(V_arrays))
     vmpp_ratios = zeros(size(V_arrays))
     v_ratios[valid_v_mask] = V_arrays[valid_v_mask] ./ Vocs[valid_v_mask]
     vmpp_ratios[valid_v_mask] = V_arrays[valid_v_mask] ./ Vmpps[valid_v_mask] .- 1
     
-    # 使用修改的功率函数模型计算电流
+    # Calculate current using modified power function model
     for i in 1:length(V_arrays)
         if valid_v_mask[i]
-            # 基础功率函数项
+            # Base power function term
             base_term = (1 - v_ratios[i]^a)^b
             
-            # 修正项
+            # Correction term
             correction_term = (1 - c * vmpp_ratios[i]^2)
             
-            # 计算电流
+            # Calculate current
             I_arrays[i] = Iscs[i] * base_term * correction_term
             
-            # 确保电流非负
+            # Ensure current is non-negative
             I_arrays[i] = max(0, I_arrays[i])
         end
     end
     
-    # 计算导数（对于有效电压范围）
+    # Calculate derivatives (for valid voltage range)
     for i in eachindex(V_arrays)
         if valid_v_mask[i] && real(V_arrays[i]) > 0
-            # 基础功率函数项的导数
+            # Derivative of base power function term
             d_base_term_dv = -a * b * (1 - v_ratios[i]^a)^(b-1) * v_ratios[i]^(a-1) / Vocs[i]
             
-            # 修正项的导数
+            # Derivative of correction term
             d_correction_term_dv = -c * 2 * vmpp_ratios[i] / Vmpps[i]
             
-            # 使用乘积法则计算总导数
+            # Calculate total derivative using product rule
             base_term = (1 - v_ratios[i]^a)^b
             correction_term = (1 - c * vmpp_ratios[i]^2)
             
@@ -207,49 +251,70 @@ function calculate_pv_power_gpu(pvarray_gpu, bus_gpu, Vm_gpu, baseMVA)
                 base_term * d_correction_term_dv
             )
             
-            # 如果电流为0，导数也应为0
+            # If current is 0, derivative should also be 0
             if I_arrays[i] <= 0
                 dI_dVs[i] = 0
             end
         end
     end
     
-    # 计算功率 (W)
+    # Calculate power (W)
     P_arrays = V_arrays .* I_arrays
     
-    # 转换为标幺值（考虑baseMVA）
-    P_pus = P_arrays ./ (baseMVA * 1e6)  # 从W转换为标幺值
+    # Convert to per unit (considering baseMVA)
+    P_pus = P_arrays ./ (baseMVA * 1e6)  # Convert from W to per unit
     
-    # 计算功率对电压的导数
+    # Calculate power derivative with respect to voltage
     dP_dVs = I_arrays .+ V_arrays .* dI_dVs
     dP_dV_pus = (dP_dVs .* base_kvs .* 1000 .* voltage_ratios) ./ (baseMVA * 1e6)
     
-    # 更新功率注入和导数矩阵
+    # Update power injection and derivative matrix
     Spv_cpu = Array(Spv)
     for i in eachindex(bus_indices)
-        Spv_cpu[bus_indices[i]] += P_pus[i] + 0im  # 仅实功率
+        Spv_cpu[bus_indices[i]] += P_pus[i] + 0im  # Real power only
     end
     
-    # 将结果传回GPU
+    # Transfer results back to GPU
     copyto!(Spv, Spv_cpu)
     
-    # 处理稀疏导数矩阵
+    # Process sparse derivative matrix
     I_indices = bus_indices
     J_indices = bus_indices
     V_values = dP_dV_pus
     
-    # 创建新的稀疏矩阵
+    # Create new sparse matrix
     dSpv_dVm = CUDA.CUSPARSE.sparse(I_indices, J_indices, V_values, nb, nb)
     
     return Spv, dSpv_dVm
 end
-# 创建映射矩阵
+
+"""
+    create_bus_mapping(bus_gpu, BUS_I)
+
+Create a mapping dictionary from bus numbers to their indices in the bus matrix.
+
+# Arguments
+- `bus_gpu`: Bus data matrix on GPU with columns representing bus parameters
+- `BUS_I`: Column index for bus number in bus_gpu matrix
+
+# Returns
+- `bus_to_idx`: Dictionary mapping bus numbers to their indices in the bus matrix
+
+# Description
+This function creates a dictionary that maps bus identification numbers to their 
+corresponding indices in the bus matrix. This mapping is useful for quickly finding
+the position of a specific bus in the data structures.
+
+# Notes
+- The function transfers bus data from GPU to CPU for processing
+- Bus numbers may not be sequential or start from 1, hence the need for this mapping
+"""
 function create_bus_mapping(bus_gpu, BUS_I)
-    # 将bus数据传回CPU处理映射关系
+    # Transfer bus data back to CPU to process mapping relationships
     bus_ids = Array(Int.(bus_gpu[:, BUS_I]))
     n = length(bus_ids)
     
-    # 创建映射字典
+    # Create mapping dictionary
     bus_to_idx = Dict{Int, Int}()
     for i in 1:n
         bus_to_idx[bus_ids[i]] = i
@@ -258,17 +323,39 @@ function create_bus_mapping(bus_gpu, BUS_I)
     return bus_to_idx
 end
 
-# 查找总线索引 - 完全在CPU上处理
+"""
+    find_bus_indices(bus_to_idx, active_pv, PV_BUS)
+
+Find the indices of buses to which PV arrays are connected.
+
+# Arguments
+- `bus_to_idx`: Dictionary mapping bus numbers to their indices in the bus matrix
+- `active_pv`: PV array data matrix with columns representing PV parameters
+- `PV_BUS`: Column index for connected bus number in active_pv matrix
+
+# Returns
+- `valid_pv`: Boolean array indicating which PV arrays are connected to valid buses
+- `bus_indices`: Array of bus indices corresponding to each valid PV array
+
+# Description
+This function identifies which buses in the system have PV arrays connected to them.
+It returns a boolean mask indicating which PV arrays are connected to valid buses,
+and an array of the corresponding bus indices for those valid connections.
+
+# Notes
+- The function processes data entirely on CPU for better dictionary lookup performance
+- PV arrays connected to non-existent buses are marked as invalid
+"""
 function find_bus_indices(bus_to_idx, active_pv, PV_BUS)
-    # 将PV总线号传回CPU
+    # Transfer PV bus numbers back to CPU
     bus_nums = Array(Int.(active_pv[:, PV_BUS]))
     n = length(bus_nums)
     
-    # 创建结果数组
+    # Create result arrays
     valid_pv = falses(n)
     bus_indices = zeros(Int, n)
     
-    # 处理每个总线号
+    # Process each bus number
     for i in 1:n
         bus_id = bus_nums[i]
         if haskey(bus_to_idx, bus_id)
@@ -280,12 +367,35 @@ function find_bus_indices(bus_to_idx, active_pv, PV_BUS)
     return valid_pv, bus_indices
 end
 
-# 处理PV连接
+"""
+    process_pv_connections(bus_gpu, active_pv, BUS_I, PV_BUS)
+
+Process the connections between PV arrays and buses in the power system.
+
+# Arguments
+- `bus_gpu`: Bus data matrix on GPU with columns representing bus parameters
+- `active_pv`: PV array data matrix with columns representing PV parameters
+- `BUS_I`: Column index for bus number in bus_gpu matrix
+- `PV_BUS`: Column index for connected bus number in active_pv matrix
+
+# Returns
+- `valid_pv`: Boolean array indicating which PV arrays are connected to valid buses
+- `bus_indices`: Array of bus indices corresponding to each valid PV array
+
+# Description
+This function coordinates the process of mapping PV arrays to their connected buses
+in the power system. It creates a mapping from bus numbers to indices, then uses this
+mapping to identify which PV arrays are connected to valid buses in the system.
+
+# Notes
+- This is a wrapper function that calls create_bus_mapping and find_bus_indices
+- The function handles the complete process of validating PV-to-bus connections
+"""
 function process_pv_connections(bus_gpu, active_pv, BUS_I, PV_BUS)
-    # 创建映射字典
+    # Create mapping dictionary
     bus_to_idx = create_bus_mapping(bus_gpu, BUS_I)
     
-    # 查找总线索引
+    # Find bus indices
     valid_pv, bus_indices = find_bus_indices(bus_to_idx, active_pv, PV_BUS)
     
     return valid_pv, bus_indices

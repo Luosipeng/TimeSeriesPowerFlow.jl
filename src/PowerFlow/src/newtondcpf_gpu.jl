@@ -1,5 +1,53 @@
+"""
+    newtondcpf_gpu(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
 
+Solve DC power flow using Newton's method with GPU acceleration.
 
+# Arguments
+- `baseMVA`: Base MVA for the system
+- `bus`: Bus data matrix with columns representing bus parameters
+- `gen`: Generator data matrix with columns representing generator parameters
+- `load`: Load data matrix with columns representing load parameters
+- `pvarray`: PV array data matrix with columns representing PV parameters
+- `Ybus`: Admittance matrix of the power system
+- `V0`: Initial voltage vector
+- `ref`: Index of reference bus
+- `p`: Vector of indices of PV and PQ buses (non-reference buses)
+- `tol0`: Convergence tolerance for the solution
+- `max_it0`: Maximum number of iterations
+- `alg`: Linear solver algorithm (default: "")
+
+# Returns
+- `V`: Final voltage vector (real part only, as this is DC power flow)
+- `converged`: Boolean indicating whether the algorithm converged
+- `i`: Number of iterations performed
+
+# Description
+This function solves the DC power flow problem using Newton's method with GPU acceleration.
+It iteratively updates the voltage angles to minimize power mismatches at non-reference buses.
+The function transfers all necessary data to the GPU for faster computation.
+
+The algorithm follows these steps:
+1. Initialize voltage vector and transfer data to GPU
+2. Calculate initial power mismatches
+3. For each iteration:
+   a. Compute the Jacobian matrix
+   b. Solve the linear system to find the voltage update
+   c. Update the voltage vector
+   d. Check for convergence based on power mismatches
+
+# Notes
+- This implementation is specifically for DC power flow, focusing on real power and voltage angles
+- All matrices and vectors are transferred to GPU for accelerated computation
+- The function handles PV arrays as additional power injections
+- The Jacobian accounts for voltage-dependent loads through the makeSbus_gpu function
+- The solution returns only the real part of the voltage vector
+
+# Related Functions
+- `makeSbus_gpu`: Calculates power injections at buses
+- `dSbus_dV`: Calculates derivatives of power injections with respect to voltage
+- `julinsolve`: Solves the linear system for the Newton update
+"""
 function newtondcpf_gpu(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, max_it0, alg="")
     tol = tol0
     max_it = max_it0
