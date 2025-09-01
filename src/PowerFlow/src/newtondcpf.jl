@@ -69,7 +69,7 @@ function newtondcpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, tol0, ma
         # Evaluate Jacobian
         dSbus_dVa, dSbus_dVm = PowerFlow.dSbus_dV(Ybus, V)
         neg_dSd_dVm = PowerFlow.makeSbus(baseMVA, bus, gen, V, load, pvarray, return_derivative=true)
-        dSbus_dVm .-= neg_dSd_dVm
+        dSbus_dVm -= neg_dSd_dVm
 
         J = real(dSbus_dVm[p,p])
 

@@ -13,7 +13,10 @@ module PowerFlow
     using IncompleteLU
     using KrylovKit
     using Krylov
+    using KrylovPreconditioners
     using LinearOperators
+    using CUDA
+    using CUDA.CUSPARSE
     # using AlgebraicMultigrid
     using XLSX
     using DataFrames
@@ -80,9 +83,10 @@ module PowerFlow
     include(joinpath(@__DIR__,"merge_results.jl"))
     include(joinpath(@__DIR__,"process_result.jl"))
     include(joinpath(@__DIR__,"result_compare_etap.jl"))
-    # include(joinpath(@__DIR__,"makeSbus_gpu.jl"))
-    # include(joinpath(@__DIR__,"newtonpf_gpu.jl"))
-    # include(joinpath(@__DIR__,"makeSdzip_gpu.jl"))
+    include(joinpath(@__DIR__,"makeSbus_gpu.jl"))
+    include(joinpath(@__DIR__,"newtonpf_gpu.jl"))
+    include(joinpath(@__DIR__,"makeSdzip_gpu.jl"))
+    include(joinpath(@__DIR__,"newtondcpf_gpu.jl"))
     include(joinpath(@__DIR__,"runupf.jl"))
 
 

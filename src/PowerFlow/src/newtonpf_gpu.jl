@@ -41,7 +41,7 @@ The algorithm:
 - The function handles both real and reactive power balance constraints
 - Data is transferred between CPU and GPU as needed for computation
 """
-function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0, alg="gpuLU")
+function newtonpf_gpu(baseMVA,bus,gen,load,pvarray, Ybus, V0, ref, pv, pq, tol0, max_it0, alg="gpuLU")
     tol = tol0
     max_it = max_it0
     lin_solver = Char[]
@@ -54,16 +54,17 @@ function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0
     Vm = abs.(V)
     nb = length(V)
 
-    #Transfer to GPU
-    V_gpu = PowerFlow.CuVector(V)
-    Va_gpu = PowerFlow.CuVector(Va)
-    Vm_gpu = PowerFlow.CuVector(Vm)
-    Ybus_gpu = PowerFlow.CuSparseMatrixCSR(Ybus)
+    # Transfer to GPU
+    V_gpu = CuVector(V)
+    Va_gpu = CuVector(Va)
+    Vm_gpu = CuVector(Vm)
+    Ybus_gpu = CUDA.CUSPARSE.CuSparseMatrixCSR(Ybus)
 
     #Transfer matrix to GPU
-    bus_gpu = PowerFlow.CuArray(bus)
-    gen_gpu = PowerFlow.CuArray(gen)
-    load_gpu = PowerFlow.CuArray(load)
+    bus_gpu = CuArray(bus)
+    gen_gpu = CuArray(gen)
+    load_gpu = CuArray(load)
+    pvarray_gpu = CuArray(pvarray)
     # Set up indexing for updating V
     npv = length(pv)
     npq = length(pq)
@@ -82,10 +83,10 @@ function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0
     Cpq_index_transpose = sparse( pq,1:npq, ones(ComplexF64,npq), nb,npq)
     Cpq_index_transpose=CuSparseMatrixCSR(Cpq_index_transpose)
 
-    Cpv_index = PowerFlow.sparse(1:npv, pv, ones(ComplexF64,npv), npv, nb);
-    Cpv_index=PowerFlow.CuSparseMatrixCSR(Cpv_index)
+    Cpv_index = sparse(1:npv, pv, ones(ComplexF64,npv), npv, nb);
+    Cpv_index=CuSparseMatrixCSR(Cpv_index)
     # Evaluate F(x0)
-    mis = V_gpu .* conj.(Ybus_gpu * V_gpu) - PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu)
+    mis = V_gpu .* conj.(Ybus_gpu * V_gpu) - PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_gpu)
     F = [real(mis[vcat(pv, pq)]); imag(mis[pq])]
      # Check tolerance
     normF = norm(F, Inf)
@@ -100,7 +101,7 @@ function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0
 
         # Evaluate Jacobian
         dSbus_dVa, dSbus_dVm = PowerFlow.dSbus_dV(Ybus_gpu, V_gpu)
-        neg_dSd_dVm = PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, return_derivative=true)
+        neg_dSd_dVm = PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_gpu, return_derivative=true)
         dSbus_dVm -= neg_dSd_dVm
 
         j11 = real(Cpv_pq_index*dSbus_dVa*Cpv_pq_index_transpose);
@@ -131,7 +132,7 @@ function newtonpf_gpu(baseMVA,bus,gen,load, Ybus, V0, ref, pv, pq, tol0, max_it0
         Va_gpu = angle.(V_gpu)
 
         # Evaluate F(x)
-        mis = V_gpu .* conj.(Ybus_gpu * V_gpu) - PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu)
+        mis = V_gpu .* conj.(Ybus_gpu * V_gpu) - PowerFlow.makeSbus_gpu(baseMVA, bus_gpu, gen_gpu, gen, Vm_gpu, load_gpu, pvarray_gpu)
         F = [real(mis[vcat(pv, pq)]); imag(mis[pq])]
 
         # Check for convergence

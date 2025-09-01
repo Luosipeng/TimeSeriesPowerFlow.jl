@@ -109,7 +109,7 @@ function runpf(mpc, opt::Dict{String})
             ## run the power flow is NR is selected
             if alg == "NR"
                 if gpu_flag == 1
-                    V, success, iterations = PowerFlow.newtonpf_gpu(baseMVA, bus, gen, load, Ybus, V0, ref, pv, pq, opt["PF"]["PF_TOL"], opt["PF"]["PF_MAX_IT"], opt["PF"]["NR_ALG"]);
+                    V, success, iterations = PowerFlow.newtonpf_gpu(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, pv, pq, opt["PF"]["PF_TOL"], opt["PF"]["PF_MAX_IT"], opt["PF"]["NR_ALG"]);
                 else
                     V, success, iterations,norm_history = PowerFlow.newtonpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, pv, pq, opt["PF"]["PF_TOL"], opt["PF"]["PF_MAX_IT"], opt["PF"]["NR_ALG"]);
                 end

@@ -81,10 +81,10 @@ function julinsolve(A, b, solver = "", opt = nothing)
         x = IterativeSolvers.gmres(A, b, Pl=ilu_fact, reltol=1e-8, maxiter = 1000)
     elseif solver == "bicgstab"
         n = size(A,1)
-        F = ilu(A, τ = 0.05)
-        opM = LinearOperator(Float64, n, n, false, false, (y, v) -> forward_substitution!(y, F, v))
-        opN = LinearOperator(Float64, n, n, false, false, (y, v) -> backward_substitution!(y, F, v))
-        x , stats = bicgstab(A, b, history=false, M=opM, N=opN)
+        F = IncompleteLU.ilu(A, τ = 0.05)
+        opM = LinearOperator(Float64, n, n, false, false, (y, v) -> IncompleteLU.forward_substitution!(y, F, v))
+        opN = LinearOperator(Float64, n, n, false, false, (y, v) -> IncompleteLU.backward_substitution!(y, F, v))
+        x , info = bicgstab(A, b, history=false, M=opM, N=opN)
     elseif solver == "cgs"
         x = cgs(A, b, rtol=1e-8, itmax=1000)
     elseif solver == "gpuLU"
@@ -95,6 +95,26 @@ function julinsolve(A, b, solver = "", opt = nothing)
         cudss("analysis", solver, x, b)
         cudss("factorization", solver, x, b)
         cudss("solve", solver, x, b)
+    elseif solver == "gmres_gpu"
+        opA = KrylovOperator(A)
+        x, info = gmres(opA, b)
+    elseif solver =="lsqr_gpu"
+        x, info = lsqr(A, b)
+    elseif solver == "bicgstab_gpu"
+        # ILU(0) decomposition LU ≈ A for CuSparseMatrixCSC or CuSparseMatrixCSR matrices
+        P = ilu02(A)
+
+        # Additional vector required for solving triangular systems
+        n = length(b)
+        T = eltype(b)
+        z = CUDA.zeros(T, n)
+
+        # Operator that model P⁻¹
+        symmetric = hermitian = false
+        opM = LinearOperator(T, n, n, symmetric, hermitian, (y, x) -> ldiv_ilu0!(P, x, y, z))
+
+        # Solve a non-Hermitian system with an ILU(0) preconditioner on GPU
+        x, info = bicgstab(A, b, M=opM)
     else
         error("mplinsolve: '$solver' is not a valid value for SOLVER, using default.")
         x = A \ b
@@ -102,3 +122,17 @@ function julinsolve(A, b, solver = "", opt = nothing)
 
     return x, info
 end
+
+
+  # Solve Py = x
+  function ldiv_ilu0!(P::CuSparseMatrixCSR, x, y, z)
+    ldiv!(z, UnitLowerTriangular(P), x)  # Forward substitution with L
+    ldiv!(y, UpperTriangular(P), z)      # Backward substitution with U
+    return y
+  end
+
+  function ldiv_ilu0!(P::CuSparseMatrixCSC, x, y, z)
+    ldiv!(z, LowerTriangular(P), x)      # Forward substitution with L
+    ldiv!(y, UnitUpperTriangular(P), z)  # Backward substitution with U
+    return y
+  end

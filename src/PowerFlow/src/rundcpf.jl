@@ -16,6 +16,7 @@ function rundcpf(mpc, opt::Dict{String})
     branch = mpc["branchDC"];   
     load = mpc["loadDC"];
     pvarray = mpc["pv"]
+    gpu_flag = opt["PF"]["GPU_ACCELERATION"];  ## use GPU acceleration?
     success = false;
     # convert the external data to internal data 
     (bus, gen, branch, load, pvarray, i2e) = PowerFlow.ext2int(bus, gen, branch, load, pvarray);
@@ -36,7 +37,11 @@ function rundcpf(mpc, opt::Dict{String})
     while (repeat>0)
         ## function for computing V dependent complex bus power injections
         if alg == "NR"
-            V, success, iterations = newtondcpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, opt["PF"]["PF_DC_TOL"], opt["PF"]["PF_DC_MAX_IT"], opt["PF"]["NR_ALG"]);
+            if gpu_flag == 1 
+                V, success, iterations = newtondcpf_gpu(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, opt["PF"]["PF_DC_TOL"], opt["PF"]["PF_DC_MAX_IT"], opt["PF"]["NR_ALG"])
+            else
+                V, success, iterations = newtondcpf(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, opt["PF"]["PF_DC_TOL"], opt["PF"]["PF_DC_MAX_IT"], opt["PF"]["NR_ALG"]);
+            end
             # V, success, iterations =  PowerFlow.adaptive_damped_newton(baseMVA, bus, gen, load, pvarray, Ybus, V0, ref, p, opt["PF"]["PF_DC_TOL"], opt["PF"]["PF_DC_MAX_IT"], opt["PF"]["NR_ALG"]);
             its += iterations;
         end
