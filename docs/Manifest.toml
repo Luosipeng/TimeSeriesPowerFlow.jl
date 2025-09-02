@@ -2,7 +2,7 @@
 
 julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "f0fb95c8b5e7afb760664403bab7f737e5e8fd8d"
+project_hash = "a81ccbae47d665636e2abe12f2425c92deb20970"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -148,11 +148,6 @@ weakdeps = ["Dates", "LinearAlgebra"]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
-
-[[deps.ComponentModel]]
-path = "../src/ComponentModel"
-uuid = "f358b970-5d8f-11f0-2b89-2737ee465e2d"
-version = "0.0.0"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -939,11 +934,6 @@ git-tree-sha1 = "36d8b4b899628fb92c2749eb488d884a926614d3"
 uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
 version = "1.4.3"
 
-[[deps.PowerFlow]]
-path = "../src/PowerFlow"
-uuid = "c5956ac0-0e7c-433f-a167-1e414f239e52"
-version = "0.0.0"
-
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "5aa36f7049a63a1528fe8f7c3f2113413ffd4e1f"
@@ -1296,11 +1286,6 @@ version = "1.7.0"
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.2.0"
-
-[[deps.Utils]]
-path = "../src/Utils"
-uuid = "f63ba85b-a8d6-4e3f-8620-40a87d0e926b"
-version = "0.0.0"
 
 [[deps.VectorInterface]]
 deps = ["LinearAlgebra"]

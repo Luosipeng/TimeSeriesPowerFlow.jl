@@ -118,4 +118,6 @@ module TimeDomainPowerFlow
 
     export topology_analysis, options
     export load_julia_power_data
+    export create_time_series_storage_profile
+    
 end
