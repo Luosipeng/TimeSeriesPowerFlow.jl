@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>ComponentModel · TimeSeriesPowerFlow.jl</title><meta name="title" content="ComponentModel · TimeSeriesPowerFlow.jl"/><meta property="og:title" content="ComponentModel · TimeSeriesPowerFlow.jl"/><meta property="twitter:title" content="ComponentModel · TimeSeriesPowerFlow.jl"/><meta name="description" content="Documentation for TimeSeriesPowerFlow.jl."/><meta property="og:description" content="Documentation for TimeSeriesPowerFlow.jl."/><meta property="twitter:description" content="Documentation for TimeSeriesPowerFlow.jl."/><meta property="og:url" content="https://Luosipeng.github.io/TimeSeriesPowerFlow.jl/modules/componentmodel/"/><meta property="twitter:url" content="https://Luosipeng.github.io/TimeSeriesPowerFlow.jl/modules/componentmodel/"/><link rel="canonical" href="https://Luosipeng.github.io/TimeSeriesPowerFlow.jl/modules/componentmodel/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Module</span><ul><li><a class="tocitem" href="../overview/">Overview</a></li><li class="is-active"><a class="tocitem" href>ComponentModel</a><ul class="internal"><li><a class="tocitem" href="#AC-Power-System-Components"><span>AC Power System Components</span></a></li><li><a class="tocitem" href="#Converters"><span>Converters</span></a></li><li><a class="tocitem" href="#DC-Components"><span>DC Components</span></a></li><li><a class="tocitem" href="#Hybrid-AC/DC-Systems"><span>Hybrid AC/DC Systems</span></a></li><li><a class="tocitem" href="#Carbon-Emission-Models"><span>Carbon Emission Models</span></a></li><li><a class="tocitem" href="#Advanced-Applications"><span>Advanced Applications</span></a></li></ul></li><li><a class="tocitem" href="../utils/">Utils</a></li><li><a class="tocitem" href="../powerflow/">PowerFlow</a></li><li><a class="tocitem" href="../timedomainpowerflow/">TimeDomainPowerFlow</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/componentmodel/">ComponentModel API</a></li><li><a class="tocitem" href="../../api/utils/">Utils API</a></li><li><a class="tocitem" href="../../api/powerflow/">PowerFlow API</a></li><li><a class="tocitem" href="../../api/timedomainpowerflow/">TimeDomainPowerFlow API</a></li><li><a class="tocitem" href="../../api/timeseriespowerflow/">TimeSeriesPowerFlow API</a></li></ul></li><li><a class="tocitem" href="../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Module</a></li><li class="is-active"><a href>ComponentModel</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>ComponentModel</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Luosipeng/TimeSeriesPowerFlow.jl.git" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/master/docs/src/modules/componentmodel.md#L" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="ComponentModel-Module"><a class="docs-heading-anchor" href="#ComponentModel-Module">ComponentModel Module</a><a id="ComponentModel-Module-1"></a><a class="docs-heading-anchor-permalink" href="#ComponentModel-Module" title="Permalink"></a></h1><p>The ComponentModel module provides a comprehensive framework for modeling and simulating power systems, including AC, DC, and hybrid AC/DC components, as well as carbon emission models. This document outlines the key components and their usage within the module.</p><h2 id="AC-Power-System-Components"><a class="docs-heading-anchor" href="#AC-Power-System-Components">AC Power System Components</a><a id="AC-Power-System-Components-1"></a><a class="docs-heading-anchor-permalink" href="#AC-Power-System-Components" title="Permalink"></a></h2><p>AC components serve as the fundamental building blocks for constructing power system models, including buses, lines, transformers, generators, and loads.</p><h3 id="Bus-Components"><a class="docs-heading-anchor" href="#Bus-Components">Bus Components</a><a id="Bus-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Bus-Components" title="Permalink"></a></h3><p>Buses are nodes in power systems that connect various devices such as generators, loads, lines, and transformers.</p><pre><code class="language-julia hljs"># Create a new bus
+bus1 = Bus(
+    index = 1,
+    name = &quot;Bus 1&quot;,
+    vn_kv = 110.0,  # Nominal voltage (kV)
+    type = &quot;b&quot;,     # Slack bus
+    zone = 1,
+    v_pu = 1.0,     # Initial voltage (per unit)
+    theta_degree = 0.0  # Initial angle (degrees)
+)</code></pre><h3 id="Line-Components"><a class="docs-heading-anchor" href="#Line-Components">Line Components</a><a id="Line-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Line-Components" title="Permalink"></a></h3><p>Line components model AC transmission and distribution lines through impedance parameters.</p><pre><code class="language-julia hljs"># Create a new line
+line1 = Line(
+    index = 1,
+    name = &quot;Line 1-2&quot;,
+    from_bus = 1,
+    to_bus = 2,
+    length_km = 10.0,
+    r_ohm_per_km = 0.1,  # Resistance per km (Ω/km)
+    x_ohm_per_km = 0.3,  # Reactance per km (Ω/km)
+    c_nf_per_km = 10.0,  # Capacitance per km (nF/km)
+    max_i_ka = 0.5,      # Maximum current capacity (kA)
+    df = 1.0,            # Derating factor
+    parallel = 1         # Number of parallel lines
+)</code></pre><h3 id="Transformer-Components"><a class="docs-heading-anchor" href="#Transformer-Components">Transformer Components</a><a id="Transformer-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Transformer-Components" title="Permalink"></a></h3><p>Transformer components model voltage conversion devices connecting buses at different voltage levels.</p><pre><code class="language-julia hljs"># Create a two-winding transformer
+transformer = Transformer2W(
+    index = 1,
+    name = &quot;T1&quot;,
+    std_type = &quot;160 MVA 110/20 kV&quot;,
+    hv_bus = 1,       # High voltage bus
+    lv_bus = 2,       # Low voltage bus
+    sn_mva = 160.0,   # Rated power (MVA)
+    vn_hv_kv = 110.0, # HV rated voltage (kV)
+    vn_lv_kv = 20.0,  # LV rated voltage (kV)
+    vk_percent = 10.0,# Short-circuit impedance (%)
+    vkr_percent = 0.3,# Short-circuit losses (%)
+    pfe_kw = 60.0,    # Iron losses (kW)
+    i0_percent = 0.1, # No-load current (%)
+    shift_degree = 0.0,# Phase shift angle (degrees)
+    tap_side = &quot;hv&quot;,  # Tap side (high voltage)
+    tap_pos = 0,      # Tap position
+    tap_neutral = 0,  # Neutral tap position
+    tap_min = -10,    # Minimum tap position
+    tap_max = 10      # Maximum tap position
+)</code></pre><h3 id="Generator-Components"><a class="docs-heading-anchor" href="#Generator-Components">Generator Components</a><a id="Generator-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Generator-Components" title="Permalink"></a></h3><p>Static generator components provide simplified modeling of generating units.</p><pre><code class="language-julia hljs"># Create a static generator
+gen = StaticGenerator(
+    index = 1,
+    name = &quot;Generator 1&quot;,
+    bus = 1,           # Connected bus number
+    p_mw = 100.0,      # Active power output (MW)
+    q_mvar = 20.0,     # Reactive power output (MVar)
+    scaling = 1.0,     # Power scaling factor
+    max_p_mw = 150.0,  # Maximum active power limit (MW)
+    min_p_mw = 50.0,   # Minimum active power limit (MW)
+    max_q_mvar = 50.0, # Maximum reactive power limit (MVar)
+    min_q_mvar = -50.0 # Minimum reactive power limit (MVar)
+)</code></pre><h3 id="Load-Components"><a class="docs-heading-anchor" href="#Load-Components">Load Components</a><a id="Load-Components-1"></a><a class="docs-heading-anchor-permalink" href="#Load-Components" title="Permalink"></a></h3><p>Load components model power consumption in electrical systems.</p><pre><code class="language-julia hljs"># Create a load
+load = Load(
+    index = 1,
+    name = &quot;Load 1&quot;,
+    bus = 2,          # Connected bus number
+    p_mw = 50.0,      # Active power demand (MW)
+    q_mvar = 10.0,    # Reactive power demand (MVar)
+    scaling = 1.0,    # Power scaling factor
+    type = &quot;wye&quot;      # Load type (Y-connected)
+)</code></pre><h3 id="Network-Construction-Example"><a class="docs-heading-anchor" href="#Network-Construction-Example">Network Construction Example</a><a id="Network-Construction-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Network-Construction-Example" title="Permalink"></a></h3><pre><code class="language-julia hljs">using ComponentModel
+using Utils
+
+# Create power system model
+case = JuliaPowerCase()
+
+# Add buses
+bus1 = Bus(1, &quot;Bus 1&quot;, 110.0, &quot;b&quot;, 1, 1.0, 0.0)
+bus2 = Bus(2, &quot;Bus 2&quot;, 110.0, &quot;pq&quot;, 1, 1.0, 0.0)
+bus3 = Bus(3, &quot;Bus 3&quot;, 20.0, &quot;pq&quot;, 1, 1.0, 0.0)
+push!(case.busesAC, bus1)
+push!(case.busesAC, bus2)
+push!(case.busesAC, bus3)
+
+# Add generator
+gen = StaticGenerator(1, &quot;Gen 1&quot;, 1, 100.0, 20.0, 1.0, 150.0, 50.0, 50.0, -50.0)
+push!(case.gensAC, gen)
+
+# Add line
+line = Line(1, &quot;Line 1-2&quot;, 1, 2, 10.0, 0.1, 0.3, 10.0, 0.5, 1.0, 1)
+push!(case.branchesAC, line)
+
+# Add transformer
+transformer = Transformer2W(1, &quot;T1&quot;, &quot;160 MVA 110/20 kV&quot;, 2, 3, 160.0, 110.0, 20.0, 10.0, 0.3, 60.0, 0.1, 0.0, &quot;hv&quot;, 0, 0, -10, 10)
+push!(case.transformers_2w, transformer)
+
+# Add load
+load = Load(1, &quot;Load 1&quot;, 3, 50.0, 10.0, 1.0, &quot;wye&quot;)
+push!(case.loadsAC, load)
+</code></pre><h2 id="Converters"><a class="docs-heading-anchor" href="#Converters">Converters</a><a id="Converters-1"></a><a class="docs-heading-anchor-permalink" href="#Converters" title="Permalink"></a></h2><p>Converters model power electronic interfaces between AC and DC systems in power networks.</p><h3 id="Converter-Structure"><a class="docs-heading-anchor" href="#Converter-Structure">Converter Structure</a><a id="Converter-Structure-1"></a><a class="docs-heading-anchor-permalink" href="#Converter-Structure" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a new converter
+converter = Converter(
+    index = 1,
+    name = &quot;VSC1&quot;,
+    bus_ac = 5,         # Connected AC bus number
+    bus_dc = 101,       # Connected DC bus number
+    p_mw = 100.0,       # Active power transfer (MW)
+    q_mvar = 25.0,      # Reactive power at AC side (MVar)
+    vm_ac_pu = 1.0,     # AC voltage magnitude (per unit)
+    vm_dc_pu = 1.05,    # DC voltage magnitude (per unit)
+    loss_percent = 1.5, # Losses as percentage of active power
+    loss_mw = 1.5,      # Losses (MW)
+    max_p_mw = 200.0,   # Maximum active power limit (MW)
+    min_p_mw = -200.0,  # Minimum active power limit (MW)
+    max_q_mvar = 100.0, # Maximum reactive power limit (MVar)
+    min_q_mvar = -100.0,# Minimum reactive power limit (MVar)
+    control_mode = &quot;P-Q&quot;, # Control mode
+    droop_kv = 0.0,     # DC voltage droop parameter
+    in_service = true,  # Operational status
+    controllable = true # Controllability status
+)</code></pre><h3 id="Control-Modes"><a class="docs-heading-anchor" href="#Control-Modes">Control Modes</a><a id="Control-Modes-1"></a><a class="docs-heading-anchor-permalink" href="#Control-Modes" title="Permalink"></a></h3><p>Converters can operate in different control modes:</p><ol><li><strong>P-Q Mode</strong>: The converter controls active and reactive power</li><li><strong>Vdc-Q Mode</strong>: The converter controls DC voltage and reactive power</li><li><strong>P-Vac Mode</strong>: The converter controls active power and AC voltage</li><li><strong>Vdc-Vac Mode</strong>: The converter controls DC voltage and AC voltage</li></ol><h3 id="Integration-Example"><a class="docs-heading-anchor" href="#Integration-Example">Integration Example</a><a id="Integration-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-Example" title="Permalink"></a></h3><pre><code class="language-julia hljs">using ComponentModel
+using Utils
+
+# Create power system model
+case = JuliaPowerCase()
+
+# Add AC and DC buses
+ac_bus = Bus(1, &quot;AC Bus&quot;, 400.0, &quot;pq&quot;, 1, 1.0, 0.0)
+dc_bus = DCBus(101, &quot;DC Bus&quot;, 500.0, 1.0)
+push!(case.busesAC, ac_bus)
+push!(case.busesDC, dc_bus)
+
+# Add converter
+converter = Converter(
+    1, &quot;VSC1&quot;, 1, 101, 100.0, 25.0, 1.0, 1.05, 
+    1.5, 1.5, 200.0, -200.0, 100.0, -100.0, 
+    &quot;P-Q&quot;, 0.0, true, true
+)
+push!(case.converters, converter)
+</code></pre><h2 id="DC-Components"><a class="docs-heading-anchor" href="#DC-Components">DC Components</a><a id="DC-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Components" title="Permalink"></a></h2><p>DC components serve as building blocks for constructing DC power system models.</p><h3 id="DC-Bus-Components"><a class="docs-heading-anchor" href="#DC-Bus-Components">DC Bus Components</a><a id="DC-Bus-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Bus-Components" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a new DC bus
+dc_bus = BusDC(
+    index = 101,
+    name = &quot;DC Bus 1&quot;,
+    vn_kv = 500.0,  # Nominal voltage (kV)
+    type = &quot;b&quot;,     # Slack bus
+    zone = 1,
+    v_pu = 1.0,     # Initial voltage (per unit)
+    in_service = true
+)</code></pre><h3 id="DC-Line-Components"><a class="docs-heading-anchor" href="#DC-Line-Components">DC Line Components</a><a id="DC-Line-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Line-Components" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a new DC line
+dc_line = LineDC(
+    index = 1,
+    name = &quot;DC Line 1-2&quot;,
+    from_bus = 101,
+    to_bus = 102,
+    length_km = 100.0,
+    r_ohm_per_km = 0.01,  # Resistance per km (Ω/km)
+    max_i_ka = 2.0,       # Maximum current capacity (kA)
+    in_service = true
+)</code></pre><h3 id="DC-Generator-Components"><a class="docs-heading-anchor" href="#DC-Generator-Components">DC Generator Components</a><a id="DC-Generator-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Generator-Components" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a DC static generator
+dc_gen = StaticGeneratorDC(
+    index = 1,
+    name = &quot;DC Generator 1&quot;,
+    bus = 101,         # Connected DC bus number
+    p_mw = 200.0,      # Active power output (MW)
+    scaling = 1.0,     # Power scaling factor
+    max_p_mw = 300.0,  # Maximum active power limit (MW)
+    min_p_mw = 0.0,    # Minimum active power limit (MW)
+    in_service = true
+)</code></pre><h3 id="DC-Load-Components"><a class="docs-heading-anchor" href="#DC-Load-Components">DC Load Components</a><a id="DC-Load-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Load-Components" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a DC load
+dc_load = LoadDC(
+    index = 1,
+    name = &quot;DC Load 1&quot;,
+    bus = 102,          # Connected DC bus number
+    p_mw = 150.0,       # Active power demand (MW)
+    const_z_percent = 0.0,  # Percentage of constant impedance load
+    const_i_percent = 0.0,  # Percentage of constant current load
+    const_p_percent = 100.0, # Percentage of constant power load
+    scaling = 1.0,      # Power scaling factor
+    in_service = true
+)</code></pre><h3 id="DC-Storage-Components"><a class="docs-heading-anchor" href="#DC-Storage-Components">DC Storage Components</a><a id="DC-Storage-Components-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Storage-Components" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a DC storage system
+dc_storage = Storage(
+    index = 1,
+    name = &quot;Battery Storage 1&quot;,
+    bus = 101,                # Connected DC bus number
+    power_capacity_mw = 50.0, # Maximum power capacity (MW)
+    energy_capacity_mwh = 200.0, # Energy storage capacity (MWh)
+    soc_init = 0.5,           # Initial state of charge (50%)
+    min_soc = 0.1,            # Minimum allowed state of charge (10%)
+    max_soc = 0.9,            # Maximum allowed state of charge (90%)
+    efficiency = 0.95,        # Round-trip efficiency
+    self_discharge = 0.001,   # Self-discharge rate per hour
+    p_mw = 0.0,               # Initial active power (MW, positive for charging)
+    in_service = true
+)</code></pre><h3 id="DC-Network-Construction-Example"><a class="docs-heading-anchor" href="#DC-Network-Construction-Example">DC Network Construction Example</a><a id="DC-Network-Construction-Example-1"></a><a class="docs-heading-anchor-permalink" href="#DC-Network-Construction-Example" title="Permalink"></a></h3><pre><code class="language-julia hljs">using ComponentModel
+using Utils
+
+# Create DC power system model
+case = JuliaPowerCase()
+
+# Add DC buses
+bus1 = BusDC(101, &quot;DC Bus 1&quot;, 500.0, &quot;b&quot;, 1, 1.0, true)
+bus2 = BusDC(102, &quot;DC Bus 2&quot;, 500.0, &quot;pq&quot;, 1, 1.0, true)
+push!(case.busesDC, bus1)
+push!(case.busesDC, bus2)
+
+# Add DC generator
+gen = StaticGeneratorDC(1, &quot;DC Gen 1&quot;, 101, 200.0, 1.0, 300.0, 0.0, true)
+push!(case.sgensDC, gen)
+
+# Add DC line
+line = LineDC(1, &quot;DC Line 1-2&quot;, 101, 102, 100.0, 0.01, 2.0, true)
+push!(case.branchesDC, line)
+
+# Add DC load
+load = LoadDC(1, &quot;DC Load 1&quot;, 102, 150.0, 0.0, 0.0, 100.0, 1.0, true)
+push!(case.loadsDC, load)
+
+# Add DC storage
+storage = Storage(1, &quot;Battery 1&quot;, 101, 50.0, 200.0, 0.5, 0.1, 0.9, 0.95, 0.001, 0.0, true)
+push!(case.storages, storage)
+</code></pre><h2 id="Hybrid-AC/DC-Systems"><a class="docs-heading-anchor" href="#Hybrid-AC/DC-Systems">Hybrid AC/DC Systems</a><a id="Hybrid-AC/DC-Systems-1"></a><a class="docs-heading-anchor-permalink" href="#Hybrid-AC/DC-Systems" title="Permalink"></a></h2><p>DC components can be integrated with AC components to form hybrid AC/DC power systems through converter components.</p><pre><code class="language-julia hljs">using ComponentModel
+using Utils
+
+# Create hybrid power system model
+case = JuliaPowerCase()
+
+# Add AC buses
+ac_bus1 = Bus(1, &quot;AC Bus 1&quot;, 400.0, &quot;b&quot;, 1, 1.0, 0.0)
+ac_bus2 = Bus(2, &quot;AC Bus 2&quot;, 400.0, &quot;pq&quot;, 1, 1.0, 0.0)
+push!(case.busesAC, ac_bus1)
+push!(case.busesAC, ac_bus2)
+
+# Add DC buses
+dc_bus1 = BusDC(101, &quot;DC Bus 1&quot;, 500.0, &quot;b&quot;, 1, 1.0, true)
+dc_bus2 = BusDC(102, &quot;DC Bus 2&quot;, 500.0, &quot;pq&quot;, 1, 1.0, true)
+push!(case.busesDC, dc_bus1)
+push!(case.busesDC, dc_bus2)
+
+# Add AC generator
+ac_gen = StaticGenerator(1, &quot;AC Gen&quot;, 1, 300.0, 100.0, 1.0, 500.0, 0.0, 200.0, -200.0)
+push!(case.sgensAC, ac_gen)
+
+# Add DC generator
+dc_gen = StaticGeneratorDC(1, &quot;DC Gen&quot;, 102, 100.0, 1.0, 200.0, 0.0, true)
+push!(case.sgensDC, dc_gen)
+
+# Add converter between AC and DC
+converter = Converter(1, &quot;VSC&quot;, 2, 101, 150.0, 50.0, 1.0, 1.0, 1.0, 1.5, 200.0, -200.0, 100.0, -100.0, &quot;P-Q&quot;, 0.0, true, true)
+push!(case.converters, converter)
+
+</code></pre><h2 id="Carbon-Emission-Models"><a class="docs-heading-anchor" href="#Carbon-Emission-Models">Carbon Emission Models</a><a id="Carbon-Emission-Models-1"></a><a class="docs-heading-anchor-permalink" href="#Carbon-Emission-Models" title="Permalink"></a></h2><p>Carbon emission modeling components enable users to incorporate carbon emissions data into power system analyses.</p><h3 id="Carbon-Time-Series"><a class="docs-heading-anchor" href="#Carbon-Time-Series">Carbon Time Series</a><a id="Carbon-Time-Series-1"></a><a class="docs-heading-anchor-permalink" href="#Carbon-Time-Series" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a carbon time series entry
+carbon_ts = CarbonTimeSeries(
+    index = 1,
+    timestamp = DateTime(2025, 7, 8, 12, 0, 0),
+    grid_carbon_intensity_kgCO2e_per_MWh = 350.0,
+    renewable_generation_carbon_intensity_kgCO2e_per_MWh = 25.0,
+    storage_carbon_intensity_kgCO2e_per_MWh = 120.0
+)</code></pre><h3 id="Carbon-Scenarios"><a class="docs-heading-anchor" href="#Carbon-Scenarios">Carbon Scenarios</a><a id="Carbon-Scenarios-1"></a><a class="docs-heading-anchor-permalink" href="#Carbon-Scenarios" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create a carbon scenario
+carbon_scenario = CarbonScenario(
+    index = 1,
+    name = &quot;Net Zero 2050&quot;,
+    description = &quot;Scenario aligned with net zero emissions by 2050&quot;,
+    year = 2050,
+    grid_carbon_intensity_kgCO2e_per_MWh = 50.0,
+    renewable_penetration_percent = 85.0,
+    ev_adoption_percent = 95.0,
+    storage_capacity_mwh = 500000.0
+)</code></pre><h3 id="Equipment-Carbon-Models"><a class="docs-heading-anchor" href="#Equipment-Carbon-Models">Equipment Carbon Models</a><a id="Equipment-Carbon-Models-1"></a><a class="docs-heading-anchor-permalink" href="#Equipment-Carbon-Models" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Create an equipment carbon record
+equipment_carbon = EquipmentCarbon(
+    index = 1,
+    element_type = &quot;transformer&quot;,
+    element_id = 101,
+    carbon_embodied_kgCO2e = 25000.0,
+    carbon_operational_kgCO2e_per_year = 500.0,
+    lifetime_years = 30,
+    manufacturing_date = Date(2023, 3, 15),
+    installation_date = Date(2023, 6, 10),
+    recycling_rate_percent = 75.0
+)</code></pre><h3 id="Carbon-Reduction-Strategies"><a class="docs-heading-anchor" href="#Carbon-Reduction-Strategies">Carbon Reduction Strategies</a><a id="Carbon-Reduction-Strategies-1"></a><a class="docs-heading-anchor-permalink" href="#Carbon-Reduction-Strategies" title="Permalink"></a></h3><p>The carbon emission models support various strategies for reducing carbon emissions in power systems:</p><ol><li><strong>Equipment Replacement</strong>: Calculate the carbon payback period for replacing high-emission equipment.</li><li><strong>Scenario Analysis</strong>: Compare system emissions under different future scenarios.</li><li><strong>Temporal Optimization</strong>: Schedule operations to minimize carbon emissions based on time-varying carbon intensities.</li></ol><h2 id="Advanced-Applications"><a class="docs-heading-anchor" href="#Advanced-Applications">Advanced Applications</a><a id="Advanced-Applications-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-Applications" title="Permalink"></a></h2><p>ComponentModel components can be used for various power system analyses, including:</p><ol><li><strong>Power Flow Analysis</strong>: Determining voltage and power distribution under steady-state conditions</li><li><strong>Fault Analysis</strong>: Assessing the impact of short-circuit faults on the system</li><li><strong>Stability Analysis</strong>: Studying the dynamic behavior of the system following disturbances</li><li><strong>Optimal Dispatch</strong>: Determining the optimal output of generators to meet load demands</li><li><strong>HVDC Transmission</strong>: Long-distance bulk power transfer with minimal losses</li><li><strong>Renewable Integration</strong>: Connection of remote renewable energy sources to the grid</li><li><strong>Microgrids</strong>: Formation of DC or hybrid AC/DC microgrids</li><li><strong>Energy Storage</strong>: Integration of large-scale energy storage systems</li><li><strong>Environmental Impact Assessment</strong>: Evaluating carbon emissions and reduction strategies</li></ol><p>For more advanced application examples, refer to the relevant sections in the user manual.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../overview/">« Overview</a><a class="docs-footer-nextpage" href="../utils/">Utils »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.0 on <span class="colophon-date" title="Thursday 4 September 2025 12:44">Thursday 4 September 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
