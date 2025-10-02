@@ -195,7 +195,7 @@ function newtonpf(baseMVA::Float64, bus::Matrix{Float64}, gen::Matrix{Float64},
 
         # Evaluate Jacobian
         dSbus_dVa, dSbus_dVm = PowerFlow.dSbus_dV(Ybus, V)
-        neg_dSd_dVm = PowerFlow.makeSbus(baseMVA, bus, gen, Vm)
+        neg_dSd_dVm = PowerFlow.makeSbus(baseMVA, bus, gen, Vm, return_derivative=true)
         dSbus_dVm .-= neg_dSd_dVm
 
         j11 = real(dSbus_dVa[vcat(pv, pq), vcat(pv, pq)])

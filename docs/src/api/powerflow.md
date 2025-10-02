@@ -1,7 +1,7 @@
 # API Reference
 
 ```@meta
-CurrentModule = TimeSeriesPowerFlow
+CurrentModule = HyDistFlow
 ```
 
 ## Power Flow Algorithm

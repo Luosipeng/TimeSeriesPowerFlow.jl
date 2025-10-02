@@ -1,4 +1,4 @@
-name = "TimeSeriesPowerFlow"
+name = "HyDistFlow"
 uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
 authors = ["Sipeng Luo <SipengLuo@stu.xjtu.edu.cn>"]
 version = "0.1.1"

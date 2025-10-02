@@ -1,8 +1,8 @@
-# TimeSeriesPowerFlow.jl
+# HyDistFlow.jl
 
-*Time Series Power Flow Analysis Tool*
+*Hybrid AC/DC Distribution System Analysis Tool*
 
-TimeSeriesPowerFlow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a dynamic power flow simulation framework for distribution systems incorporating various renewable resources.
+HyDistFlow.jl is a Julia package developed by the HR-PES team of Xi'an Jiaotong University, which provides a static/dynamic power flow simulation framework for hybrid AC/DC distribution systems incorporating various renewable resources.
 
 ## 1. Features
 ### Features
@@ -15,7 +15,7 @@ TimeSeriesPowerFlow.jl is a Julia package developed by the HR-PES team of Xi'an 
 
 ### Project Structure
 
-TimeSeriesPowerFlow.jl contains four main modules:
+HyDistFlow.jl contains four main modules:
 
 - **ComponentModel**: Power system component modeling
 - **Utils**: General utility functions
@@ -30,31 +30,31 @@ You can install this package through Julia's package manager:
 
 ```julia
 using Pkg
-Pkg.add("TimeSeriesPowerFlow")
+Pkg.add("HyDistFlow")
 ```
 
 Or, if you want to use the latest development version:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Luosipeng/TimeSeriesPowerFlow.jl.git")
+Pkg.add(url="https://github.com/Luosipeng/HyDistFlow.jl.git")
 ```
 
 ## 3. Quick Start Example
 
 ### Quick Start
-Here's a simple example showing how to use TimeSeriesPowerFlow.jl to run the time series power flow:
+Here's a simple example showing how to use HyDistFlow.jl to run the time series power flow:
 
 ```julia
 # Add project path
-push!(LOAD_PATH, "/path/to/TimeSeriesPowerFlow")
+push!(LOAD_PATH, "/path/to/HyDistFlow")
 
 # Import modules
 using Dates
 using XLSX
 using DataFrames
 using Base.Threads
-using TimeSeriesPowerFlow
+using HyDistFlow
 
 # Input Data
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
@@ -110,29 +110,29 @@ This documentation is divided into the following sections:
   - [PowerFlow API](api/powerflow.md): API document of PowerFlow.jl
   - [TimeDomainPowerFlow API](api/timedomainpowerflow.md): API document of TimeDomainPowerFlow.jl
 
-- **[References](references.md)**: Citation information for TimeSeriesPowerFlow.jl and acknowledgments of referenced works and dependencies
+- **[References](references.md)**: Citation information for HyDistFlow.jl and acknowledgments of referenced works and dependencies
 
 ## 5. Contribution and License Information
 
 ### Contribution
 
-Contributions to TimeSeriesPowerFlow.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/master/CONTRIBUTING.md) for more information.
+Contributions to HyDistFlow.jl are welcome! Please refer to the [Contribution Guidelines](https://github.com/Luosipeng/HyDistFlow.jl/blob/master/CONTRIBUTING.md) for more information.
 
 ### License
 
-TimeSeriesPowerFlow.jl is licensed under the [MIT License](https://github.com/Luosipeng/TimeSeriesPowerFlow.jl/blob/master/LICENSE).
+HyDistFlow.jl is licensed under the [MIT License](https://github.com/Luosipeng/HyDistFlow.jl/blob/master/LICENSE).
 
 ## 6. Citation Information
 
 ### Citation
 
-If you use TimeSeriesPowerFlow.jl in your research, please cite:
+If you use HyDistFlow.jl in your research, please cite:
 
 ```bibtex
-@software{TimeSeriesPowerFlow2025,
+@software{HyDistFlow2025,
   author = {Sipeng Luo,Tianyang Zhao,Zhaohong Bie},
-  title = {TimeSeriesPowerFlow.jl: a Julia package for time series power flow analysis},
+  title = {HyDistFlow.jl: a Julia package for time series power flow analysis},
   year = {2025},
-  url = {https://github.com/Luosipeng/TimeSeriesPowerFlow.jl}
+  url = {https://github.com/Luosipeng/HyDistFlow.jl}
 }
 ```

@@ -2,7 +2,7 @@ using  Dates
 using  XLSX
 using  DataFrames
 using  Base.Threads
-using  TimeSeriesPowerFlow
+using  HyDistFlow
 
 file_path = joinpath(pwd(), "data", "test_case.xlsx")
 

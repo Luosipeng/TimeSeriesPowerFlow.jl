@@ -1,9 +1,9 @@
 """
-TimeSeriesPowerFlow
+HyDistFlow
 
-Time Series Power Flow module for power system analysis.
+Module for hybrid AC/DC Distribution system analysis.
 """
-module TimeSeriesPowerFlow
+module HyDistFlow
     using XLSX
     using DataFrames
     using Base.Threads
