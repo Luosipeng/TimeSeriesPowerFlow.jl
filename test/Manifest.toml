@@ -1215,7 +1215,7 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
-[[deps.TimeSeriesPowerFlow]]
+[[deps.HyDistFlow]]
 deps = ["AMD", "DataFrames", "DataStructures", "Dates", "Documenter", "Graphs", "IncompleteLU", "Ipopt", "IterativeSolvers", "JuMP", "Krylov", "KrylovKit", "LinearAlgebra", "LinearOperators", "Plots", "PrettyTables", "Printf", "SparseArrays", "StatsBase", "SuiteSparse", "Test", "XLSX"]
 path = ".."
 uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
