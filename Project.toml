@@ -1,7 +1,7 @@
 name = "HyDistFlow"
 uuid = "808fc52c-b686-440b-ab45-a6088d0d285e"
 authors = ["Sipeng Luo <SipengLuo@stu.xjtu.edu.cn>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 AMD = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
