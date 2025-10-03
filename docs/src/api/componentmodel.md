@@ -1,7 +1,7 @@
 # API Reference
 
 ```@meta
-CurrentModule = HyDistFlow
+CurrentModule = TimeSeriesPowerFlow
 ```
 
 ## AC Components
