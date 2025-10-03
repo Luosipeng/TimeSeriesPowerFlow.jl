@@ -43,6 +43,10 @@ module TimeSeriesPowerFlow
     using .Utils: convert_matpower_case
     using .TimeDomainPowerFlow: create_time_series_storage_profile, read_storage_profile_data
 
+    @warn("This package is deprecated.  Use HyDistFlow.jl instead:
+           pkg> update
+           pkg> add NEWNAME")
+
     # ... export other indexes defined in idx.jl ...
     # Export bus indices
     const PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, VA, BASE_KV, ZONE, VMAX, VMIN, 
